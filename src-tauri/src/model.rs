@@ -2,6 +2,8 @@
 //! the source systems, and SilentDesk keeps only what it needs to link items
 //! together. See docs/specs/data-model.md.
 
+use std::collections::{HashMap, HashSet};
+
 use serde::{Deserialize, Serialize};
 
 /// A unit of work the user can act on. Source items (emails today; Slack
@@ -23,7 +25,8 @@ pub enum Direction {
 }
 
 /// A reference to one Gmail message, plus the headers needed to show it in a
-/// queue. Bodies are never fetched or stored.
+/// queue. Bodies are never fetched or stored. Inbox syncs keep the subject
+/// only, so `from` and `to` are empty for them.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct GmailMessage {
@@ -77,6 +80,9 @@ pub struct VaultData {
     pub topics: Vec<Topic>,
     pub gmail_account: Option<GmailAccount>,
     pub gmail_messages: Vec<GmailMessage>,
+    /// Where the next Gmail sync starts listing changes from. `None` until a
+    /// full Inbox sync completes.
+    pub gmail_history_id: Option<String>,
     pub slack_account: Option<SlackAccount>,
     pub slack_messages: Vec<SlackMessage>,
 }
@@ -84,15 +90,19 @@ pub struct VaultData {
 impl VaultData {
     /// Drops topics that no source item points to any more.
     pub fn prune_topics(&mut self) {
-        let (gmail, slack) = (&self.gmail_messages, &self.slack_messages);
-        self.topics.retain(|t| {
-            gmail.iter().any(|m| m.topic_id == t.id) || slack.iter().any(|m| m.topic_id == t.id)
-        });
+        let used: HashSet<&str> = self
+            .gmail_messages
+            .iter()
+            .map(|m| m.topic_id.as_str())
+            .chain(self.slack_messages.iter().map(|m| m.topic_id.as_str()))
+            .collect();
+        self.topics.retain(|t| used.contains(t.id.as_str()));
     }
 
     pub fn clear_gmail(&mut self) {
         self.gmail_account = None;
         self.gmail_messages.clear();
+        self.gmail_history_id = None;
         self.prune_topics();
     }
 
@@ -104,23 +114,27 @@ impl VaultData {
 
     /// Topics with their source items, most recent activity first.
     pub fn topic_views(&self) -> Vec<TopicView> {
+        let mut emails_by_topic: HashMap<&str, Vec<GmailMessage>> = HashMap::new();
+        for m in &self.gmail_messages {
+            emails_by_topic
+                .entry(&m.topic_id)
+                .or_default()
+                .push(m.clone());
+        }
+        let mut slack_by_topic: HashMap<&str, Vec<SlackMessage>> = HashMap::new();
+        for m in &self.slack_messages {
+            slack_by_topic
+                .entry(&m.topic_id)
+                .or_default()
+                .push(m.clone());
+        }
         let mut views: Vec<TopicView> = self
             .topics
             .iter()
             .map(|t| {
-                let mut emails: Vec<GmailMessage> = self
-                    .gmail_messages
-                    .iter()
-                    .filter(|m| m.topic_id == t.id)
-                    .cloned()
-                    .collect();
+                let mut emails = emails_by_topic.remove(t.id.as_str()).unwrap_or_default();
                 emails.sort_by(|a, b| b.date.cmp(&a.date));
-                let mut slack_messages: Vec<SlackMessage> = self
-                    .slack_messages
-                    .iter()
-                    .filter(|m| m.topic_id == t.id)
-                    .cloned()
-                    .collect();
+                let mut slack_messages = slack_by_topic.remove(t.id.as_str()).unwrap_or_default();
                 slack_messages.sort_by(|a, b| b.date.cmp(&a.date));
                 TopicView {
                     topic: t.clone(),

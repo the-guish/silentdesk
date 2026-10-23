@@ -102,7 +102,7 @@ mod tests {
     #[test]
     fn slack_sync_leaves_gmail_topics_alone() {
         let mut data = VaultData::default();
-        crate::gmail::apply_sync(
+        crate::gmail::add_messages(
             &mut data,
             vec![crate::gmail::api::MessageMeta {
                 message_id: "m1".into(),
@@ -118,7 +118,7 @@ mod tests {
         apply_sync(&mut data, vec![meta("D1", "1.0", "Hi")], "now");
         assert_eq!(data.topics.len(), 2);
 
-        crate::gmail::apply_sync(&mut data, vec![], "later");
+        crate::gmail::remove_message(&mut data, "m1");
         assert_eq!(data.topics.len(), 1);
         assert_eq!(data.topics[0].title, "Hi");
 
