@@ -11,6 +11,7 @@ pub const VAULT_KEY: &str = "vault-key";
 pub const GMAIL_REFRESH_TOKEN: &str = "gmail-refresh-token";
 pub const SLACK_CREDENTIAL: &str = "slack-credential";
 pub const JIRA_CREDENTIAL: &str = "jira-credential";
+pub const GITHUB_TOKEN: &str = "github-token";
 
 fn entry(name: &str) -> Result<Entry> {
     Entry::new(SERVICE, name).map_err(|e| Error::Keychain(e.to_string()))

@@ -1,5 +1,6 @@
 mod commands;
 mod error;
+mod github;
 mod gmail;
 mod jira;
 mod model;
@@ -41,6 +42,10 @@ pub fn run() {
             commands::jira::jira_connect,
             commands::jira::jira_sync,
             commands::jira::jira_disconnect,
+            commands::github::github_status,
+            commands::github::github_connect,
+            commands::github::github_sync,
+            commands::github::github_disconnect,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

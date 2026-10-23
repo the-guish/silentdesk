@@ -1,6 +1,7 @@
 //! Tauri commands called by the frontend. Tokens and keys never cross this
 //! boundary: the webview only sees account status and topic data.
 
+pub mod github;
 pub mod gmail;
 pub mod jira;
 pub mod slack;
@@ -31,6 +32,7 @@ pub struct AppState {
     gmail_op: Mutex<()>,
     slack_op: Mutex<()>,
     jira_op: Mutex<()>,
+    github_op: Mutex<()>,
 }
 
 impl AppState {
@@ -50,6 +52,7 @@ impl AppState {
             gmail_op: Mutex::new(()),
             slack_op: Mutex::new(()),
             jira_op: Mutex::new(()),
+            github_op: Mutex::new(()),
         })
     }
 

@@ -53,8 +53,9 @@ The **Topics** view pulls your recent communications as topics, on demand:
 | Gmail   | Subject of every Inbox email; reply and trash | [docs/setup/gmail.md](docs/setup/gmail.md) |
 | Slack   | Last 10 direct messages, sent and received | [docs/setup/slack.md](docs/setup/slack.md) |
 | Jira    | Last 10 open issues assigned to you or reported by you | [docs/setup/jira.md](docs/setup/jira.md) |
+| GitHub  | Open pull requests waiting for your review, assigned to you, or opened by you | [docs/setup/github.md](docs/setup/github.md) |
 
-Gmail and Slack need an app or client ID that you or your organization creates; put it in `.env`. Jira needs only your own API token, entered in the app. On Linux, a Secret Service keyring (GNOME Keyring or KWallet) must be running, because SilentDesk keeps its keys there.
+Gmail and Slack need an app or client ID that you or your organization creates; put it in `.env`. Jira and GitHub need only your own token, entered in Settings. On Linux, a Secret Service keyring (GNOME Keyring or KWallet) must be running, because SilentDesk keeps its keys there.
 
 ## Project layout
 
@@ -72,7 +73,7 @@ src-tauri/src/           Rust backend
   secrets.rs             OS credential store access
   model.rs               Topics and source items
   oauth.rs               Shared sign-in pieces (PKCE, loopback redirect)
-  gmail/, slack/, jira/  Sign-in, API calls and sync per service
+  gmail/, slack/, jira/, github/  Sign-in, API calls and sync per service
 docs/specs/              Product specs, starting with core.md
 ```
 
