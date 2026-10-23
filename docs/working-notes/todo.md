@@ -3,9 +3,14 @@
 Working notes. Not a spec.
 
 ## App
-- [ ] Replace the localStorage task store with encrypted local storage (core principle 1).
-- [ ] Load tasks from corporate systems (Jira, Gmail, Slack) instead of storing them locally (core principle 4).
-- [ ] Run `pnpm tauri dev` on a machine with a display to check that the native window works.
+- [x] Encrypted local vault, with its key in the OS credential store.
+- [x] Gmail: connect securely and sync the last 10 emails as topics.
+- [ ] Gmail: test against a real account (needs an OAuth client, see `docs/setup/gmail.md`).
+- [ ] Move tasks from localStorage into the vault (core principle 1).
+- [ ] Link tasks to topics.
+- [ ] Group emails into topics (by thread first).
+- [ ] Slack and Jira as topic sources (core principle 4).
+- [ ] Run `pnpm tauri dev` on a desktop machine to check the native window.
 
 ## Specs
 - [ ] Answer the open product questions in `docs/SPEC.md`:
@@ -16,4 +21,4 @@ Working notes. Not a spec.
   5. Storage target (now mostly settled by core principle 4).
   6. Platforms.
 - [ ] Split `docs/SPEC.md` into topic files under `docs/specs/` (e.g. `screens.md`, `data.md`), then delete it.
-- [ ] Resolve the open questions in `docs/specs/core.md`.
+- [ ] Resolve the open questions in `docs/specs/core.md` and `docs/specs/data-model.md`.
