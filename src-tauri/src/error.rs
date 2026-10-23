@@ -4,7 +4,9 @@ use serde::{Serialize, Serializer};
 /// (tokens, keys) or message contents.
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
-    #[error("Gmail is not set up. Set SILENTDESK_GOOGLE_CLIENT_ID (see docs/setup/gmail.md).")]
+    #[error(
+        "Gmail is not set up. Set SILENTDESK_GOOGLE_CLIENT_ID in .env (see docs/setup/gmail.md)."
+    )]
     NotConfigured,
     #[error("Gmail is not connected.")]
     NotConnected,

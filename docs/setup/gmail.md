@@ -18,12 +18,14 @@ In the [Google Cloud console](https://console.cloud.google.com/):
 
 ## 2. Give the client to SilentDesk
 
-For development, set the variables when you start the app:
+For development, put them in `.env` at the repository root (git-ignored), then start the app with `./dev.sh`:
 
 ```sh
-export SILENTDESK_GOOGLE_CLIENT_ID="1234-abc.apps.googleusercontent.com"
-export SILENTDESK_GOOGLE_CLIENT_SECRET="GOCSPX-..."
-pnpm tauri dev
+cp .env.example .env
+# edit .env:
+#   SILENTDESK_GOOGLE_CLIENT_ID=1234-abc.apps.googleusercontent.com
+#   SILENTDESK_GOOGLE_CLIENT_SECRET=GOCSPX-...
+./dev.sh
 ```
 
 For a build you distribute inside your organization, set the same variables when you run `pnpm tauri build`. They are compiled into the app. Runtime values still take precedence.

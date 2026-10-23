@@ -69,14 +69,15 @@ export function TopicsView() {
           {!desktop ? (
             <p className="connection__text">
               Gmail is only available in the desktop app. Start it with{" "}
-              <code>pnpm tauri dev</code>.
+              <code>./dev.sh</code>.
             </p>
           ) : status === null ? (
             <p className="connection__text">Loading…</p>
           ) : !status.configured ? (
             <p className="connection__text">
-              Gmail is not set up. Set <code>SILENTDESK_GOOGLE_CLIENT_ID</code> and
-              restart. See <code>docs/setup/gmail.md</code>.
+              Gmail is not set up. Set <code>SILENTDESK_GOOGLE_CLIENT_ID</code> in{" "}
+              <code>.env</code> and restart with <code>./dev.sh</code>. See{" "}
+              <code>docs/setup/gmail.md</code>.
             </p>
           ) : status.connected ? (
             <>

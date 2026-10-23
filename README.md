@@ -30,9 +30,11 @@ For other distributions, use the equivalent packages listed in the Tauri prerequ
 ## Getting started
 
 ```sh
-pnpm install       # install frontend and Tauri CLI dependencies
-pnpm tauri dev     # run the desktop app with hot reload
+cp .env.example .env   # optional: fill in to enable Gmail
+./dev.sh               # install dependencies if needed, load .env, run the app
 ```
+
+`./dev.sh` runs `pnpm tauri dev` with the variables from `.env`; extra arguments are passed through.
 
 Other useful commands:
 
