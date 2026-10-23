@@ -50,7 +50,7 @@ The **Topics** view pulls your recent communications as topics, on demand:
 
 | Service | Pulls                         | Setup                                      |
 |---------|-------------------------------|--------------------------------------------|
-| Gmail   | Last 10 emails, sent and received | [docs/setup/gmail.md](docs/setup/gmail.md) |
+| Gmail   | Subject of every Inbox email; reply and trash | [docs/setup/gmail.md](docs/setup/gmail.md) |
 | Slack   | Last 10 direct messages, sent and received | [docs/setup/slack.md](docs/setup/slack.md) |
 | Jira    | Last 10 open issues assigned to you or reported by you | [docs/setup/jira.md](docs/setup/jira.md) |
 

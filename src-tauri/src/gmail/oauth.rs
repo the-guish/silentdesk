@@ -11,9 +11,12 @@ const AUTH_URL: &str = "https://accounts.google.com/o/oauth2/v2/auth";
 const TOKEN_URL: &str = "https://oauth2.googleapis.com/token";
 const REVOKE_URL: &str = "https://oauth2.googleapis.com/revoke";
 
-/// Read-only access to message headers and labels. No bodies, no attachments,
-/// no sending.
-pub const GMAIL_SCOPE: &str = "https://www.googleapis.com/auth/gmail.metadata";
+/// `gmail.modify` reads headers and moves messages to the trash; it cannot
+/// delete them for good. `gmail.send` sends replies.
+pub const GMAIL_SCOPES: &[&str] = &[
+    "https://www.googleapis.com/auth/gmail.modify",
+    "https://www.googleapis.com/auth/gmail.send",
+];
 
 /// The OAuth client the organization registered in Google Cloud. Read at
 /// runtime from the environment, or baked in at build time.
@@ -71,7 +74,7 @@ fn authorization_url(
         .append_pair("client_id", &client.client_id)
         .append_pair("redirect_uri", redirect_uri)
         .append_pair("response_type", "code")
-        .append_pair("scope", GMAIL_SCOPE)
+        .append_pair("scope", &GMAIL_SCOPES.join(" "))
         .append_pair("code_challenge", challenge)
         .append_pair("code_challenge_method", "S256")
         .append_pair("state", state)
@@ -112,7 +115,8 @@ pub async fn authorize(
     }
     let token = token_request(http, &form).await?;
 
-    if !token.scope.split_whitespace().any(|s| s == GMAIL_SCOPE) {
+    let granted: Vec<&str> = token.scope.split_whitespace().collect();
+    if !GMAIL_SCOPES.iter().all(|s| granted.contains(s)) {
         return Err(Error::Auth("Gmail access was not granted.".into()));
     }
     let refresh_token = token
@@ -193,7 +197,10 @@ mod tests {
         let q: std::collections::HashMap<_, _> = url.query_pairs().into_owned().collect();
         assert_eq!(q["client_id"], "abc.apps.googleusercontent.com");
         assert_eq!(q["redirect_uri"], "http://127.0.0.1:5000");
-        assert_eq!(q["scope"], GMAIL_SCOPE);
+        assert_eq!(
+            q["scope"],
+            "https://www.googleapis.com/auth/gmail.modify https://www.googleapis.com/auth/gmail.send"
+        );
         assert_eq!(q["code_challenge_method"], "S256");
         assert_eq!(q["state"], "st");
         assert_eq!(q["access_type"], "offline");
