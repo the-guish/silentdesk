@@ -1,0 +1,18 @@
+{
+  "display_information": {
+    "name": "SilentDesk",
+    "description": "Pull-based work queue. Reads your recent direct messages on request."
+  },
+  "oauth_config": {
+    "redirect_urls": ["http://localhost:47615/slack/callback"],
+    "scopes": {
+      "user": ["search:read", "users:read"]
+    },
+    "pkce_enabled": true
+  },
+  "settings": {
+    "org_deploy_enabled": false,
+    "socket_mode_enabled": false,
+    "token_rotation_enabled": true
+  }
+}

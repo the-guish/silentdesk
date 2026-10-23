@@ -306,7 +306,13 @@ code {
   opacity: 0.6;
 }
 
-/* Gmail connection */
+/* Connections */
+.connections {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
 .connection {
   display: flex;
   align-items: center;
@@ -318,6 +324,13 @@ code {
   border-radius: var(--radius);
   background: var(--surface);
   box-shadow: var(--shadow);
+}
+
+.connection__body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
 }
 
 .connection__text {
@@ -394,6 +407,11 @@ code {
 .topic__meta {
   color: var(--text-muted);
   font-size: 12px;
+}
+
+.topic__source {
+  color: var(--text);
+  font-weight: 500;
 }
 
 .topic__date {

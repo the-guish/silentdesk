@@ -1,5 +1,5 @@
 import { invoke, isTauri } from "@tauri-apps/api/core";
-import type { GmailStatus, Topic } from "../types";
+import type { Service, ServiceStatus, Topic } from "../types";
 
 /**
  * Calls into the Rust backend. Tokens and keys stay on the Rust side; the UI
@@ -9,10 +9,10 @@ import type { GmailStatus, Topic } from "../types";
 /** False when the UI runs in a plain browser (`pnpm dev`). */
 export const hasBackend = isTauri;
 
-export const gmailStatus = () => invoke<GmailStatus>("gmail_status");
-export const gmailConnect = () => invoke<GmailStatus>("gmail_connect");
-export const gmailSync = () => invoke<Topic[]>("gmail_sync");
-export const gmailDisconnect = () => invoke<GmailStatus>("gmail_disconnect");
+export const serviceStatus = (s: Service) => invoke<ServiceStatus>(`${s}_status`);
+export const serviceConnect = (s: Service) => invoke<ServiceStatus>(`${s}_connect`);
+export const serviceSync = (s: Service) => invoke<Topic[]>(`${s}_sync`);
+export const serviceDisconnect = (s: Service) => invoke<ServiceStatus>(`${s}_disconnect`);
 export const listTopics = () => invoke<Topic[]>("list_topics");
 
 /** Backend errors arrive as plain strings. */

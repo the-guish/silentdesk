@@ -84,7 +84,7 @@ async fn get<T: serde::de::DeserializeOwned>(
         return Ok(response.json().await?);
     }
     if status == reqwest::StatusCode::UNAUTHORIZED {
-        return Err(Error::Reauthorize);
+        return Err(Error::Reauthorize("Gmail"));
     }
     let message = response
         .json::<ApiErrorBody>()
@@ -92,6 +92,7 @@ async fn get<T: serde::de::DeserializeOwned>(
         .map(|b| b.error.message)
         .unwrap_or_else(|_| status.canonical_reason().unwrap_or("unknown error").into());
     Err(Error::Api {
+        service: "Gmail",
         status: status.as_u16(),
         message,
     })

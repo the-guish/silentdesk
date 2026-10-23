@@ -154,8 +154,19 @@ mod tests {
                 title: "Quarterly report".into(),
                 created_at: "2026-10-23T10:00:00Z".into(),
             }],
-            gmail_messages: vec![],
+            ..Default::default()
         }
+    }
+
+    #[test]
+    fn vault_from_before_slack_still_opens() {
+        let path = temp_path("vault.bin");
+        let vault = Vault::new(path.clone(), &[7u8; KEY_LEN]).unwrap();
+        let old = br#"{"gmailAccount":{"email":"me@example.com"},"topics":[],"gmailMessages":[]}"#;
+        fs::write(&path, vault.encrypt(old).unwrap()).unwrap();
+        let data = vault.load().unwrap();
+        assert_eq!(data.gmail_account.unwrap().email, "me@example.com");
+        assert!(data.slack_account.is_none());
     }
 
     #[test]
