@@ -26,7 +26,7 @@ Gmail message (the only source today):
 | `threadId`  | string   | Gmail thread ID, kept for future grouping |
 | `topicId`   | UUID     | The topic it belongs to                |
 | `direction` | `inbound` \| `outbound` | `outbound` when Gmail labels it `SENT` |
-| `from`, `to`, `subject` | string | Header values, as shown in the queue |
+| `from`, `to`, `subject` | string | Header values, as shown in the queue. Inbox syncs keep `subject` only; `from` and `to` are empty. |
 | `date`      | RFC 3339 | Gmail's internal date                  |
 
 Slack direct message:
@@ -55,7 +55,7 @@ Still stored separately in the webview's `localStorage`, unencrypted (see `docs/
 | Topics                                      | Email bodies and attachments         |
 | Source item references and display headers  | Slack message text (beyond the title)|
 | Connected accounts (Gmail address; Slack user and workspace) | Google access tokens (kept in memory only) |
-|                                             | Passwords                            |
+| Gmail history ID, where the next sync starts | Passwords                            |
 
 Secrets (the vault key, the Gmail refresh token and the Slack credential) live in the OS credential store: Keychain on macOS, Credential Manager on Windows, Secret Service on Linux. They are never written to disk by SilentDesk.
 

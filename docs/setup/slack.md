@@ -8,7 +8,7 @@ SilentDesk connects to Slack through a Slack app that **you or your organization
 2. Pick your workspace.
 3. Paste the contents of [`slack-app-manifest.json`](slack-app-manifest.json) and create the app. The manifest sets everything up:
    - **Redirect URL:** `http://localhost:47615/slack/callback`.
-   - **User token scopes:** `search:read` and `users:read`. There are no bot scopes, so the app cannot post or change anything.
+   - **User token scopes:** `search:read`, `users:read`, and read access to every conversation you can see. That is direct messages (`im:read`, `im:history`, `mpim:read`, `mpim:history`) and channels, public and private (`channels:read`, `channels:history`, `groups:read`, `groups:history`). There are no bot scopes, so the app cannot post or change anything.
    - **PKCE enabled:** this makes the app a *public client*, so no client secret is used. Slack does not let you turn PKCE off again without contacting their support, which is fine for a desktop-only app.
    - **Token rotation:** access tokens last 12 hours and are renewed automatically. If SilentDesk is not used for 30 days, you will need to connect again.
 4. On **Basic Information**, copy the **Client ID**.

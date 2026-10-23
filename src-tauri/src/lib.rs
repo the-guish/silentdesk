@@ -29,6 +29,8 @@ pub fn run() {
             commands::gmail::gmail_status,
             commands::gmail::gmail_connect,
             commands::gmail::gmail_sync,
+            commands::gmail::gmail_trash,
+            commands::gmail::gmail_reply,
             commands::gmail::gmail_disconnect,
             commands::slack::slack_status,
             commands::slack::slack_connect,

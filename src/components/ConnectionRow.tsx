@@ -8,7 +8,7 @@ const INFO: Record<Service, { name: string; envVar: string; doc: string; pitch: 
     envVar: "SILENTDESK_GOOGLE_CLIENT_ID",
     doc: "docs/setup/gmail.md",
     pitch:
-      "Pull your last 10 emails as topics. Reads sender, recipients, subject and date only, never message bodies.",
+      "Pull the subject of every email in your Inbox as a topic, reply to them and move them to the trash. Keeps the subject and date only.",
   },
   slack: {
     name: "Slack",
@@ -24,6 +24,8 @@ interface Props {
   status: ServiceStatus | null;
   busy: Busy;
   error: string | null;
+  /** Shown on the busy button while a sync runs, e.g. "1,200 of 9,800". */
+  progress?: string | null;
   onConnect: () => void;
   onSync: () => void;
   onDisconnect: () => void;
@@ -34,6 +36,7 @@ export function ConnectionRow({
   status,
   busy,
   error,
+  progress,
   onConnect,
   onSync,
   onDisconnect,
@@ -78,7 +81,7 @@ export function ConnectionRow({
                 onClick={onSync}
                 disabled={busy !== null}
               >
-                {busy === "sync" ? "Syncing…" : "Sync"}
+                {busy === "sync" ? `Syncing${progress ? ` ${progress}` : ""}…` : "Sync"}
               </button>
               <button
                 type="button"
@@ -96,7 +99,7 @@ export function ConnectionRow({
               onClick={onConnect}
               disabled={busy !== null}
             >
-              {busy === "connect" ? "Waiting…" : busy === "sync" ? "Syncing…" : "Connect"}
+              {busy === "connect" ? "Waiting…" : busy === "sync" ? `Syncing${progress ? ` ${progress}` : ""}…` : "Connect"}
             </button>
           )}
         </div>

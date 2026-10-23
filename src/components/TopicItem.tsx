@@ -1,12 +1,57 @@
-import type { Topic } from "../types";
+import { useState, type FormEvent } from "react";
+import { errorMessage } from "../api/backend";
+import type { GmailEmail, Topic } from "../types";
 
 interface Props {
   topic: Topic;
+  onTrash: (email: GmailEmail) => Promise<void>;
+  onReply: (email: GmailEmail, body: string) => Promise<void>;
 }
 
-export function TopicItem({ topic }: Props) {
+type Mode = "idle" | "confirm-trash" | "reply";
+type Busy = "trash" | "reply" | null;
+
+export function TopicItem({ topic, onTrash, onReply }: Props) {
   const source = describe(topic);
   const outbound = source?.direction === "outbound";
+  const email = topic.emails[0];
+  const [mode, setMode] = useState<Mode>("idle");
+  const [draft, setDraft] = useState("");
+  const [busy, setBusy] = useState<Busy>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [sent, setSent] = useState(false);
+
+  async function act(kind: Exclude<Busy, null>, action: () => Promise<void>) {
+    setBusy(kind);
+    setError(null);
+    try {
+      await action();
+      return true;
+    } catch (e) {
+      setError(errorMessage(e));
+      return false;
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  const trash = () => act("trash", () => onTrash(email));
+
+  async function send(e: FormEvent) {
+    e.preventDefault();
+    if (!draft.trim()) return;
+    if (await act("reply", () => onReply(email, draft))) {
+      setDraft("");
+      setMode("idle");
+      setSent(true);
+    }
+  }
+
+  function open(next: Mode) {
+    setMode(next);
+    setError(null);
+    setSent(false);
+  }
 
   return (
     <li className="topic">
@@ -31,7 +76,8 @@ export function TopicItem({ topic }: Props) {
         <span className="topic__title">{topic.title}</span>
         {source && (
           <span className="topic__meta">
-            <span className="topic__source">{source.name}</span> · {source.who}
+            <span className="topic__source">{source.name}</span>
+            {source.who && <> · {source.who}</>}
           </span>
         )}
       </div>
@@ -39,6 +85,90 @@ export function TopicItem({ topic }: Props) {
         <time className="topic__date" dateTime={source.date}>
           {formatDate(source.date)}
         </time>
+      )}
+      {email && (
+        <div className="topic__actions">
+          {mode === "confirm-trash" ? (
+            <>
+              <button
+                type="button"
+                className="button button--danger"
+                onClick={trash}
+                disabled={busy !== null}
+              >
+                {busy === "trash" ? "Moving…" : "Move to trash"}
+              </button>
+              <button
+                type="button"
+                className="button"
+                onClick={() => open("idle")}
+                disabled={busy !== null}
+              >
+                Cancel
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                type="button"
+                className="button"
+                onClick={() => open(mode === "reply" ? "idle" : "reply")}
+                disabled={busy !== null}
+                aria-expanded={mode === "reply"}
+              >
+                Reply
+              </button>
+              <button
+                type="button"
+                className="button"
+                onClick={() => open("confirm-trash")}
+                disabled={busy !== null}
+              >
+                Trash
+              </button>
+            </>
+          )}
+        </div>
+      )}
+      {email && mode === "reply" && (
+        <form className="topic__reply" onSubmit={send}>
+          <textarea
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            placeholder={source?.who ? `Reply to ${source.who}` : "Reply"}
+            aria-label="Reply"
+            rows={4}
+            autoFocus
+            disabled={busy !== null}
+          />
+          <div className="topic__reply-actions">
+            <button
+              type="button"
+              className="button"
+              onClick={() => open("idle")}
+              disabled={busy !== null}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="button button--primary"
+              disabled={busy !== null || !draft.trim()}
+            >
+              {busy === "reply" ? "Sending…" : "Send"}
+            </button>
+          </div>
+        </form>
+      )}
+      {error && (
+        <p className="topic__notice notice notice--error" role="alert">
+          {error}
+        </p>
+      )}
+      {sent && (
+        <p className="topic__notice notice" role="status">
+          Reply sent.
+        </p>
       )}
     </li>
   );
@@ -50,10 +180,13 @@ function describe(topic: Topic) {
   const slack = topic.slackMessages[0];
   if (email && (!slack || email.date >= slack.date)) {
     const outbound = email.direction === "outbound";
+    const address = outbound ? email.to : email.from;
+    // Inbox syncs keep the subject only.
+    const who = !address ? null : outbound ? `To ${formatAddresses(address)}` : formatAddresses(address);
     return {
       name: "Gmail",
       direction: email.direction,
-      who: outbound ? `To ${formatAddresses(email.to)}` : formatAddresses(email.from),
+      who,
       date: email.date,
     };
   }
