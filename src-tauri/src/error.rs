@@ -4,24 +4,30 @@ use serde::{Serialize, Serializer};
 /// (tokens, keys) or message contents.
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
-    #[error(
-        "Gmail is not set up. Set SILENTDESK_GOOGLE_CLIENT_ID in .env (see docs/setup/gmail.md)."
-    )]
-    NotConfigured,
-    #[error("Gmail is not connected.")]
-    NotConnected,
-    #[error("Gmail access was revoked or has expired. Connect again.")]
-    Reauthorize,
-    #[error("Another Gmail operation is already running.")]
-    Busy,
+    #[error("{service} is not set up. Set {var} in .env (see docs/setup/{doc}.md).")]
+    NotConfigured {
+        service: &'static str,
+        var: &'static str,
+        doc: &'static str,
+    },
+    #[error("{0} is not connected.")]
+    NotConnected(&'static str),
+    #[error("{0} access was revoked or has expired. Connect again.")]
+    Reauthorize(&'static str),
+    #[error("Another {0} operation is already running.")]
+    Busy(&'static str),
     #[error("Sign-in timed out. Try again.")]
     AuthTimeout,
     #[error("Sign-in failed: {0}")]
     Auth(String),
     #[error("Network error: {0}")]
     Http(#[from] reqwest::Error),
-    #[error("Gmail API error ({status}): {message}")]
-    Api { status: u16, message: String },
+    #[error("{service} API error ({status}): {message}")]
+    Api {
+        service: &'static str,
+        status: u16,
+        message: String,
+    },
     #[error("System keychain unavailable: {0}")]
     Keychain(String),
     #[error("Local vault error: {0}")]

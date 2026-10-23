@@ -44,21 +44,50 @@ pub struct GmailAccount {
     pub email: String,
 }
 
+/// A reference to one Slack direct message. The message text is not kept:
+/// its first line becomes the topic title, and the permalink opens it in Slack.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SlackMessage {
+    pub channel_id: String,
+    pub ts: String,
+    pub topic_id: String,
+    pub direction: Direction,
+    pub author: String,
+    /// Who the conversation is with: the other person, or "Group DM".
+    pub counterpart: String,
+    pub permalink: String,
+    /// RFC 3339, from the message timestamp.
+    pub date: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SlackAccount {
+    pub user_id: String,
+    pub user_name: String,
+    pub team_id: String,
+    pub team_name: String,
+}
+
 /// Everything SilentDesk stores locally. Encrypted at rest by `vault`.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", default)]
 pub struct VaultData {
-    pub gmail_account: Option<GmailAccount>,
     pub topics: Vec<Topic>,
+    pub gmail_account: Option<GmailAccount>,
     pub gmail_messages: Vec<GmailMessage>,
+    pub slack_account: Option<SlackAccount>,
+    pub slack_messages: Vec<SlackMessage>,
 }
 
 impl VaultData {
     /// Drops topics that no source item points to any more.
     pub fn prune_topics(&mut self) {
-        let messages = &self.gmail_messages;
-        self.topics
-            .retain(|t| messages.iter().any(|m| m.topic_id == t.id));
+        let (gmail, slack) = (&self.gmail_messages, &self.slack_messages);
+        self.topics.retain(|t| {
+            gmail.iter().any(|m| m.topic_id == t.id) || slack.iter().any(|m| m.topic_id == t.id)
+        });
     }
 
     pub fn clear_gmail(&mut self) {
@@ -67,7 +96,13 @@ impl VaultData {
         self.prune_topics();
     }
 
-    /// Topics with their source items, newest first.
+    pub fn clear_slack(&mut self) {
+        self.slack_account = None;
+        self.slack_messages.clear();
+        self.prune_topics();
+    }
+
+    /// Topics with their source items, most recent activity first.
     pub fn topic_views(&self) -> Vec<TopicView> {
         let mut views: Vec<TopicView> = self
             .topics
@@ -80,9 +115,17 @@ impl VaultData {
                     .cloned()
                     .collect();
                 emails.sort_by(|a, b| b.date.cmp(&a.date));
+                let mut slack_messages: Vec<SlackMessage> = self
+                    .slack_messages
+                    .iter()
+                    .filter(|m| m.topic_id == t.id)
+                    .cloned()
+                    .collect();
+                slack_messages.sort_by(|a, b| b.date.cmp(&a.date));
                 TopicView {
                     topic: t.clone(),
                     emails,
+                    slack_messages,
                 }
             })
             .collect();
@@ -92,9 +135,9 @@ impl VaultData {
 }
 
 fn latest(view: &TopicView) -> &str {
-    view.emails
-        .first()
-        .map_or(view.topic.created_at.as_str(), |m| m.date.as_str())
+    let email = view.emails.first().map(|m| m.date.as_str());
+    let slack = view.slack_messages.first().map(|m| m.date.as_str());
+    email.max(slack).unwrap_or(view.topic.created_at.as_str())
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -103,4 +146,5 @@ pub struct TopicView {
     #[serde(flatten)]
     pub topic: Topic,
     pub emails: Vec<GmailMessage>,
+    pub slack_messages: Vec<SlackMessage>,
 }
