@@ -1,6 +1,7 @@
 mod commands;
 mod error;
 mod gmail;
+mod jira;
 mod model;
 mod oauth;
 mod secrets;
@@ -34,6 +35,10 @@ pub fn run() {
             commands::slack::slack_connect,
             commands::slack::slack_sync,
             commands::slack::slack_disconnect,
+            commands::jira::jira_status,
+            commands::jira::jira_connect,
+            commands::jira::jira_sync,
+            commands::jira::jira_disconnect,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

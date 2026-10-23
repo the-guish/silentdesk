@@ -8,11 +8,12 @@ import {
   serviceStatus,
   serviceSync,
 } from "../api/backend";
-import type { Service, ServiceStatus, Topic } from "../types";
+import type { JiraConnectArgs, Service, ServiceStatus, Topic } from "../types";
 import { ConnectionRow, type Busy } from "./ConnectionRow";
+import { JiraConnectForm } from "./JiraConnectForm";
 import { TopicItem } from "./TopicItem";
 
-const SERVICES: Service[] = ["gmail", "slack"];
+const SERVICES: Service[] = ["gmail", "slack", "jira"];
 
 type PerService<T> = Record<Service, T>;
 
@@ -21,12 +22,15 @@ export function TopicsView() {
   const [statuses, setStatuses] = useState<PerService<ServiceStatus | null>>({
     gmail: null,
     slack: null,
+    jira: null,
   });
-  const [busy, setBusy] = useState<PerService<Busy>>({ gmail: null, slack: null });
+  const [busy, setBusy] = useState<PerService<Busy>>({ gmail: null, slack: null, jira: null });
   const [errors, setErrors] = useState<PerService<string | null>>({
     gmail: null,
     slack: null,
+    jira: null,
   });
+  const [jiraFormOpen, setJiraFormOpen] = useState(false);
   const [topics, setTopics] = useState<Topic[]>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
 
@@ -34,12 +38,13 @@ export function TopicsView() {
     setStatuses((prev) => ({ ...prev, [s]: status }));
 
   const refresh = useCallback(async () => {
-    const [gmail, slack, t] = await Promise.all([
+    const [gmail, slack, jira, t] = await Promise.all([
       serviceStatus("gmail"),
       serviceStatus("slack"),
+      serviceStatus("jira"),
       listTopics(),
     ]);
-    setStatuses({ gmail, slack });
+    setStatuses({ gmail, slack, jira });
     setTopics(t);
   }, []);
 
@@ -61,9 +66,10 @@ export function TopicsView() {
     }
   }
 
-  const connect = (s: Service) =>
+  const connect = (s: Service, args?: JiraConnectArgs) =>
     run(s, "connect", async () => {
-      setStatus(s, await serviceConnect(s));
+      setStatus(s, await serviceConnect(s, args));
+      if (s === "jira") setJiraFormOpen(false);
       setBusy((prev) => ({ ...prev, [s]: "sync" }));
       setTopics(await serviceSync(s));
     });
@@ -100,10 +106,18 @@ export function TopicsView() {
                 status={statuses[s]}
                 busy={busy[s]}
                 error={errors[s]}
-                onConnect={() => connect(s)}
+                onConnect={() => (s === "jira" ? setJiraFormOpen(true) : connect(s))}
                 onSync={() => sync(s)}
                 onDisconnect={() => disconnect(s)}
-              />
+              >
+                {s === "jira" && jiraFormOpen && !statuses.jira?.connected && (
+                  <JiraConnectForm
+                    busy={busy.jira !== null}
+                    onSubmit={(args) => connect("jira", args)}
+                    onCancel={() => setJiraFormOpen(false)}
+                  />
+                )}
+              </ConnectionRow>
             ))}
           </div>
         )}
