@@ -5,8 +5,8 @@ interface Props {
 }
 
 export function TopicItem({ topic }: Props) {
-  const email = topic.emails[0];
-  const outbound = email?.direction === "outbound";
+  const source = describe(topic);
+  const outbound = source?.direction === "outbound";
 
   return (
     <li className="topic">
@@ -29,19 +29,47 @@ export function TopicItem({ topic }: Props) {
       </span>
       <div className="topic__main">
         <span className="topic__title">{topic.title}</span>
-        {email && (
+        {source && (
           <span className="topic__meta">
-            {outbound ? `To ${formatAddresses(email.to)}` : formatAddresses(email.from)}
+            <span className="topic__source">{source.name}</span> · {source.who}
           </span>
         )}
       </div>
-      {email && (
-        <time className="topic__date" dateTime={email.date}>
-          {formatDate(email.date)}
+      {source && (
+        <time className="topic__date" dateTime={source.date}>
+          {formatDate(source.date)}
         </time>
       )}
     </li>
   );
+}
+
+/** The topic's most recent source item, ready to display. */
+function describe(topic: Topic) {
+  const email = topic.emails[0];
+  const slack = topic.slackMessages[0];
+  if (email && (!slack || email.date >= slack.date)) {
+    const outbound = email.direction === "outbound";
+    return {
+      name: "Gmail",
+      direction: email.direction,
+      who: outbound ? `To ${formatAddresses(email.to)}` : formatAddresses(email.from),
+      date: email.date,
+    };
+  }
+  if (slack) {
+    const outbound = slack.direction === "outbound";
+    const group = slack.counterpart === "Group DM";
+    const who = outbound
+      ? group
+        ? "To group DM"
+        : `To ${slack.counterpart}`
+      : group
+        ? `${slack.author} in group DM`
+        : slack.author;
+    return { name: "Slack", direction: slack.direction, who, date: slack.date };
+  }
+  return null;
 }
 
 /** `"Ana Ruiz" <ana@x.com>, bo@y.com` → `Ana Ruiz +1`. */

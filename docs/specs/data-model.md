@@ -29,7 +29,21 @@ Gmail message (the only source today):
 | `from`, `to`, `subject` | string | Header values, as shown in the queue |
 | `date`      | RFC 3339 | Gmail's internal date                  |
 
-Planned: Slack messages and Jira issues, following the same pattern.
+Slack direct message:
+
+| Field         | Type     | Notes                                       |
+|---------------|----------|---------------------------------------------|
+| `channelId`   | string   | DM or group DM conversation ID              |
+| `ts`          | string   | Slack message timestamp (ID within the conversation) |
+| `topicId`     | UUID     | The topic it belongs to                     |
+| `direction`   | `inbound` \| `outbound` | `outbound` when the user sent it |
+| `author`, `counterpart` | string | Display names; counterpart is "Group DM" for group DMs |
+| `permalink`   | URL      | Opens the message in Slack                  |
+| `date`        | RFC 3339 | From `ts`                                   |
+
+The Slack message text is not stored; its first 120 characters become the topic title.
+
+Planned: Jira issues, following the same pattern.
 
 ### Task
 Still stored separately in the webview's `localStorage`, unencrypted (see `docs/working-notes/todo.md`). It will move into the vault, and gain links to topics.
@@ -39,10 +53,11 @@ Still stored separately in the webview's `localStorage`, unencrypted (see `docs/
 | Stored (encrypted)                          | Never stored                         |
 |---------------------------------------------|--------------------------------------|
 | Topics                                      | Email bodies and attachments         |
-| Source item references and display headers  | Access tokens (kept in memory only)  |
-| Connected account address                   | Passwords                            |
+| Source item references and display headers  | Slack message text (beyond the title)|
+| Connected accounts (Gmail address; Slack user and workspace) | Google access tokens (kept in memory only) |
+|                                             | Passwords                            |
 
-Secrets (the vault key and OAuth refresh tokens) live in the OS credential store: Keychain on macOS, Credential Manager on Windows, Secret Service on Linux. They are never written to disk by SilentDesk.
+Secrets (the vault key, the Gmail refresh token and the Slack credential) live in the OS credential store: Keychain on macOS, Credential Manager on Windows, Secret Service on Linux. They are never written to disk by SilentDesk.
 
 ## The vault
 
