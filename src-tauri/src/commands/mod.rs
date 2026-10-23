@@ -2,6 +2,7 @@
 //! boundary: the webview only sees account status and topic data.
 
 pub mod gmail;
+pub mod jira;
 pub mod slack;
 
 use std::path::PathBuf;
@@ -29,6 +30,7 @@ pub struct AppState {
     /// One operation (connect, sync, disconnect) per service at a time.
     gmail_op: Mutex<()>,
     slack_op: Mutex<()>,
+    jira_op: Mutex<()>,
 }
 
 impl AppState {
@@ -47,6 +49,7 @@ impl AppState {
             data_lock: Mutex::new(()),
             gmail_op: Mutex::new(()),
             slack_op: Mutex::new(()),
+            jira_op: Mutex::new(()),
         })
     }
 

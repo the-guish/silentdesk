@@ -401,6 +401,7 @@ code {
 .connection__body {
   display: flex;
   flex-direction: column;
+  flex: 1;
   gap: 2px;
   min-width: 0;
 }
@@ -547,4 +548,53 @@ code {
 .button--danger:hover:not(:disabled) {
   background: var(--danger);
   filter: brightness(1.08);
+}
+
+/* Jira connect form */
+.jira-form {
+  display: grid;
+  gap: 8px;
+  margin-top: 8px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+
+.field {
+  display: grid;
+  grid-template-columns: 80px 1fr;
+  align-items: center;
+  gap: 8px;
+}
+
+.field__label {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.field input {
+  height: 30px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+.field input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--focus);
+}
+
+.jira-form__hint {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.jira-form__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
 }

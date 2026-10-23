@@ -9,10 +9,11 @@ import {
   serviceSync,
 } from "../api/backend";
 import type { SyncProgress } from "../api/backend";
-import type { Service, ServiceStatus } from "../types";
+import type { JiraConnectArgs, Service, ServiceStatus } from "../types";
 import { ConnectionRow, type Busy } from "./ConnectionRow";
+import { JiraConnectForm } from "./JiraConnectForm";
 
-const SERVICES: Service[] = ["gmail", "slack"];
+const SERVICES: Service[] = ["gmail", "slack", "jira"];
 
 type PerService<T> = Record<Service, T>;
 
@@ -21,21 +22,32 @@ export function SettingsView() {
   const [statuses, setStatuses] = useState<PerService<ServiceStatus | null>>({
     gmail: null,
     slack: null,
+    jira: null,
   });
-  const [busy, setBusy] = useState<PerService<Busy>>({ gmail: null, slack: null });
+  const [busy, setBusy] = useState<PerService<Busy>>({ gmail: null, slack: null, jira: null });
   const [errors, setErrors] = useState<PerService<string | null>>({
     gmail: null,
     slack: null,
+    jira: null,
   });
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [synced, setSynced] = useState<PerService<number | null>>({ gmail: null, slack: null });
+  const [synced, setSynced] = useState<PerService<number | null>>({
+    gmail: null,
+    slack: null,
+    jira: null,
+  });
+  const [jiraFormOpen, setJiraFormOpen] = useState(false);
 
   const setStatus = (s: Service, status: ServiceStatus) =>
     setStatuses((prev) => ({ ...prev, [s]: status }));
 
   const refresh = useCallback(async () => {
-    const [gmail, slack] = await Promise.all([serviceStatus("gmail"), serviceStatus("slack")]);
-    setStatuses({ gmail, slack });
+    const [gmail, slack, jira] = await Promise.all([
+      serviceStatus("gmail"),
+      serviceStatus("slack"),
+      serviceStatus("jira"),
+    ]);
+    setStatuses({ gmail, slack, jira });
   }, []);
 
   useEffect(() => {
@@ -70,14 +82,19 @@ export function SettingsView() {
   async function pull(s: Service) {
     const topics = await serviceSync(s);
     const count = topics.filter((t) =>
-      s === "gmail" ? t.emails.length > 0 : t.slackMessages.length > 0,
+      s === "gmail"
+        ? t.emails.length > 0
+        : s === "slack"
+          ? t.slackMessages.length > 0
+          : t.jiraIssues.length > 0,
     ).length;
     setSynced((prev) => ({ ...prev, [s]: count }));
   }
 
-  const connect = (s: Service) =>
+  const connect = (s: Service, args?: JiraConnectArgs) =>
     run(s, "connect", async () => {
-      setStatus(s, await serviceConnect(s));
+      setStatus(s, await serviceConnect(s, args));
+      if (s === "jira") setJiraFormOpen(false);
       setBusy((prev) => ({ ...prev, [s]: "sync" }));
       await pull(s);
     });
@@ -110,10 +127,18 @@ export function SettingsView() {
                     ? `${gmailProgress.done.toLocaleString()} of ${gmailProgress.total.toLocaleString()}`
                     : null
                 }
-                onConnect={() => connect(s)}
+                onConnect={() => (s === "jira" ? setJiraFormOpen(true) : connect(s))}
                 onSync={() => sync(s)}
                 onDisconnect={() => disconnect(s)}
-              />
+              >
+                {s === "jira" && jiraFormOpen && !statuses.jira?.connected && (
+                  <JiraConnectForm
+                    busy={busy.jira !== null}
+                    onSubmit={(args) => connect("jira", args)}
+                    onCancel={() => setJiraFormOpen(false)}
+                  />
+                )}
+              </ConnectionRow>
               {synced[s] !== null && (
                 <p className="notice settings__synced" role="status">
                   Synced. {synced[s]} {synced[s] === 1 ? "topic" : "topics"} in Topics.
