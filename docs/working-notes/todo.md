@@ -12,7 +12,10 @@ Working notes. Not a spec.
 - [ ] Move tasks from localStorage into the vault (core principle 1).
 - [ ] Link tasks to topics.
 - [ ] Group emails into topics (by thread first).
-- [ ] Jira as a topic source (core principle 4).
+- [x] Jira: connect with an API token and sync the last 10 open issues as topics.
+- [ ] Jira: test against a real Cloud site (scoped token via the gateway) and a Data Center instance.
+- [ ] Open source items (email, Slack message, Jira issue) from the queue.
+- [ ] Link items across services (e.g. an email that mentions PAY-412 joins that issue's topic).
 - [ ] In-app setup screen for client IDs, instead of `.env` (see the Gmail client ID discussion).
 - [ ] Run `pnpm tauri dev` on a desktop machine to check the native window.
 

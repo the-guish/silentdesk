@@ -1,4 +1,4 @@
-import type { Topic } from "../types";
+import type { Direction, Topic } from "../types";
 
 interface Props {
   topic: Topic;
@@ -44,19 +44,27 @@ export function TopicItem({ topic }: Props) {
   );
 }
 
+interface Source {
+  name: string;
+  direction: Direction;
+  who: string;
+  date: string;
+}
+
 /** The topic's most recent source item, ready to display. */
-function describe(topic: Topic) {
+function describe(topic: Topic): Source | null {
+  const candidates: Source[] = [];
   const email = topic.emails[0];
-  const slack = topic.slackMessages[0];
-  if (email && (!slack || email.date >= slack.date)) {
+  if (email) {
     const outbound = email.direction === "outbound";
-    return {
+    candidates.push({
       name: "Gmail",
       direction: email.direction,
       who: outbound ? `To ${formatAddresses(email.to)}` : formatAddresses(email.from),
       date: email.date,
-    };
+    });
   }
+  const slack = topic.slackMessages[0];
   if (slack) {
     const outbound = slack.direction === "outbound";
     const group = slack.counterpart === "Group DM";
@@ -67,9 +75,24 @@ function describe(topic: Topic) {
       : group
         ? `${slack.author} in group DM`
         : slack.author;
-    return { name: "Slack", direction: slack.direction, who, date: slack.date };
+    candidates.push({ name: "Slack", direction: slack.direction, who, date: slack.date });
   }
-  return null;
+  const issue = topic.jiraIssues[0];
+  if (issue) {
+    const holder =
+      issue.direction === "inbound"
+        ? "Assigned to you"
+        : issue.assignee
+          ? `Assigned to ${issue.assignee}`
+          : "Unassigned";
+    candidates.push({
+      name: "Jira",
+      direction: issue.direction,
+      who: [issue.key, issue.status, holder].filter(Boolean).join(" · "),
+      date: issue.date,
+    });
+  }
+  return candidates.reduce<Source | null>((a, b) => (a && a.date >= b.date ? a : b), null);
 }
 
 /** `"Ana Ruiz" <ana@x.com>, bo@y.com` → `Ana Ruiz +1`. */

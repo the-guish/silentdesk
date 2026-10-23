@@ -52,8 +52,9 @@ The **Topics** view pulls your recent communications as topics, on demand:
 |---------|-------------------------------|--------------------------------------------|
 | Gmail   | Last 10 emails, sent and received | [docs/setup/gmail.md](docs/setup/gmail.md) |
 | Slack   | Last 10 direct messages, sent and received | [docs/setup/slack.md](docs/setup/slack.md) |
+| Jira    | Last 10 open issues assigned to you or reported by you | [docs/setup/jira.md](docs/setup/jira.md) |
 
-Each one needs an app or client ID that you or your organization creates; put it in `.env`. On Linux, a Secret Service keyring (GNOME Keyring or KWallet) must be running, because SilentDesk keeps its keys there.
+Gmail and Slack need an app or client ID that you or your organization creates; put it in `.env`. Jira needs only your own API token, entered in the app. On Linux, a Secret Service keyring (GNOME Keyring or KWallet) must be running, because SilentDesk keeps its keys there.
 
 ## Project layout
 
@@ -71,8 +72,8 @@ src-tauri/src/           Rust backend
   secrets.rs             OS credential store access
   model.rs               Topics and source items
   oauth.rs               Shared sign-in pieces (PKCE, loopback redirect)
-  gmail/, slack/         Sign-in, API calls and sync per service
+  gmail/, slack/, jira/  Sign-in, API calls and sync per service
 docs/specs/              Product specs, starting with core.md
 ```
 
-Topics and Gmail and Slack data are kept in an encrypted vault; see [docs/specs/data-model.md](docs/specs/data-model.md). Tasks are still saved in the webview's `localStorage` and will move into the vault.
+Topics and connected-service data are kept in an encrypted vault; see [docs/specs/data-model.md](docs/specs/data-model.md). Tasks are still saved in the webview's `localStorage` and will move into the vault.

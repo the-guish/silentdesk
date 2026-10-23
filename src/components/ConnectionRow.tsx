@@ -1,14 +1,25 @@
+import type { ReactNode } from "react";
 import type { Service, ServiceStatus } from "../types";
 
 export type Busy = "connect" | "sync" | "disconnect" | null;
 
-const INFO: Record<Service, { name: string; envVar: string; doc: string; pitch: string }> = {
+interface Info {
+  name: string;
+  envVar: string;
+  doc: string;
+  pitch: string;
+  /** Signs in through the system browser (OAuth), rather than a form. */
+  browser: boolean;
+}
+
+const INFO: Record<Service, Info> = {
   gmail: {
     name: "Gmail",
     envVar: "SILENTDESK_GOOGLE_CLIENT_ID",
     doc: "docs/setup/gmail.md",
     pitch:
       "Pull your last 10 emails as topics. Reads sender, recipients, subject and date only, never message bodies.",
+    browser: true,
   },
   slack: {
     name: "Slack",
@@ -16,6 +27,15 @@ const INFO: Record<Service, { name: string; envVar: string; doc: string; pitch: 
     doc: "docs/setup/slack.md",
     pitch:
       "Pull your last 10 direct messages as topics. Keeps sender, time and a short preview only.",
+    browser: true,
+  },
+  jira: {
+    name: "Jira",
+    envVar: "",
+    doc: "docs/setup/jira.md",
+    pitch:
+      "Pull your last 10 open issues assigned to you or reported by you. Keeps key, summary, status and people only.",
+    browser: false,
   },
 };
 
@@ -27,6 +47,8 @@ interface Props {
   onConnect: () => void;
   onSync: () => void;
   onDisconnect: () => void;
+  /** Shown under the row, e.g. a sign-in form. */
+  children?: ReactNode;
 }
 
 export function ConnectionRow({
@@ -37,6 +59,7 @@ export function ConnectionRow({
   onConnect,
   onSync,
   onDisconnect,
+  children,
 }: Props) {
   const info = INFO[service];
 
@@ -55,7 +78,7 @@ export function ConnectionRow({
             </>
           ) : status.connected ? (
             <> · {status.account}</>
-          ) : busy === "connect" ? (
+          ) : busy === "connect" && info.browser ? (
             " · Finish signing in in your browser…"
           ) : (
             <> · {info.pitch}</>
@@ -66,9 +89,10 @@ export function ConnectionRow({
             {error}
           </p>
         )}
+        {children}
       </div>
 
-      {status?.configured && (
+      {status?.configured && !children && (
         <div className="connection__actions">
           {status.connected ? (
             <>
@@ -96,7 +120,13 @@ export function ConnectionRow({
               onClick={onConnect}
               disabled={busy !== null}
             >
-              {busy === "connect" ? "Waiting…" : busy === "sync" ? "Syncing…" : "Connect"}
+              {busy === "connect"
+                ? info.browser
+                  ? "Waiting…"
+                  : "Connecting…"
+                : busy === "sync"
+                  ? "Syncing…"
+                  : "Connect"}
             </button>
           )}
         </div>

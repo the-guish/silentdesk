@@ -1,4 +1,5 @@
 import { invoke, isTauri } from "@tauri-apps/api/core";
+import type { InvokeArgs } from "@tauri-apps/api/core";
 import type { Service, ServiceStatus, Topic } from "../types";
 
 /**
@@ -10,7 +11,9 @@ import type { Service, ServiceStatus, Topic } from "../types";
 export const hasBackend = isTauri;
 
 export const serviceStatus = (s: Service) => invoke<ServiceStatus>(`${s}_status`);
-export const serviceConnect = (s: Service) => invoke<ServiceStatus>(`${s}_connect`);
+/** Gmail and Slack sign in through the browser; Jira takes a token in `args`. */
+export const serviceConnect = (s: Service, args?: InvokeArgs) =>
+  invoke<ServiceStatus>(`${s}_connect`, args);
 export const serviceSync = (s: Service) => invoke<Topic[]>(`${s}_sync`);
 export const serviceDisconnect = (s: Service) => invoke<ServiceStatus>(`${s}_disconnect`);
 export const listTopics = () => invoke<Topic[]>("list_topics");
