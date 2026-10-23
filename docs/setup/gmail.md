@@ -12,7 +12,9 @@ In the [Google Cloud console](https://console.cloud.google.com/):
    - **Audience:**
      - Choose **Internal** if you use Google Workspace. Only people in your organization can sign in, and Google does not need to review the app.
      - Otherwise choose **External** and add your account under **Test users**. In testing mode, Google expires refresh tokens after 7 days, so you will need to connect again weekly.
-   - **Data access:** add the scope `https://www.googleapis.com/auth/gmail.metadata`.
+   - **Data access:** add two scopes:
+     - `https://www.googleapis.com/auth/gmail.modify`, to read emails and move them to the trash;
+     - `https://www.googleapis.com/auth/gmail.send`, to send replies.
 4. **Create the client.** Go to *Clients → Create client*, choose application type **Desktop app**, and name it "SilentDesk".
 5. **Copy the Client ID and Client secret.** For a desktop app, Google does not treat the secret as confidential.
 
@@ -32,9 +34,9 @@ For a build you distribute inside your organization, set the same variables when
 
 ## 3. Connect
 
-Open **Topics** and select **Connect Gmail**. Your browser opens Google sign-in. When you approve, SilentDesk pulls your last 10 emails.
+Open **Topics** and select **Connect Gmail**. Your browser opens Google sign-in. When you approve, SilentDesk pulls the subject of every email in your Inbox. The first sync takes about 4 minutes for 10,000 emails.
 
 ## Workspace admins
 
 - To allow the app for everyone, open the Admin console, go to *Security → Access and data control → API controls → App access control*, and mark the client ID as **Trusted**.
-- The `gmail.metadata` scope is a restricted scope. Internal apps are exempt from Google's verification. An External app published to production needs Google's verification and security assessment.
+- The `gmail.modify` scope is a restricted scope, and `gmail.send` is a sensitive scope. Internal apps are exempt from Google's verification. An External app published to production needs Google's verification and security assessment.

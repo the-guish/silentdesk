@@ -1,51 +1,62 @@
 pub mod api;
 pub mod oauth;
+pub mod reply;
+
+use std::collections::HashSet;
 
 use crate::model::{GmailMessage, Topic, VaultData};
 use api::MessageMeta;
 
-/// How many recent messages a sync keeps.
-pub const SYNC_COUNT: usize = 10;
-
-/// Replaces the stored Gmail messages with `latest`. A message that was
-/// already stored keeps its topic; a new message gets a new topic of its own
-/// (no grouping yet). Topics left without messages are removed.
-pub fn apply_sync(data: &mut VaultData, latest: Vec<MessageMeta>, now: &str) {
-    let mut messages = Vec::with_capacity(latest.len());
-    for meta in latest {
-        let topic_id = match data
-            .gmail_messages
-            .iter()
-            .find(|m| m.message_id == meta.message_id)
-        {
-            Some(existing) => existing.topic_id.clone(),
-            None => {
-                let topic = Topic {
-                    id: uuid::Uuid::new_v4().to_string(),
-                    title: if meta.subject.is_empty() {
-                        "(no subject)".into()
-                    } else {
-                        meta.subject.clone()
-                    },
-                    created_at: now.to_owned(),
-                };
-                let id = topic.id.clone();
-                data.topics.push(topic);
-                id
-            }
+/// Adds the messages SilentDesk does not have yet, each with a topic of its
+/// own (no grouping yet). Stored messages and their topics stay as they are.
+pub fn add_messages(data: &mut VaultData, messages: Vec<MessageMeta>, now: &str) {
+    let mut known: HashSet<String> = data
+        .gmail_messages
+        .iter()
+        .map(|m| m.message_id.clone())
+        .collect();
+    for meta in messages {
+        if !known.insert(meta.message_id.clone()) {
+            continue;
+        }
+        let topic = Topic {
+            id: uuid::Uuid::new_v4().to_string(),
+            title: if meta.subject.is_empty() {
+                "(no subject)".into()
+            } else {
+                meta.subject.clone()
+            },
+            created_at: now.to_owned(),
         };
-        messages.push(GmailMessage {
+        data.gmail_messages.push(GmailMessage {
             message_id: meta.message_id,
             thread_id: meta.thread_id,
-            topic_id,
+            topic_id: topic.id.clone(),
             direction: meta.direction,
             from: meta.from,
             to: meta.to,
             subject: meta.subject,
             date: meta.date,
         });
+        data.topics.push(topic);
     }
-    data.gmail_messages = messages;
+}
+
+/// The IDs in `ids` that are not stored yet, in order and without repeats.
+pub fn new_ids(data: &VaultData, ids: Vec<String>) -> Vec<String> {
+    let mut seen: HashSet<String> = data
+        .gmail_messages
+        .iter()
+        .map(|m| m.message_id.clone())
+        .collect();
+    ids.into_iter()
+        .filter(|id| seen.insert(id.clone()))
+        .collect()
+}
+
+/// Forgets one message, and its topic if nothing else is in it.
+pub fn remove_message(data: &mut VaultData, message_id: &str) {
+    data.gmail_messages.retain(|m| m.message_id != message_id);
     data.prune_topics();
 }
 
@@ -59,8 +70,8 @@ mod tests {
             message_id: id.into(),
             thread_id: format!("t-{id}"),
             direction: Direction::Inbound,
-            from: "a@example.com".into(),
-            to: "me@example.com".into(),
+            from: String::new(),
+            to: String::new(),
             subject: subject.into(),
             date: date.into(),
         }
@@ -69,7 +80,7 @@ mod tests {
     #[test]
     fn each_email_gets_its_own_topic() {
         let mut data = VaultData::default();
-        apply_sync(
+        add_messages(
             &mut data,
             vec![
                 meta("1", "Budget", "2026-10-23T10:00:00Z"),
@@ -78,7 +89,6 @@ mod tests {
             "now",
         );
         assert_eq!(data.topics.len(), 2);
-        assert_eq!(data.gmail_messages.len(), 2);
         assert_ne!(
             data.gmail_messages[0].topic_id,
             data.gmail_messages[1].topic_id
@@ -89,32 +99,70 @@ mod tests {
     }
 
     #[test]
-    fn resync_keeps_topics_and_drops_old_ones() {
+    fn later_syncs_keep_what_is_stored() {
         let mut data = VaultData::default();
-        apply_sync(
+        add_messages(
             &mut data,
             vec![meta("1", "A", "d1"), meta("2", "B", "d2")],
             "now",
         );
         let topic_of_2 = data.gmail_messages[1].topic_id.clone();
 
-        apply_sync(
+        add_messages(
             &mut data,
-            vec![meta("3", "C", "d3"), meta("2", "B", "d2")],
+            vec![
+                meta("3", "C", "d3"),
+                meta("2", "B2", "d2"),
+                meta("3", "C", "d3"),
+            ],
             "later",
         );
-        assert_eq!(data.gmail_messages.len(), 2);
+        assert_eq!(data.gmail_messages.len(), 3);
         assert_eq!(data.gmail_messages[1].topic_id, topic_of_2);
-        assert_eq!(data.topics.len(), 2);
-        assert!(data.topics.iter().all(|t| t.title != "A"));
+        assert_eq!(data.gmail_messages[1].subject, "B");
+        let titles: Vec<&str> = data.topics.iter().map(|t| t.title.as_str()).collect();
+        assert_eq!(titles, ["A", "B", "C"]);
+    }
+
+    #[test]
+    fn new_ids_skips_stored_and_repeated() {
+        let mut data = VaultData::default();
+        add_messages(&mut data, vec![meta("1", "A", "d1")], "now");
+        for (ids, expected) in [
+            (vec![], vec![]),
+            (vec!["1"], vec![]),
+            (vec!["2", "1", "3"], vec!["2", "3"]),
+            (vec!["2", "2"], vec!["2"]),
+        ] {
+            let ids = ids.into_iter().map(String::from).collect();
+            assert_eq!(new_ids(&data, ids), expected);
+        }
+    }
+
+    #[test]
+    fn remove_message_drops_its_topic_only() {
+        let mut data = VaultData::default();
+        add_messages(
+            &mut data,
+            vec![meta("1", "A", "d1"), meta("2", "B", "d2")],
+            "now",
+        );
+        remove_message(&mut data, "1");
+        remove_message(&mut data, "unknown");
+        assert_eq!(data.gmail_messages.len(), 1);
+        assert_eq!(data.gmail_messages[0].message_id, "2");
+        assert_eq!(data.topics.len(), 1);
+        assert_eq!(data.topics[0].title, "B");
     }
 
     #[test]
     fn clear_gmail_removes_everything() {
         let mut data = VaultData::default();
-        apply_sync(&mut data, vec![meta("1", "A", "d1")], "now");
+        add_messages(&mut data, vec![meta("1", "A", "d1")], "now");
+        data.gmail_history_id = Some("42".into());
         data.clear_gmail();
         assert!(data.topics.is_empty());
         assert!(data.gmail_messages.is_empty());
+        assert_eq!(data.gmail_history_id, None);
     }
 }

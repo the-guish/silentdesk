@@ -6,7 +6,18 @@
   "oauth_config": {
     "redirect_urls": ["http://localhost:47615/slack/callback"],
     "scopes": {
-      "user": ["search:read", "users:read"]
+      "user": [
+        "search:read",
+        "users:read",
+        "im:read",
+        "im:history",
+        "mpim:read",
+        "mpim:history",
+        "channels:read",
+        "channels:history",
+        "groups:read",
+        "groups:history"
+      ]
     },
     "pkce_enabled": true
   },
