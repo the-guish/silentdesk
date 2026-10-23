@@ -22,7 +22,8 @@ Before you build a feature, read the [core principles](docs/specs/core.md). A ch
 3. Run the app:
 
    ```sh
-   pnpm tauri dev
+   cp .env.example .env   # optional, for Gmail (see docs/setup/gmail.md)
+   ./dev.sh
    ```
 
 ## Before you open a pull request
