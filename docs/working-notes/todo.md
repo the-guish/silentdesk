@@ -6,10 +6,14 @@ Working notes. Not a spec.
 - [x] Encrypted local vault, with its key in the OS credential store.
 - [x] Gmail: connect securely and sync the last 10 emails as topics.
 - [ ] Gmail: test against a real account (needs an OAuth client, see `docs/setup/gmail.md`).
+- [x] Slack: connect securely and sync the last 10 direct messages as topics.
+- [ ] Slack: test against a real workspace, especially the `to:me` / `from:<@me>` search queries.
+- [ ] Slack: include channel mentions; open a message in Slack from its permalink.
 - [ ] Move tasks from localStorage into the vault (core principle 1).
 - [ ] Link tasks to topics.
 - [ ] Group emails into topics (by thread first).
-- [ ] Slack and Jira as topic sources (core principle 4).
+- [ ] Jira as a topic source (core principle 4).
+- [ ] In-app setup screen for client IDs, instead of `.env` (see the Gmail client ID discussion).
 - [ ] Run `pnpm tauri dev` on a desktop machine to check the native window.
 
 ## Specs

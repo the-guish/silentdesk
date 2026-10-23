@@ -44,9 +44,16 @@ Other useful commands:
 | `pnpm build`       | Type-check and build the frontend into `dist/`      |
 | `pnpm tauri build` | Build a release desktop bundle for your platform    |
 
-## Gmail
+## Connections
 
-The **Topics** view can connect a Gmail account and pull the last 10 emails as topics. It needs an OAuth client from your Google Cloud project; see [docs/setup/gmail.md](docs/setup/gmail.md). On Linux, a Secret Service keyring (GNOME Keyring or KWallet) must be running, because SilentDesk keeps its keys there.
+The **Topics** view pulls your recent communications as topics, on demand:
+
+| Service | Pulls                         | Setup                                      |
+|---------|-------------------------------|--------------------------------------------|
+| Gmail   | Last 10 emails, sent and received | [docs/setup/gmail.md](docs/setup/gmail.md) |
+| Slack   | Last 10 direct messages, sent and received | [docs/setup/slack.md](docs/setup/slack.md) |
+
+Each one needs an app or client ID that you or your organization creates; put it in `.env`. On Linux, a Secret Service keyring (GNOME Keyring or KWallet) must be running, because SilentDesk keeps its keys there.
 
 ## Project layout
 
@@ -59,12 +66,13 @@ src/                     React frontend
   types.ts               Shared types
   styles.css             App styles (light and dark)
 src-tauri/src/           Rust backend
-  commands.rs            Commands the frontend can call
+  commands/              Commands the frontend can call
   vault.rs               Encrypted local store
   secrets.rs             OS credential store access
   model.rs               Topics and source items
-  gmail/                 OAuth sign-in, Gmail API, sync
+  oauth.rs               Shared sign-in pieces (PKCE, loopback redirect)
+  gmail/, slack/         Sign-in, API calls and sync per service
 docs/specs/              Product specs, starting with core.md
 ```
 
-Topics and Gmail data are kept in an encrypted vault; see [docs/specs/data-model.md](docs/specs/data-model.md). Tasks are still saved in the webview's `localStorage` and will move into the vault.
+Topics and Gmail and Slack data are kept in an encrypted vault; see [docs/specs/data-model.md](docs/specs/data-model.md). Tasks are still saved in the webview's `localStorage` and will move into the vault.

@@ -2,7 +2,9 @@ mod commands;
 mod error;
 mod gmail;
 mod model;
+mod oauth;
 mod secrets;
+mod slack;
 mod vault;
 
 use tauri::Manager;
@@ -23,11 +25,15 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
-            commands::gmail_status,
-            commands::gmail_connect,
-            commands::gmail_sync,
-            commands::gmail_disconnect,
             commands::list_topics,
+            commands::gmail::gmail_status,
+            commands::gmail::gmail_connect,
+            commands::gmail::gmail_sync,
+            commands::gmail::gmail_disconnect,
+            commands::slack::slack_status,
+            commands::slack::slack_connect,
+            commands::slack::slack_sync,
+            commands::slack::slack_disconnect,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
