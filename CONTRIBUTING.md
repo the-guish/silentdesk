@@ -22,16 +22,17 @@ Before you build a feature, read the [core principles](docs/specs/core.md). A ch
 3. Run the app:
 
    ```sh
-   pnpm tauri dev
+   cp .env.example .env   # optional, for Gmail (see docs/setup/gmail.md)
+   ./dev.sh
    ```
 
 ## Before you open a pull request
 
-Both of these must pass:
+These must pass:
 
 ```sh
-pnpm build                          # type-check and build the frontend
-cd src-tauri && cargo check         # check the Rust backend
+pnpm build                                        # type-check and build the frontend
+cd src-tauri && cargo test && cargo clippy        # test and lint the Rust backend
 ```
 
 - Keep each pull request small and focused on one change.
