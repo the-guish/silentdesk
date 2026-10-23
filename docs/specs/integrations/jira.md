@@ -21,7 +21,7 @@ If Atlassian adds PKCE for public clients, OAuth can replace this without changi
 
 ## Connecting
 
-1. The user selects **Connect** on the Jira row and enters a site, an email (Cloud only) and a token.
+1. The user selects **Connect** on the Jira row in Settings and enters a site, an email (Cloud only) and a token.
 2. **Site:** normalized to `https://host[/path]`. Plain `http` is refused.
 3. **Choosing the API base:**
    - **Email given → Jira Cloud.** SilentDesk uses HTTP Basic auth and REST API v3, and first calls `GET {site}/rest/api/3/myself`. On 401 for an `*.atlassian.net` site, the token may be a scoped one, which Atlassian only accepts through its gateway. SilentDesk then reads the site's cloud ID from `{site}/_edge/tenant_info` and retries at `https://api.atlassian.com/ex/jira/{cloudId}`.

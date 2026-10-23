@@ -10,7 +10,7 @@ Jira needs **no app registration**. Each user connects with their own token, ent
    - **App:** Jira.
    - **Scopes:** `read:jira-work` and `read:jira-user`. Nothing else is needed.
 3. Copy the token. Atlassian shows it only once.
-4. In SilentDesk, open **Topics**, select **Connect** on the Jira row, and fill in:
+4. In SilentDesk, open **Settings** (the gear button), select **Connect** on the Jira row, and fill in:
    - **Site:** `your-company.atlassian.net`;
    - **Email:** your Atlassian account email;
    - **API token:** the token you just created.
