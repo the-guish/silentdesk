@@ -14,6 +14,12 @@ pub enum Error {
     NotConnected(&'static str),
     #[error("{0} access was revoked or has expired. Connect again.")]
     Reauthorize(&'static str),
+    #[error("{0} needs new permissions. Disconnect, then connect again.")]
+    MissingPermission(&'static str),
+    #[error("That email is no longer in SilentDesk. Sync and try again.")]
+    UnknownMessage,
+    #[error("Write a reply before sending.")]
+    EmptyReply,
     #[error("Another {0} operation is already running.")]
     Busy(&'static str),
     #[error("Sign-in timed out. Try again.")]

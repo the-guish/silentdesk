@@ -50,7 +50,7 @@ The **Topics** view pulls your recent communications as topics, on demand:
 
 | Service | Pulls                         | Setup                                      |
 |---------|-------------------------------|--------------------------------------------|
-| Gmail   | Last 10 emails, sent and received | [docs/setup/gmail.md](docs/setup/gmail.md) |
+| Gmail   | Subject of every Inbox email; reply and trash | [docs/setup/gmail.md](docs/setup/gmail.md) |
 | Slack   | Last 10 direct messages, sent and received | [docs/setup/slack.md](docs/setup/slack.md) |
 
 Each one needs an app or client ID that you or your organization creates; put it in `.env`. On Linux, a Secret Service keyring (GNOME Keyring or KWallet) must be running, because SilentDesk keeps its keys there.
