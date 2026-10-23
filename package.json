@@ -2,6 +2,8 @@
   "name": "silentdesk",
   "private": true,
   "version": "0.1.0",
+  "license": "MIT",
+  "author": "The SilentDesk Authors",
   "type": "module",
   "scripts": {
     "dev": "vite",

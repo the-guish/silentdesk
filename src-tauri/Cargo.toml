@@ -2,6 +2,8 @@
 name = "silentdesk"
 version = "0.1.0"
 description = "SilentDesk, a desktop work task tracker"
+authors = ["The SilentDesk Authors"]
+license = "MIT"
 edition = "2024"
 
 [lib]
