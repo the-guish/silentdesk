@@ -24,18 +24,19 @@ PACKAGE = Path(silentdesk.__file__).parent
 ALLOWED = {
     "contract": {"contract"},
     "shared adapters": {"contract", "shared adapters"},
-    "core": {"contract", "core"},
-    "ports": {"contract", "core", "ports"},
-    "application": {"contract", "core", "ports", "application"},
-    "adapters": {"contract", "core", "ports", "adapters"},
-    "wiring": {"contract", "core", "ports", "application", "adapters", "wiring"},
+    "domain": {"contract", "domain"},
+    "core": {"contract", "domain", "core"},
+    "ports": {"contract", "domain", "ports"},
+    "application": {"contract", "domain", "core", "ports", "application"},
+    "adapters": {"contract", "domain", "ports", "adapters"},
+    "wiring": {"contract", "domain", "core", "ports", "application", "adapters", "wiring"},
     # An app's own package holds only its docstring.
     "app": set(),
     "apps": set(),
 }
 # Layers that may import only the standard library from outside silentdesk.
-STDLIB_ONLY = {"contract", "core", "ports", "application"}
-APP_LAYERS = {"core", "ports", "application", "adapters", "wiring"}
+STDLIB_ONLY = {"contract", "domain", "core", "ports", "application"}
+APP_LAYERS = {"domain", "core", "ports", "application", "adapters", "wiring"}
 
 
 def module_name(path: Path) -> str:

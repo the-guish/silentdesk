@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from ....contract import Database
-from ..core.state import GmailState
+from ..domain.state import GmailState
 from ..ports.state_store import StateStore
 
 

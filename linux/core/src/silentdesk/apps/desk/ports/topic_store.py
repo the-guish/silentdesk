@@ -3,7 +3,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from collections.abc import Sequence
 
-from ..core.topics import TopicRecord
+from ..domain.topics import TopicRecord
 
 
 class TopicStore(ABC):

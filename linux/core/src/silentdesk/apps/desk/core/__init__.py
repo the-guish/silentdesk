@@ -1,1 +1,1 @@
-"""The desk's domain: topics and sync rounds, with no I/O."""
+"""The desk's logic: topics and sync rounds, with no I/O."""

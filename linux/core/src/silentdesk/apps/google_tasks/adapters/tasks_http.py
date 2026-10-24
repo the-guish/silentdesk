@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from ....contract import Http
-from ..core.tasks import GoogleTask
+from ..domain.tasks import GoogleTask
 from ..ports.tasks_api import TaskList, TasksApi
 
 
