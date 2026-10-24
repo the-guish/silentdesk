@@ -92,4 +92,4 @@ The backend uses the system certificate store (`truststore`) and the system prox
 
 - **macOS signing:** the bundled Python and its `.so` files must be signed with the app and notarized. Whether Tauri's signing step covers resources, or a separate `codesign` pass is needed, is not settled yet.
 - **Windows:** `bundle-backend.sh` covers macOS and Linux only.
-- **Plugins:** a second backend process for user plugins, with its own secrets, is planned but not designed.
+- **Plugins:** not needed in the short term. If they come, they would run in a second backend process with only their own secrets.
