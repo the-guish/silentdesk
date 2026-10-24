@@ -50,8 +50,8 @@ class Desk(ABC):
 
     @abstractmethod
     async def reply(self, topic_id: str, body: str) -> None:
-        """Replies to the newest item of a mail topic."""
+        """Replies in a topic, through its service's connector."""
 
     @abstractmethod
-    async def trash(self, topic_id: str) -> None:
-        """Trashes every item of a mail topic and drops the topic."""
+    async def delete(self, topic_id: str) -> None:
+        """Deletes a topic in its service, through its connector, and drops it."""

@@ -56,6 +56,10 @@ class Topic:
     items: list[Item]
 
 
+class Unsupported(Exception):
+    """The service cannot do this, such as replying to a task."""
+
+
 @dataclass(frozen=True)
 class SyncResult:
     """What one sync found. When `complete` is true, `topics` is everything
@@ -91,3 +95,13 @@ class Connector(ABC):
     @abstractmethod
     async def sync(self) -> SyncResult:
         """Reads what changed since the last sync."""
+
+    @abstractmethod
+    async def reply(self, topic_key: str, body: str) -> None:
+        """Replies in the topic with this key, as the connected account.
+        Raises `Unsupported` if the service has no replies."""
+
+    @abstractmethod
+    async def delete(self, topic_key: str) -> None:
+        """Deletes the topic with this key in its service, such as moving an
+        email thread to the trash. Raises `Unsupported` if the service cannot."""

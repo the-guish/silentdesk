@@ -10,7 +10,9 @@ from ..ports.tasks_api import TasksApi
 
 
 class GoogleTasks(Connector):
-    """Every open task in Google Tasks, read-only: one topic per task, with one item."""
+    """Every open task in Google Tasks, read-only: one topic per task, with one
+    item. Replying and deleting raise `Unsupported` until the app asks for
+    write access."""
 
     def __init__(
         self, api: TasksApi, authorization: Authorization, credentials: Credentials, state: StateStore
@@ -34,4 +36,10 @@ class GoogleTasks(Connector):
         raise NotImplementedError
 
     async def sync(self) -> SyncResult:
+        raise NotImplementedError
+
+    async def reply(self, topic_key: str, body: str) -> None:
+        raise NotImplementedError
+
+    async def delete(self, topic_key: str) -> None:
         raise NotImplementedError
