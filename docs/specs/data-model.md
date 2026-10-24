@@ -102,6 +102,8 @@ Tasks have no separate store: they are a topic kind like the others, kept in Goo
 
 Secrets (the vault key, the Gmail refresh token, the Slack credential, the Jira token, the GitHub token and the Google Tasks refresh token) live in the OS credential store: Keychain on macOS, Credential Manager on Windows, Secret Service on Linux. They are never written to disk by SilentDesk.
 
+Only the Rust host reads and writes the vault and the credential store. The Python backend keeps source tokens in memory and asks Rust to save changes; its writes must match the schemas in `src-tauri/src/model.rs` exactly. See [backend.md](backend.md).
+
 ## The vault
 
 All local data is one JSON document, encrypted as a whole (core principle 1).
