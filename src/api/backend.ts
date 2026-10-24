@@ -60,6 +60,7 @@ export function subscribe(listening: Promise<UnlistenFn>): () => void {
   };
 }
 
+/** Moves the email's whole thread to the trash. */
 export const gmailTrash = (messageId: string) => call<Topic[]>("gmail.trash", { messageId });
 export const gmailReply = (messageId: string, body: string) =>
   call<void>("gmail.reply", { messageId, body });
@@ -67,6 +68,9 @@ export const gmailReply = (messageId: string, body: string) =>
 /** The recent messages of a topic's Slack conversation, oldest first, read live from Slack. */
 export const slackHistory = (topicId: string) =>
   call<ConversationMessage[]>("slack.history", { topicId });
+/** The messages of a topic's Gmail threads, oldest first, with snippets read live from Gmail. */
+export const gmailThread = (topicId: string) =>
+  call<ConversationMessage[]>("gmail.thread", { topicId });
 
 /** Backend errors arrive as plain strings. */
 export function errorMessage(err: unknown): string {

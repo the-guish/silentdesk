@@ -27,12 +27,13 @@ export interface SlackMessage {
   date: string;
 }
 
-/** One message of a Slack conversation, read live for the topic screen. Never stored. */
+/** One message of a Slack conversation or Gmail thread, read live for the topic screen. Never stored. */
 export interface ConversationMessage {
-  ts: string;
+  /** Unique within its conversation: Slack's `ts`, or the Gmail message ID. */
+  id: string;
   direction: Direction;
   author: string;
-  /** Plain text, with mentions and links made readable. */
+  /** Plain text: the Slack message, or Gmail's snippet of the email. */
   text: string;
   /** ISO 8601 timestamp. */
   date: string;

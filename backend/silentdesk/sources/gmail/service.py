@@ -98,7 +98,7 @@ class GmailSource(Source):
 
     async def sync(self) -> list[dict[str, Any]]:
         """Pulls the subject of every Inbox message SilentDesk does not have
-        yet, each as a topic of its own. The first sync lists the whole
+        yet, one topic per Gmail thread. The first sync lists the whole
         Inbox; later ones list only what entered it since. Messages stay
         after they leave the Inbox."""
         self.google()
@@ -142,24 +142,42 @@ class GmailSource(Source):
 
         def finish(data: VaultData) -> list[dict[str, Any]]:
             data.gmail_history_id = history_id
+            # Merges the topics stored one per message before threads.
+            domain.group_threads(data)
             return topic_views(data)
 
         return await self.host.store.update(finish)
 
     async def trash(self, params: dict[str, Any]) -> list[dict[str, Any]]:
-        """Moves an email to the Gmail trash and drops it, with its topic,
-        from SilentDesk."""
+        """Moves the email's whole thread to the Gmail trash and drops it,
+        with its topic, from SilentDesk."""
         message_id = _param(params, "messageId", "gmail_trash")
         async with self.op:
-            await self.known_message(message_id)
+            message = await self.known_message(message_id)
             access = await self.access_token()
-            await api.trash(self.http, access, message_id)
+            await api.trash_thread(self.http, access, message.thread_id)
 
             def change(data: VaultData) -> list[dict[str, Any]]:
-                domain.remove_message(data, message_id)
+                domain.remove_thread(data, message.thread_id)
                 return topic_views(data)
 
             return await self.host.store.update(change)
+
+    async def thread(self, params: dict[str, Any]) -> list[api.ThreadMessage]:
+        """The messages of the topic's threads, oldest first, read live from
+        Gmail. Nothing is stored. It does not wait for a running sync, which
+        can take minutes."""
+        topic_id = _param(params, "topicId", "gmail_thread")
+        data = await self.host.store.read()
+        threads = sorted({m.thread_id for m in data.gmail_messages if m.topic_id == topic_id})
+        if not threads:
+            raise errors.AppError("This topic has no Gmail thread any more. Go back to the list.")
+        access = await self.access_token()
+        messages: list[api.ThreadMessage] = []
+        for thread_id in threads:
+            messages += await api.thread(self.http, access, thread_id)
+        messages.sort(key=lambda m: m.date)
+        return messages
 
     async def reply(self, params: dict[str, Any]) -> None:
         """Sends `body`, typed by the user, as a reply in the email's
@@ -186,4 +204,4 @@ class GmailSource(Source):
         return await self.status()
 
     def actions(self) -> dict[str, Method]:
-        return {"trash": self.trash, "reply": self.reply}
+        return {"trash": self.trash, "reply": self.reply, "thread": self.thread}

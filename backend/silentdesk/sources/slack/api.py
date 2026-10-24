@@ -324,7 +324,8 @@ class ConversationMessage:
     """One message of a conversation, read live for the topic screen. It is
     shown, never stored."""
 
-    ts: str
+    # The message's `ts`, its ID within the conversation.
+    id: str
     direction: Direction
     author: str
     text: str
@@ -359,14 +360,14 @@ async def conversation(
         mentioned = {id: await names.get(http, token, id) for id in mention_ids(item.text)}
         out.append(
             ConversationMessage(
-                ts=item.ts,
+                id=item.ts,
                 direction=Direction.OUTBOUND if item.user == me else Direction.INBOUND,
                 author=author,
                 text=plain_text(item.text, mentioned).strip(),
                 date=ts_to_rfc3339(item.ts),
             )
         )
-    out.sort(key=lambda m: ts_value(m.ts))
+    out.sort(key=lambda m: ts_value(m.id))
     return out
 
 

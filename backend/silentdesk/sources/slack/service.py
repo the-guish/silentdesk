@@ -149,7 +149,7 @@ class SlackSource(Source):
         except errors.Reauthorize:
             await self.host.secrets.delete(SLACK_CREDENTIAL)
             raise
-        messages.sort(key=lambda m: api.ts_value(m.ts))
+        messages.sort(key=lambda m: api.ts_value(m.id))
         return messages
 
     async def disconnect(self) -> ServiceStatus:

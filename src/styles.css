@@ -416,38 +416,9 @@ code {
   gap: 6px;
 }
 
-.topic__reply,
 .topic__notice {
   flex-basis: 100%;
   margin: 0 0 0 34px;
-}
-
-.topic__reply {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.topic__reply textarea {
-  width: 100%;
-  padding: 6px 8px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  background: var(--surface);
-  color: var(--text);
-  font: inherit;
-  resize: vertical;
-}
-
-.topic__reply textarea:focus {
-  outline: none;
-  border-color: var(--accent);
-}
-
-.topic__reply-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 6px;
 }
 
 .button--danger {
@@ -574,4 +545,43 @@ code {
   overflow-wrap: anywhere;
   user-select: text;
   -webkit-user-select: text;
+}
+
+/* Reply box under a Gmail thread */
+.reply-box {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.reply-box textarea {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  color: var(--text);
+  font: inherit;
+  resize: vertical;
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+.reply-box textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--focus);
+}
+
+.reply-box__actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.reply-box + .list {
+  margin-top: 12px;
 }
