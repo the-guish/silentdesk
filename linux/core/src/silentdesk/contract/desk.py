@@ -30,7 +30,7 @@ class Desk(ABC):
 
     @abstractmethod
     async def services(self) -> list[ServiceStatus]:
-        """Every service SilentDesk can connect, connected or not."""
+        """Every service SilentDesk can connect, connected or not, sorted by name."""
 
     @abstractmethod
     async def connect(self, service: str, params: Mapping[str, str]) -> ServiceStatus:

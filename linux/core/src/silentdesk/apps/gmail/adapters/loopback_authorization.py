@@ -21,6 +21,10 @@ class LoopbackAuthorization(Authorization):
         self.http = http
         self.browser = browser
 
+    @property
+    def configured(self) -> bool:
+        return self.client_id is not None
+
     async def sign_in(self, scopes: Sequence[str]) -> Grant:
         raise NotImplementedError
 
