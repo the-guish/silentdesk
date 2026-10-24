@@ -2,7 +2,7 @@
 name = "silentdesk"
 version = "0.1.0"
 description = "SilentDesk's core logic and JSON command line, for Linux"
-license = "MIT"
+license = "Apache-2.0"
 authors = [{ name = "The SilentDesk Authors" }]
 # 3.12 is Ubuntu 24.04's Python, which the GTK app runs on.
 requires-python = ">=3.12"

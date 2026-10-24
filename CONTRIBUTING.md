@@ -51,4 +51,4 @@ uv run spec/runner/conformance.py --pending apple/core/conformance-pending.txt -
 
 ## License
 
-By contributing, you agree that your contributions are licensed under the [MIT License](LICENSE). Add your name to [AUTHORS](AUTHORS) in your first pull request.
+By contributing, you agree that your contributions are licensed under the [Apache License 2.0](LICENSE). Add your name to [AUTHORS](AUTHORS) in your first pull request.
