@@ -22,6 +22,11 @@ Working notes. Not a spec.
 - [ ] In-app setup screen for client IDs, instead of `.env` (see the Gmail client ID discussion).
 - [ ] Run `pnpm tauri dev` on a desktop machine to check the native window.
 
+## Backend
+- [ ] Test the Python sources against real dependencies. The tests now use in-memory fakes of the store and mocked HTTP responses. The store tests should go through the Rust store, over the IPC. The HTTP tests should use a fake server outside our code, which needs each source's base URL to be configurable.
+- [ ] Measure a full Gmail sync with about 10,000 messages. Each save sends the whole vault over the pipe twice, once read and once written. A full sync saves every 500 messages.
+- [ ] Check in the real window: the sync on window focus, Refresh during a round, and a background error shown in Settings.
+
 ## Specs
 - [ ] Answer the open product questions in `docs/SPEC.md`:
   1. Who uses it: one person or a team?

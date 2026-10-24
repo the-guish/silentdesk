@@ -27,7 +27,7 @@ REVOKE_URL = "https://slack.com/api/auth.revoke"
 
 # `search:read` finds recent direct messages; `users:read` turns user IDs
 # into names. Nothing is written to Slack.
-USER_SCOPES = ("search:read", "users:read")
+USER_SCOPES = ("search:read", "users:read", "im:history", "mpim:history")
 
 DEFAULT_REDIRECT_PORT = 47615
 CALLBACK_PATH = "/slack/callback"
