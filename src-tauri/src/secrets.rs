@@ -14,6 +14,22 @@ pub const JIRA_CREDENTIAL: &str = "jira-credential";
 pub const GITHUB_TOKEN: &str = "github-token";
 pub const GOOGLE_TASKS_REFRESH_TOKEN: &str = "google-tasks-refresh-token";
 
+/// The secrets the Python backend may read and write: its sources' tokens.
+/// The vault key is not among them; it never leaves Rust.
+pub const BACKEND_SECRETS: [&str; 5] = [
+    GMAIL_REFRESH_TOKEN,
+    SLACK_CREDENTIAL,
+    JIRA_CREDENTIAL,
+    GITHUB_TOKEN,
+    GOOGLE_TASKS_REFRESH_TOKEN,
+];
+
+/// `name` as one of `BACKEND_SECRETS`, or `None` if the backend may not
+/// touch it.
+pub fn backend_secret(name: &str) -> Option<&'static str> {
+    BACKEND_SECRETS.iter().copied().find(|s| *s == name)
+}
+
 fn entry(name: &str) -> Result<Entry> {
     Entry::new(SERVICE, name).map_err(|e| Error::Keychain(e.to_string()))
 }

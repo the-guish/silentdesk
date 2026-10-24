@@ -139,7 +139,10 @@ mod tests {
     use crate::model::{GmailAccount, Topic};
 
     fn temp_path(name: &str) -> PathBuf {
-        let dir = std::env::temp_dir().join(format!("silentdesk-test-{}", uuid::Uuid::new_v4()));
+        let dir = std::env::temp_dir().join(format!(
+            "silentdesk-test-{}",
+            u64::from_le_bytes(secrets::random_bytes::<8>())
+        ));
         fs::create_dir_all(&dir).unwrap();
         dir.join(name)
     }
