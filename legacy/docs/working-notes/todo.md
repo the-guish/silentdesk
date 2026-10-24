@@ -23,7 +23,7 @@ Working notes. Not a spec.
 - [ ] Run `pnpm tauri dev` on a desktop machine to check the native window.
 
 ## Native apps
-- [ ] Decide how the shared SQLite database is encrypted at rest (core principle 1): SQLCipher, encrypted values, or the legacy vault. See [spec/storage.md](../../../spec/storage.md). Needed before the first table is written.
+- [x] Decide how the shared SQLite database is encrypted at rest (core principle 1): SQLCipher. See [spec/storage.md](../../../spec/storage.md).
 
 ## Backend
 - [ ] Test the Python sources against real dependencies. The tests now use in-memory fakes of the store and mocked HTTP responses. The store tests should go through the Rust store, over the IPC. The HTTP tests should use a fake server outside our code, which needs each source's base URL to be configurable.
