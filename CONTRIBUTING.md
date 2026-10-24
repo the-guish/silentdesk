@@ -22,6 +22,17 @@ The legacy Tauri app in [`legacy/`](legacy) keeps its own setup and checks; see 
 - For the Linux app, the GTK packages listed in [linux/gtk/README.md](linux/gtk/README.md).
 - For the Swift core, Swift 6: Xcode 16 or newer on macOS, or [swift.org/install](https://www.swift.org/install/) on Linux.
 
+## Branches
+
+Start every branch from `main` and name it after the kind of change:
+
+| Prefix | For | Example |
+|--------|-----|---------|
+| `feature/` | New features and other planned work | `feature/swift-setup` |
+| `fix/` | Bug fixes | `fix/gmail-sync-timeout` |
+
+After the prefix, use a short name in lowercase words separated by hyphens. Every branch goes back into `main` through a pull request.
+
 ## Before you open a pull request
 
 CI runs these; run the ones for the parts you changed:
