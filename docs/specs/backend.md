@@ -55,7 +55,7 @@ Ids are per sender. A message without `method` is a response.
 | `init` | `secrets: {name: value}`, `config: {googleClientId, googleClientSecret, slackClientId, slackRedirectPort}` | `null`. Always the first request. Starts automatic syncing. |
 | `<source>.status` / `.connect` / `.sync` / `.disconnect` | Connect takes the form's fields (`site`, `email`, `token`, …) | `ServiceStatus`, or topics for `sync` |
 | `gmail.trash` / `gmail.reply` | `messageId`, `body` | topics / `null` |
-| `slack.history` | `topicId` | the conversation's recent messages, oldest first, read live and never stored |
+| `slack.history` / `gmail.thread` | `topicId` | the conversation's or thread's messages, oldest first, read live and never stored |
 | `topics.list` | | topics |
 | `sync.soon` / `sync.refresh` / `sync.running` / `sync.lastSynced` | | see docs/specs/sync.md |
 

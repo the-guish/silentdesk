@@ -1,7 +1,6 @@
 import { type ReactNode, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
   errorMessage,
-  gmailReply,
   gmailTrash,
   hasBackend,
   lastSynced,
@@ -161,7 +160,6 @@ export function TopicsView({ footer, onOpenSettings }: Props) {
                   key={topic.id}
                   topic={topic}
                   onTrash={async (email) => setTopics(await gmailTrash(email.messageId))}
-                  onReply={(email, body) => gmailReply(email.messageId, body)}
                   onOpen={() => openTopic(topic.id)}
                 />
               ))}

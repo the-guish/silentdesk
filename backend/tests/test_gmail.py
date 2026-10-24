@@ -7,7 +7,7 @@ import httpx
 import pytest
 
 from silentdesk.core import errors
-from silentdesk.core.model import Direction, GmailAccount, GmailMessage, Topic, VaultData
+from silentdesk.core.model import Direction, GmailAccount, GmailMessage, Topic, VaultData, to_json
 from silentdesk.core.ports import Config
 from silentdesk.core.secret_names import GMAIL_REFRESH_TOKEN
 from silentdesk.core.topics import topic_views
@@ -60,12 +60,81 @@ def test_new_ids_skips_stored_and_repeated():
         assert domain.new_ids(data, ids) == expected
 
 
-def test_remove_message_drops_its_topic_only():
+def in_thread(id: str, thread: str, subject: str, date: str) -> MessageMeta:
+    return MessageMeta(id, thread, Direction.INBOUND, "", "", subject, date)
+
+
+def titles_by_thread(data: VaultData) -> dict[str, str]:
+    titles = {t.id: t.title for t in data.topics}
+    return {m.thread_id: titles[m.topic_id] for m in data.gmail_messages}
+
+
+@pytest.mark.parametrize(
+    ("first", "second", "expected"),
+    [
+        # A thread is one topic, titled by its newest subject.
+        ([("1", "A", "Budget", "d1"), ("2", "A", "Re: Budget v2", "d2")], [], {"A": "Budget v2"}),
+        ([("1", "A", "Budget", "d1"), ("2", "B", "Plans", "d2")], [], {"A": "Budget", "B": "Plans"}),
+        # A later reply joins the topic and renames it.
+        ([("1", "A", "Budget", "d1")], [("2", "A", "RE: New budget", "d2")], {"A": "New budget"}),
+        # An older message arriving later keeps the newest title.
+        ([("2", "A", "Second", "d2")], [("1", "A", "First", "d1")], {"A": "Second"}),
+        ([("1", "A", "", "d1")], [], {"A": "(no subject)"}),
+        ([("1", "A", "Re:", "d1")], [], {"A": "(no subject)"}),
+    ],
+)
+def test_groups_messages_by_thread(first, second, expected):
     data = VaultData()
-    domain.add_messages(data, [meta("1", "A", "d1"), meta("2", "B", "d2")], "now")
-    domain.remove_message(data, "1")
-    domain.remove_message(data, "unknown")
-    assert [m.message_id for m in data.gmail_messages] == ["2"]
+    domain.add_messages(data, [in_thread(*m) for m in first], "now")
+    topic_ids = {m.thread_id: m.topic_id for m in data.gmail_messages}
+    domain.add_messages(data, [in_thread(*m) for m in second], "later")
+    assert titles_by_thread(data) == expected
+    assert len(data.topics) == len(expected)
+    # A thread keeps its topic.
+    assert all(m.topic_id == topic_ids[m.thread_id] for m in data.gmail_messages if m.thread_id in topic_ids)
+
+
+@pytest.mark.parametrize(
+    ("subject", "title"),
+    [
+        ("Budget", "Budget"),
+        ("Re: Budget", "Budget"),
+        ("RE: Fwd: re:Budget", "Budget"),
+        ("Re[2]: Budget", "Budget"),
+        ("FW: AW: SV: TR: Budget", "Budget"),
+        ("Fwd : Budget", "Budget"),
+        ("Regarding: Budget", "Regarding: Budget"),
+        ("Budget Re: plan", "Budget Re: plan"),
+        ("  ", "(no subject)"),
+    ],
+)
+def test_thread_titles_drop_reply_prefixes(subject, title):
+    assert domain.thread_title(subject) == title
+
+
+def test_merges_topics_stored_one_per_message():
+    # Before threads, each message had a topic of its own.
+    data = VaultData(
+        topics=[Topic("t1", "Budget", "then"), Topic("t2", "Re: Budget", "then"), Topic("t3", "Plans", "then")],
+        gmail_messages=[
+            GmailMessage("1", "A", "t1", Direction.INBOUND, "", "", "Budget", "d1"),
+            GmailMessage("2", "A", "t2", Direction.INBOUND, "", "", "Re: Budget", "d2"),
+            GmailMessage("3", "B", "t3", Direction.INBOUND, "", "", "Plans", "d3"),
+        ],
+    )
+    domain.group_threads(data)
+    assert [(t.id, t.title) for t in data.topics] == [("t1", "Budget"), ("t3", "Plans")]
+    assert [m.topic_id for m in data.gmail_messages] == ["t1", "t1", "t3"]
+
+
+def test_remove_thread_drops_its_messages_and_topic():
+    data = VaultData()
+    domain.add_messages(
+        data, [in_thread("1", "A", "A", "d1"), in_thread("2", "A", "A", "d2"), in_thread("3", "B", "B", "d3")], "now"
+    )
+    domain.remove_thread(data, "A")
+    domain.remove_thread(data, "unknown")
+    assert [m.message_id for m in data.gmail_messages] == ["3"]
     assert [t.title for t in data.topics] == ["B"]
 
 
@@ -340,6 +409,8 @@ class FakeGoogle:
         self.messages: dict[str, dict | int] = {}
         self.history: dict | int = 404
         self.trash_status = 200
+        # thread id -> message JSONs.
+        self.threads: dict[str, list[dict]] = {}
         # Statuses to answer before the real reply, per path.
         self.failures: dict[str, list[int]] = {}
 
@@ -392,6 +463,13 @@ class FakeGoogle:
                     403, json={"error": {"message": "Request had insufficient authentication scopes."}}
                 )
             return httpx.Response(self.trash_status, json={})
+        if path.startswith(f"{GMAIL}/threads/"):
+            params = request.url.params
+            assert (params["format"], params.get_list("metadataHeaders")) == ("metadata", ["From"])
+            found = self.threads.get(path.rsplit("/", 1)[1])
+            if found is None:
+                return httpx.Response(404, json={"error": {"message": "Not Found"}})
+            return httpx.Response(200, json={"id": path.rsplit("/", 1)[1], "messages": found})
         if path.startswith(f"{GMAIL}/messages/"):
             found = self.messages.get(path.rsplit("/", 1)[1], 404)
             if isinstance(found, int):
@@ -480,6 +558,7 @@ def test_methods_are_named_for_the_ui():
         "gmail.disconnect",
         "gmail.trash",
         "gmail.reply",
+        "gmail.thread",
     }
 
 
@@ -650,6 +729,24 @@ def test_later_syncs_list_history_only():
     asyncio.run(run())
 
 
+def test_a_sync_with_nothing_new_still_groups_threads():
+    async def run():
+        stored = connected(
+            topics=[Topic("t1", "A", "then"), Topic("t2", "Re: A", "then")],
+            gmail_messages=[
+                GmailMessage("a", "ta", "t1", Direction.INBOUND, "", "", "A", "d1"),
+                GmailMessage("b", "ta", "t2", Direction.INBOUND, "", "", "Re: A", "d2"),
+            ],
+            gmail_history_id="100",
+        )
+        google, host, source = setup(stored)
+        google.history = {"historyId": "200", "history": []}
+        views = await source.sync()
+        assert [(v["id"], v["title"], len(v["emails"])) for v in views] == [("t1", "A", 2)]
+
+    asyncio.run(run())
+
+
 def test_expired_history_lists_the_whole_inbox_again():
     async def run():
         google, host, source = setup(connected(gmail_history_id="1"))
@@ -734,13 +831,15 @@ def stored_message() -> VaultData:
     )
 
 
-def test_trash_drops_the_message_and_its_topic():
+def test_trash_drops_the_thread_and_its_topic():
     async def run():
-        google, host, source = setup(stored_message())
+        data = stored_message()
+        data.gmail_messages.append(GmailMessage("a3", "ta", "t1", Direction.INBOUND, "", "", "Re: A", "d3"))
+        google, host, source = setup(data)
         views = await source.methods()["gmail.trash"]({"messageId": "a1"})
         assert [v["id"] for v in views] == ["t2"]
         post = next(r for r in google.requests if r.url.path.endswith("/trash"))
-        assert post.method == "POST" and post.url.path == f"{GMAIL}/messages/a1/trash"
+        assert post.method == "POST" and post.url.path == f"{GMAIL}/threads/ta/trash"
         assert json.loads(post.content) == {}
         assert [m.message_id for m in host.store.data().gmail_messages] == ["b2"]
 
@@ -748,6 +847,44 @@ def test_trash_drops_the_message_and_its_topic():
         google.trash_status = 404
         views = await source.trash({"messageId": "b2"})
         assert views == []
+
+    asyncio.run(run())
+
+
+def test_thread_reads_the_messages_live():
+    async def run():
+        google, host, source = setup(stored_message())
+
+        def sent(id, sender, snippet, date, labels=("INBOX",)):
+            return {
+                "id": id,
+                "threadId": "ta",
+                "labelIds": list(labels),
+                "internalDate": date,
+                "snippet": snippet,
+                "payload": {"headers": [{"name": "From", "value": sender}]},
+            }
+
+        google.threads["ta"] = [
+            sent("a2", "me@example.com", "Sure, see you", "1761213700000", ("SENT",)),
+            sent("a1", '"Ana Ruiz" <ana@x.com>', "Can we meet &amp; talk?", "1761213600000"),
+            sent("d1", "me@example.com", "draft", "1761213800000", ("DRAFT",)),
+        ]
+        writes = host.store.writes
+        messages = to_json(await source.methods()["gmail.thread"]({"topicId": "t1"}))
+        assert [(m["id"], m["author"], m["direction"], m["text"]) for m in messages] == [
+            ("a1", "Ana Ruiz", "inbound", "Can we meet & talk?"),
+            ("a2", "me@example.com", "outbound", "Sure, see you"),
+        ]
+        assert messages[0]["date"] == "2025-10-23T10:00:00Z"
+        # Read live, never stored.
+        assert host.store.writes == writes
+
+        # A thread deleted in Gmail has no messages.
+        assert await source.thread({"topicId": "t2"}) == []
+        with pytest.raises(errors.AppError) as e:
+            await source.thread({"topicId": "gone"})
+        assert "no Gmail thread" in e.value.message
 
     asyncio.run(run())
 

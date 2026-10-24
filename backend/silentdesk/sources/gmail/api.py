@@ -1,10 +1,13 @@
 """The few Gmail API calls SilentDesk makes. Reads ask for headers only;
-message bodies are never fetched."""
+message bodies are never fetched. The topic screen also shows Gmail's
+snippet of each message, read live and never stored."""
 
 from __future__ import annotations
 
 import asyncio
 import base64
+import email.utils
+import html
 import re
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -125,6 +128,8 @@ class RawMessage:
     internal_date: str | None
     # `(name, value)` pairs; empty when the message has no payload.
     headers: list[tuple[str, str]]
+    # Gmail's plain-text preview of the body, with HTML entities.
+    snippet: str = ""
 
 
 def _header(value: Any) -> tuple[str, str]:
@@ -142,7 +147,26 @@ def _raw_message(value: Any) -> RawMessage:
         label_ids=wire.strings(o, "labelIds"),
         internal_date=wire.opt_string(o, "internalDate"),
         headers=headers,
+        snippet=wire.string(o, "snippet", ""),
     )
+
+
+def _thread(value: Any) -> list[RawMessage]:
+    return wire.items(wire.obj(value), "messages", _raw_message)
+
+
+@dataclass
+class ThreadMessage:
+    """One message of a thread, read live for the topic screen. It is shown,
+    never stored."""
+
+    id: str
+    direction: Direction
+    # The sender's name, or their address when the name is missing.
+    author: str
+    # Gmail's snippet: the start of the body as plain text.
+    text: str
+    date: str
 
 
 async def _get[T](
@@ -334,16 +358,54 @@ async def subjects(
             await asyncio.gather(*tasks, return_exceptions=True)
 
 
-async def trash(http: httpx.AsyncClient, token: str, id: str) -> None:
-    """Moves a message to the trash. Gmail deletes it for good after 30
-    days. A message that no longer exists counts as trashed."""
-    if not is_gmail_id(id):
+async def trash_thread(http: httpx.AsyncClient, token: str, thread_id: str) -> None:
+    """Moves every message of a thread to the trash, as Gmail's own
+    conversation view does. A thread that no longer exists counts as
+    trashed."""
+    if not is_gmail_id(thread_id):
         raise errors.UnknownMessage()
     try:
-        await _post(http, token, f"{BASE}/messages/{id}/trash", {})
+        await _post(http, token, f"{BASE}/threads/{thread_id}/trash", {})
     except errors.Api as e:
         if not is_not_found(e):
             raise
+
+
+async def thread(http: httpx.AsyncClient, token: str, thread_id: str) -> list[ThreadMessage]:
+    """Every message of a thread, oldest first, with sender, date and
+    snippet. Drafts and chats are left out. A thread that no longer exists
+    has no messages."""
+    if not is_gmail_id(thread_id):
+        raise errors.UnknownMessage()
+    query = [("format", "metadata"), ("metadataHeaders", "From")]
+    try:
+        raws = await _get(http, token, f"{BASE}/threads/{thread_id}", query, _thread)
+    except errors.Api as e:
+        if is_not_found(e):
+            return []
+        raise
+    out: list[tuple[int, ThreadMessage]] = []
+    for raw in raws:
+        meta = to_meta(raw)
+        if meta is None:
+            continue
+        name, address = email.utils.parseaddr(meta.from_)
+        # `to_meta` checked that the internal date is an integer.
+        millis = int(raw.internal_date or 0)
+        out.append(
+            (
+                millis,
+                ThreadMessage(
+                    id=raw.id,
+                    direction=meta.direction,
+                    author=name or address or "(unknown sender)",
+                    text=html.unescape(raw.snippet),
+                    date=meta.date,
+                ),
+            )
+        )
+    out.sort(key=lambda pair: pair[0])
+    return [m for _, m in out]
 
 
 async def original(http: httpx.AsyncClient, token: str, id: str) -> Original:
