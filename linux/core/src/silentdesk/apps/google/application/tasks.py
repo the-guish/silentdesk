@@ -41,5 +41,5 @@ class GoogleTasks(Connector):
     async def reply(self, topic_key: str, body: str) -> None:
         raise NotImplementedError
 
-    async def delete(self, topic_key: str) -> None:
+    async def delete_topic(self, topic_key: str) -> None:
         raise NotImplementedError

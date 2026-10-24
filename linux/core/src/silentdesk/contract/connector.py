@@ -102,6 +102,6 @@ class Connector(ABC):
         Raises `Unsupported` if the service has no replies."""
 
     @abstractmethod
-    async def delete(self, topic_key: str) -> None:
+    async def delete_topic(self, topic_key: str) -> None:
         """Deletes the topic with this key in its service, such as moving an
         email thread to the trash. Raises `Unsupported` if the service cannot."""
