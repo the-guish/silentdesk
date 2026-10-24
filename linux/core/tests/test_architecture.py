@@ -28,12 +28,14 @@ ALLOWED = {
     "ports": {"contract", "core", "ports"},
     "application": {"contract", "core", "ports", "application"},
     "adapters": {"contract", "core", "ports", "adapters"},
-    "wiring": {"contract", "core", "ports", "application", "adapters"},
+    "wiring": {"contract", "core", "ports", "application", "adapters", "wiring"},
+    # An app's own package holds only its docstring.
+    "app": set(),
     "apps": set(),
 }
 # Layers that may import only the standard library from outside silentdesk.
 STDLIB_ONLY = {"contract", "core", "ports", "application"}
-APP_LAYERS = {"core", "ports", "application", "adapters"}
+APP_LAYERS = {"core", "ports", "application", "adapters", "wiring"}
 
 
 def module_name(path: Path) -> str:
@@ -54,10 +56,9 @@ def layer(module: str) -> tuple[str, str | None]:
         if len(parts) == 1:
             return "apps", None
         if len(parts) == 2:
-            return "wiring", parts[1]
-        if parts[2] in APP_LAYERS:
-            return parts[2], parts[1]
-        return "wiring", parts[1]
+            return "app", parts[1]
+        assert parts[2] in APP_LAYERS, f"{module} is not in one of an app's folders: {sorted(APP_LAYERS)}"
+        return parts[2], parts[1]
     return "top", None
 
 

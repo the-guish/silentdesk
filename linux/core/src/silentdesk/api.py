@@ -12,8 +12,9 @@ from .adapters.https_client import HttpsClient
 from .adapters.secret_service_keyring import SecretServiceKeyring
 from .adapters.sqlcipher_database import SqlcipherDatabase
 from .adapters.system_browser import SystemBrowser
-from .apps import desk as desk_app
-from .apps import gmail, google_tasks
+from .apps.desk import wiring as desk_wiring
+from .apps.gmail import wiring as gmail_wiring
+from .apps.google_tasks import wiring as google_tasks_wiring
 from .contract import Desk, Settings
 
 CONTRACT = 1
@@ -37,7 +38,7 @@ def desk(settings: Settings) -> Desk:
     http = HttpsClient()
     browser = SystemBrowser()
     connectors = [
-        gmail.create(settings, database, keyring, http, browser),
-        google_tasks.create(settings, database, keyring, http, browser),
+        gmail_wiring.create(settings, database, keyring, http, browser),
+        google_tasks_wiring.create(settings, database, keyring, http, browser),
     ]
-    return desk_app.create(connectors, settings, database)
+    return desk_wiring.create(connectors, settings, database)

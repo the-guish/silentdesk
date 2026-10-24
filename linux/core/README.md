@@ -24,7 +24,7 @@ uv run pytest -q                # unit tests
 
 ## Layout
 
-Every app has the same four layers, and its package `__init__` wires them together:
+Every app has the same five folders:
 
 | Layer | Holds | May import |
 |-------|-------|------------|
@@ -32,6 +32,7 @@ Every app has the same four layers, and its package `__init__` wires them togeth
 | `ports` | Abstract classes for what the app needs from outside, used only inside the app | `contract`, `core` |
 | `adapters` | The ports' implementations | `contract`, `core`, `ports`, third-party packages |
 | `application` | The use cases, implementing the app's classes in `contract` | `contract`, `core`, `ports` |
+| `wiring` | `create()`, which builds the application with its adapters; `api.py` calls it | `contract`, `core`, `ports`, `application`, `adapters` |
 
 Apps never import each other, nor anything else in `silentdesk` but `contract`: the shared services they need (settings, the database, the keyring, HTTPS, the browser) are classes in `contract`, which `src/silentdesk/adapters/` implements and `api.py` passes in. `core`, `ports`, `application` and `contract` use only the standard library. `tests/test_architecture.py` enforces these rules and checks that every abstract class has a concrete implementation; `uv run lint-imports` checks the import rules between apps.
 
