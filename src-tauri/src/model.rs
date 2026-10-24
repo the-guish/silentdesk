@@ -131,6 +131,30 @@ pub struct GitHubAccount {
     pub name: String,
 }
 
+/// A reference to one open Google Task. Notes are not kept: the title
+/// becomes the topic title, and the URL opens the task in Google Tasks.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GoogleTask {
+    pub task_id: String,
+    pub list_id: String,
+    pub list_title: String,
+    pub topic_id: String,
+    /// `YYYY-MM-DD`; Google keeps the day only.
+    pub due: Option<String>,
+    /// Gmail, Docs or Chat, when the task came from one of them.
+    pub origin: Option<String>,
+    pub url: String,
+    /// RFC 3339, when the task was last updated.
+    pub date: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TasksAccount {
+    pub email: String,
+}
+
 /// Everything SilentDesk stores locally. Encrypted at rest by `vault`.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", default)]
@@ -147,6 +171,8 @@ pub struct VaultData {
     pub jira_issues: Vec<JiraIssue>,
     pub github_account: Option<GitHubAccount>,
     pub pull_requests: Vec<PullRequest>,
+    pub tasks_account: Option<TasksAccount>,
+    pub google_tasks: Vec<GoogleTask>,
 }
 
 impl VaultData {
@@ -159,6 +185,7 @@ impl VaultData {
             .chain(self.slack_messages.iter().map(|m| m.topic_id.as_str()))
             .chain(self.jira_issues.iter().map(|i| i.topic_id.as_str()))
             .chain(self.pull_requests.iter().map(|p| p.topic_id.as_str()))
+            .chain(self.google_tasks.iter().map(|t| t.topic_id.as_str()))
             .collect();
         self.topics.retain(|t| used.contains(t.id.as_str()));
     }
@@ -185,6 +212,12 @@ impl VaultData {
     pub fn clear_github(&mut self) {
         self.github_account = None;
         self.pull_requests.clear();
+        self.prune_topics();
+    }
+
+    pub fn clear_tasks(&mut self) {
+        self.tasks_account = None;
+        self.google_tasks.clear();
         self.prune_topics();
     }
 
@@ -218,6 +251,13 @@ impl VaultData {
                 .or_default()
                 .push(p.clone());
         }
+        let mut tasks_by_topic: HashMap<&str, Vec<GoogleTask>> = HashMap::new();
+        for t in &self.google_tasks {
+            tasks_by_topic
+                .entry(&t.topic_id)
+                .or_default()
+                .push(t.clone());
+        }
         let mut views: Vec<TopicView> = self
             .topics
             .iter()
@@ -230,12 +270,15 @@ impl VaultData {
                 jira_issues.sort_by(|a, b| b.date.cmp(&a.date));
                 let mut pull_requests = pulls_by_topic.remove(t.id.as_str()).unwrap_or_default();
                 pull_requests.sort_by(|a, b| b.date.cmp(&a.date));
+                let mut google_tasks = tasks_by_topic.remove(t.id.as_str()).unwrap_or_default();
+                google_tasks.sort_by(|a, b| b.date.cmp(&a.date));
                 TopicView {
                     topic: t.clone(),
                     emails,
                     slack_messages,
                     jira_issues,
                     pull_requests,
+                    google_tasks,
                 }
             })
             .collect();
@@ -249,10 +292,12 @@ fn latest(view: &TopicView) -> &str {
     let slack = view.slack_messages.first().map(|m| m.date.as_str());
     let jira = view.jira_issues.first().map(|i| i.date.as_str());
     let pull = view.pull_requests.first().map(|p| p.date.as_str());
+    let task = view.google_tasks.first().map(|t| t.date.as_str());
     email
         .max(slack)
         .max(jira)
         .max(pull)
+        .max(task)
         .unwrap_or(view.topic.created_at.as_str())
 }
 
@@ -265,4 +310,5 @@ pub struct TopicView {
     pub slack_messages: Vec<SlackMessage>,
     pub jira_issues: Vec<JiraIssue>,
     pub pull_requests: Vec<PullRequest>,
+    pub google_tasks: Vec<GoogleTask>,
 }

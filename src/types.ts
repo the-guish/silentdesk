@@ -1,13 +1,3 @@
-export interface Task {
-  id: string;
-  title: string;
-  done: boolean;
-  /** ISO 8601 timestamp. */
-  createdAt: string;
-}
-
-export type TaskFilter = "all" | "active" | "done";
-
 export type Direction = "inbound" | "outbound";
 
 /** One Gmail message, as stored by the backend. Headers only, no body. */
@@ -70,6 +60,21 @@ export interface PullRequest {
   date: string;
 }
 
+/** One open Google Task, as stored by the backend. No notes. */
+export interface GoogleTask {
+  taskId: string;
+  listId: string;
+  listTitle: string;
+  topicId: string;
+  /** `YYYY-MM-DD`; Google keeps the day only. */
+  due: string | null;
+  /** Gmail, Docs or Chat, when the task came from one of them. */
+  origin: string | null;
+  url: string;
+  /** ISO 8601 timestamp of the last update. */
+  date: string;
+}
+
 export interface Topic {
   id: string;
   title: string;
@@ -79,9 +84,10 @@ export interface Topic {
   slackMessages: SlackMessage[];
   jiraIssues: JiraIssue[];
   pullRequests: PullRequest[];
+  googleTasks: GoogleTask[];
 }
 
-export type Service = "gmail" | "slack" | "jira" | "github";
+export type Service = "gmail" | "slack" | "jira" | "github" | "tasks";
 
 export interface ServiceStatus {
   /** The app has the client ID it needs to sign in. */

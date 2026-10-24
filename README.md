@@ -46,25 +46,25 @@ Other useful commands:
 
 ## Connections
 
-The **Topics** view pulls your recent communications as topics, on demand:
+The **Topics** list pulls your communications and tasks as topics, on demand:
 
 | Service | Pulls                         | Setup                                      |
 |---------|-------------------------------|--------------------------------------------|
 | Gmail   | Subject of every Inbox email; reply and trash | [docs/setup/gmail.md](docs/setup/gmail.md) |
+| Google Tasks | Every open task, read-only | [docs/setup/google-tasks.md](docs/setup/google-tasks.md) |
 | Slack   | Last 10 direct messages, sent and received | [docs/setup/slack.md](docs/setup/slack.md) |
 | Jira    | Last 10 open issues assigned to you or reported by you | [docs/setup/jira.md](docs/setup/jira.md) |
 | GitHub  | Open pull requests waiting for your review, assigned to you, or opened by you | [docs/setup/github.md](docs/setup/github.md) |
 
-Gmail and Slack need an app or client ID that you or your organization creates; put it in `.env`. Jira and GitHub need only your own token, entered in Settings. On Linux, a Secret Service keyring (GNOME Keyring or KWallet) must be running, because SilentDesk keeps its keys there.
+Gmail, Google Tasks and Slack need an app or client ID that you or your organization creates; put it in `.env`. Gmail and Google Tasks share the Google one. Jira and GitHub need only your own token, entered in Settings. On Linux, a Secret Service keyring (GNOME Keyring or KWallet) must be running, because SilentDesk keeps its keys there.
 
 ## Project layout
 
 ```
 src/                     React frontend
-  App.tsx                Header and Tasks / Topics switch
+  App.tsx                Header, Topics list and Settings
   api/backend.ts         Calls into the Rust backend
   components/            Views and list items
-  store/tasks.ts         Task store (localStorage for now)
   types.ts               Shared types
   styles.css             App styles (light and dark)
 src-tauri/src/           Rust backend
@@ -73,8 +73,8 @@ src-tauri/src/           Rust backend
   secrets.rs             OS credential store access
   model.rs               Topics and source items
   oauth.rs               Shared sign-in pieces (PKCE, loopback redirect)
-  gmail/, slack/, jira/, github/  Sign-in, API calls and sync per service
+  gmail/, tasks/, slack/, jira/, github/  Sign-in, API calls and sync per service
 docs/specs/              Product specs, starting with core.md
 ```
 
-Topics and connected-service data are kept in an encrypted vault; see [docs/specs/data-model.md](docs/specs/data-model.md). Tasks are still saved in the webview's `localStorage` and will move into the vault.
+Topics and connected-service data are kept in an encrypted vault; see [docs/specs/data-model.md](docs/specs/data-model.md). Tasks live in Google Tasks.

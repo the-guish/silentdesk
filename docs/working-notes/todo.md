@@ -9,8 +9,9 @@ Working notes. Not a spec.
 - [x] Slack: connect securely and sync the last 10 direct messages as topics.
 - [ ] Slack: test against a real workspace, especially the `to:me` / `from:<@me>` search queries.
 - [ ] Slack: include channel mentions; open a message in Slack from its permalink.
-- [ ] Move tasks from localStorage into the vault (core principle 1).
-- [ ] Link tasks to topics.
+- [x] Tasks are a topic kind backed by Google Tasks (read-only); the localStorage Tasks tab is gone.
+- [ ] Task statuses and actions (complete, edit, create): needs the `tasks` scope.
+- [ ] Join a task to the topic of the email it came from (Gmail `email` links).
 - [ ] Group emails into topics (by thread first).
 - [x] Jira: connect with an API token and sync the last 10 open issues as topics.
 - [ ] Jira: test against a real Cloud site (scoped token via the gateway) and a Data Center instance.

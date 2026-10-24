@@ -46,7 +46,7 @@ async fn access_token(state: &AppState) -> Result<String> {
         return Err(Error::NotConnected(SERVICE));
     }
     let refresh = refresh_token().await?.ok_or(Error::NotConnected(SERVICE))?;
-    match oauth::access_token(&state.http, client, &refresh).await {
+    match oauth::access_token(&state.http, client, &oauth::GMAIL, &refresh).await {
         Err(Error::Reauthorize(service)) => {
             // The grant is dead. Forget it, but keep local topics so that
             // reconnecting the same account picks up where it left off.
@@ -94,7 +94,7 @@ pub async fn gmail_connect(
     let client = state.google()?;
     let _op = try_op(&state.gmail_op, SERVICE)?;
 
-    let tokens = oauth::authorize(&state.http, client, open_browser(&app)).await?;
+    let tokens = oauth::authorize(&state.http, client, &oauth::GMAIL, open_browser(&app)).await?;
     let email = api::profile(&state.http, &tokens.access_token)
         .await?
         .email_address;
