@@ -1,4 +1,4 @@
-"""What the Google app remembers between syncs, per service."""
+"""What the Google app remembers between syncs."""
 
 from __future__ import annotations
 
@@ -9,5 +9,3 @@ from dataclasses import dataclass
 class GoogleState:
     # The connected account.
     email: str
-    # Where Gmail's next sync starts. None for Google Tasks, and before Gmail's first full sync.
-    history_id: str | None
