@@ -42,4 +42,4 @@ To run the legacy app, see [`legacy/README.md`](legacy/README.md).
 
 ## License
 
-MIT. See [LICENSE](LICENSE) and [AUTHORS](AUTHORS).
+Apache License 2.0. See [LICENSE](LICENSE), [NOTICE](NOTICE) and [AUTHORS](AUTHORS).

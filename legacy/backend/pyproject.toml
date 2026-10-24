@@ -2,7 +2,7 @@
 name = "silentdesk"
 version = "0.1.0"
 description = "SilentDesk's sources and sync logic, run by the desktop app as a child process"
-license = "MIT"
+license = "Apache-2.0"
 requires-python = ">=3.12"
 dependencies = [
     "httpx>=0.28",

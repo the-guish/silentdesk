@@ -2,7 +2,7 @@
 name = "silentdesk-gtk"
 version = "0.1.0"
 description = "SilentDesk for Linux, with GTK4 and libadwaita"
-license = "MIT"
+license = "Apache-2.0"
 authors = [{ name = "The SilentDesk Authors" }]
 requires-python = ">=3.12"
 # PyGObject, GTK and libadwaita come from the system packages (see README.md).
