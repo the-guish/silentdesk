@@ -1,16 +1,17 @@
 # SilentDesk — Slack Integration
 
-Status: v1 implemented · Last updated: 2026-10-23
+Status: v1 implemented · Last updated: 2026-10-24
 
 ## Goal (v1)
 
-Let the user connect their Slack account securely, then pull their **last 10 direct messages, sent and received,** as topics. This covers 1:1 DMs and group DMs. One message maps to one topic; no grouping yet.
+Let the user connect their Slack account securely, then pull their **last 10 direct messages, sent and received,** as topics. This covers 1:1 DMs and group DMs. A conversation is one topic. Opening the topic shows the conversation's recent messages.
 
 ## Access
 
-- **User token only,** with two scopes:
+- **User token only,** with four scopes:
   - `search:read`, to find recent direct messages;
-  - `users:read`, to show names instead of user IDs.
+  - `users:read`, to show names instead of user IDs;
+  - `im:history` and `mpim:history`, to show a conversation's messages on its topic screen.
 - **No bot scopes.** SilentDesk cannot post, react, or change anything in Slack.
 - **One account** (one user in one workspace) at a time.
 
@@ -22,7 +23,7 @@ Slack has no scope that limits an app to message metadata, the way Gmail's `gmai
 2. SilentDesk opens Slack's approval page in the **system browser**. It uses OAuth v2 with PKCE (S256) and a random `state`, so no client secret exists.
    - The redirect goes to `http://localhost:47615/slack/callback`. Slack matches redirect URLs exactly, so the port is fixed; `SILENTDESK_SLACK_REDIRECT_PORT` overrides it.
    - The loopback listener checks `state`, answers anything else with 404, and gives up after 3 minutes.
-3. SilentDesk exchanges the code without a client secret and checks that both scopes were granted.
+3. SilentDesk exchanges the code without a client secret and checks that all four scopes were granted.
 4. It calls `auth.test` to learn the user and workspace.
 5. **Storage:**
    - The token is stored in the OS credential store as `slack-credential`. That is either a long-lived user token, or, with token rotation, an access token plus a refresh token.
@@ -42,9 +43,17 @@ Tokens never reach the webview.
   - **Names:** user IDs are resolved with `users.info`, once per user per sync.
   - **Direction:** messages sent by the user are outbound, everything else is inbound.
   - **Counterpart:** the other person for a 1:1 DM, or "Group DM".
-- **Topic title:** the message's first 120 characters as plain text, with mentions, channel links and URLs rewritten readably.
-- **Re-sync:** a message already stored keeps its topic. Messages that drop out of the last 10 are removed, along with topics left without any source item. Gmail topics are not affected.
+- **Topics:** one per conversation. All of a conversation's messages share its topic.
+- **Topic title:** the first 120 characters of the conversation's newest message, as plain text, with mentions, channel links and URLs rewritten readably.
+- **Re-sync:** a conversation keeps the topic of its newest stored message, and its title follows the newest message. Messages that drop out of the last 10 are removed, along with topics left without any source item. Gmail topics are not affected.
 - **Expiring tokens:** if token rotation is on, an expired access token is renewed before syncing, and the new refresh token replaces the old one.
+
+## Topic screen
+
+- **Opening:** selecting a topic in the list opens its screen. **← Topics** or Esc goes back to the list, at the same place.
+- **Messages:** the screen reads the conversation's 50 most recent messages with `conversations.history`, and shows them oldest first. Join and leave events are left out.
+- **Live only:** the messages are read each time the screen opens, and again when a sync brings a newer message. They are never stored.
+- **Older tokens:** a token granted before `im:history` and `mpim:history` were added cannot read history. The screen asks the user to disconnect and connect again.
 
 ## What is stored
 
@@ -55,7 +64,7 @@ In the encrypted vault, per message:
 - permalink;
 - date.
 
-The **message text is not stored.** Only the topic title, a preview of at most 120 characters, keeps any of it.
+The **message text is not stored.** Only the topic title, a preview of the newest message of at most 120 characters, keeps any of it.
 
 ## Disconnecting
 
@@ -73,6 +82,7 @@ The **message text is not stored.** Only the topic title, a preview of at most 1
 | Redirect URL or client ID wrong | Sign-in fails with a message saying which. |
 | Token revoked, expired, or refresh token expired | The token is deleted and the user is asked to connect again. Topics stay. Reconnecting the same user and workspace keeps them; a different account clears them. |
 | Rate limited (HTTP 429) | Shown inline with Slack's suggested wait. |
+| A scope is missing | The user is asked to disconnect and connect again. |
 | Another Slack operation is running | A user action waits for it. An automatic sync skips Slack. |
 
 ## Corporate deployment
@@ -88,5 +98,5 @@ The **message text is not stored.** Only the topic title, a preview of at most 1
 - **The search modifiers are not formally documented** for the API. Slack's blog documents `to:me` as finding DMs sent to you; the `from:<@USER>` form is not documented. Both need checking against a real workspace.
 - **Next:**
   - include mentions of the user in channels;
-  - group messages into topics (by conversation first);
+  - show thread replies on the topic screen;
   - open a message in Slack from its permalink.

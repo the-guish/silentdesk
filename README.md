@@ -54,7 +54,7 @@ The **Topics** list pulls your communications and tasks as topics. It syncs at s
 |---------|-------------------------------|--------------------------------------------|
 | Gmail   | Subject of every Inbox email; reply and trash | [docs/setup/gmail.md](docs/setup/gmail.md) |
 | Google Tasks | Every open task, read-only | [docs/setup/google-tasks.md](docs/setup/google-tasks.md) |
-| Slack   | Last 10 direct messages, sent and received | [docs/setup/slack.md](docs/setup/slack.md) |
+| Slack   | Last 10 direct messages, sent and received, one topic per conversation | [docs/setup/slack.md](docs/setup/slack.md) |
 | Jira    | Last 10 open issues assigned to you or reported by you | [docs/setup/jira.md](docs/setup/jira.md) |
 | GitHub  | Open pull requests waiting for your review, assigned to you, or opened by you | [docs/setup/github.md](docs/setup/github.md) |
 
