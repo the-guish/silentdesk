@@ -33,7 +33,7 @@ Tokens never reach the webview.
 
 ## Syncing
 
-- **On demand only,** when the user selects **Sync** or right after connecting (core principle 6).
+- **Automatic,** at startup, every 2 minutes and on window focus. See `docs/specs/sync.md`.
 - **Fetching:** two `search.messages` queries sorted by time:
   - `to:me` finds direct messages sent to the user;
   - `from:<@me>` finds messages the user sent.
@@ -73,7 +73,7 @@ The **message text is not stored.** Only the topic title, a preview of at most 1
 | Redirect URL or client ID wrong | Sign-in fails with a message saying which. |
 | Token revoked, expired, or refresh token expired | The token is deleted and the user is asked to connect again. Topics stay. Reconnecting the same user and workspace keeps them; a different account clears them. |
 | Rate limited (HTTP 429) | Shown inline with Slack's suggested wait. |
-| Another Slack operation is running | The request is refused ("already running"). |
+| Another Slack operation is running | A user action waits for it. An automatic sync skips Slack. |
 
 ## Corporate deployment
 

@@ -33,7 +33,7 @@ Tokens never reach the webview. The UI only sees the connection status and topic
 
 ## Syncing
 
-- **On demand only.** Sync runs when the user selects **Sync** (or right after connecting). There is no background polling and there are no notifications (core principle 6).
+- **Automatic,** at startup, every 2 minutes and on window focus. See `docs/specs/sync.md`.
 - **What it fetches:** every message in the Inbox, excluding drafts and chat messages.
 - **Per message:** `Subject`, labels and the internal date.
   - `SENT` label → outbound; anything else → inbound.
@@ -80,7 +80,7 @@ Both actions work only on emails SilentDesk has synced.
 | User denies access, or `state` does not match | Sign-in fails with a message; nothing is stored. |
 | Refresh token revoked or expired | The token is deleted and the user is asked to connect again. Topics stay. Reconnecting the same account keeps them; a different account clears them. |
 | Network or API error | Shown inline in the Topics view. |
-| Another Gmail operation is running | The request is refused ("already running"). Reply and Trash wait for a sync to finish. |
+| Another Gmail operation is running | A user action, including Reply and Trash, waits for it. An automatic sync skips Gmail. |
 | A synced message was deleted in Gmail | Sync skips it. Trash removes it from SilentDesk. |
 | Account connected before replying and trashing existed | Gmail refuses the action. The user is asked to disconnect and connect again. |
 

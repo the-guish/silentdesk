@@ -36,7 +36,7 @@ The token crosses from the UI to the backend once, when the user submits it. Aft
 
 ## Syncing
 
-- **On demand only** (core principle 6).
+- **Automatic,** at startup, every 2 minutes and on window focus. See `docs/specs/sync.md`.
 - **Query:** `(assignee = currentUser() OR reporter = currentUser()) AND statusCategory != Done ORDER BY updated DESC`, at most 10 results.
   - **Cloud** uses `GET /rest/api/3/search/jql`; the older `/search` endpoint has been removed from Jira Cloud.
   - **Data Center** uses `GET /rest/api/2/search`.
@@ -64,7 +64,7 @@ The summary becomes the topic title.
 | Wrong site | "No Jira was found at …" |
 | `http://` site | Refused before any request is made. |
 | Token expired or revoked later | It is deleted, and the user is asked to connect again. Topics stay. Reconnecting the same user and site keeps them; a different account clears them. |
-| Another Jira operation is running | The request is refused ("already running"). |
+| Another Jira operation is running | A user action waits for it. An automatic sync skips Jira. |
 
 ## Corporate deployment
 

@@ -1,4 +1,4 @@
-use super::{AppState, ServiceStatus, now_rfc3339, try_op};
+use super::{AppState, ServiceStatus, now_rfc3339};
 use crate::error::{Error, Result};
 use crate::jira::{self, api};
 use crate::model::{JiraAccount, TopicView, VaultData};
@@ -47,7 +47,7 @@ pub async fn jira_connect(
     email: Option<String>,
     token: String,
 ) -> Result<ServiceStatus> {
-    let _op = try_op(&state.jira_op, SERVICE)?;
+    let _op = state.jira_op.lock().await;
 
     let site = api::normalize_site(&site)?;
     let token = token.trim().to_owned();
@@ -83,11 +83,8 @@ pub async fn jira_connect(
 }
 
 /// Pulls the most recently updated open issues and maps each one to a
-/// topic. Only runs when the user asks for it (core principle 6).
-#[tauri::command]
-pub async fn jira_sync(state: tauri::State<'_, AppState>) -> Result<Vec<TopicView>> {
-    let _op = try_op(&state.jira_op, SERVICE)?;
-
+/// topic.
+pub(super) async fn sync(state: &AppState) -> Result<Vec<TopicView>> {
     let account = state
         .read()
         .await?
@@ -122,11 +119,17 @@ pub async fn jira_sync(state: tauri::State<'_, AppState>) -> Result<Vec<TopicVie
         .await
 }
 
+#[tauri::command]
+pub async fn jira_sync(state: tauri::State<'_, AppState>) -> Result<Vec<TopicView>> {
+    let _op = state.jira_op.lock().await;
+    sync(&state).await
+}
+
 /// Deletes the token and all local Jira data. API tokens cannot be revoked
 /// through the API; the user revokes them in their Atlassian or Jira profile.
 #[tauri::command]
 pub async fn jira_disconnect(state: tauri::State<'_, AppState>) -> Result<ServiceStatus> {
-    let _op = try_op(&state.jira_op, SERVICE)?;
+    let _op = state.jira_op.lock().await;
     secrets::delete(JIRA_CREDENTIAL).await?;
     state.update(VaultData::clear_jira).await?;
     status(&state).await
