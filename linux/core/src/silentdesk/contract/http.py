@@ -1,8 +1,8 @@
-"""HTTPS for every app: the system certificate store and proxy settings, so
-corporate TLS inspection keeps working (core principle 2)."""
+"""HTTPS requests to the services the apps connect."""
 
 from __future__ import annotations
 
+from abc import ABC, abstractmethod
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 from typing import Any
@@ -14,11 +14,9 @@ class Response:
     headers: Mapping[str, str]
     body: bytes = field(repr=False)
 
-    def json(self) -> Any:
-        raise NotImplementedError
 
-
-class Http:
+class Http(ABC):
+    @abstractmethod
     async def request(
         self,
         method: str,
@@ -29,7 +27,6 @@ class Http:
         json: Any = None,
     ) -> Response:
         """Sends one request. Only https URLs, except loopback addresses for tests."""
-        raise NotImplementedError
 
-    async def close(self) -> None:
-        raise NotImplementedError
+    @abstractmethod
+    async def close(self) -> None: ...

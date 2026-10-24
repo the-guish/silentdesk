@@ -2,10 +2,7 @@
 
 from __future__ import annotations
 
-from ...contract import Connector, Database, Settings
-from ...infra import browser
-from ...infra.http import Http
-from ...infra.keyring import Keyring
+from ...contract import Browser, Connector, Database, Http, Keyring, Settings
 from .adapters.gmail_http import GmailHttpApi
 from .adapters.keyring_credentials import KeyringCredentials
 from .adapters.loopback_authorization import LoopbackAuthorization
@@ -15,9 +12,7 @@ from .application.gmail import Gmail
 GMAIL_API = "https://gmail.googleapis.com"
 
 
-def create(settings: Settings, database: Database, keyring: Keyring, http: Http) -> Connector:
-    authorization = LoopbackAuthorization(
-        settings.google_client_id, settings.google_client_secret, http, browser.open_url
-    )
+def create(settings: Settings, database: Database, keyring: Keyring, http: Http, browser: Browser) -> Connector:
+    authorization = LoopbackAuthorization(settings.google_client_id, settings.google_client_secret, http, browser)
     api = GmailHttpApi(http, settings.base_url("gmail", GMAIL_API))
     return Gmail(api, authorization, KeyringCredentials(keyring), SqlcipherStateStore(database))

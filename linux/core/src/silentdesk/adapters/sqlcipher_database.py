@@ -5,8 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from ..contract import Database
-from .keyring import Keyring
+from ..contract import Database, Keyring
 
 
 class SqlcipherDatabase(Database):

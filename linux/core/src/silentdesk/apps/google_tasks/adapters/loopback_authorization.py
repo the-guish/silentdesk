@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from collections.abc import Awaitable, Callable, Sequence
+from collections.abc import Sequence
 
-from ....infra.http import Http
+from ....contract import Browser, Http
 from ..ports.authorization import Authorization, Grant
 
 
@@ -14,12 +14,12 @@ class LoopbackAuthorization(Authorization):
         client_id: str | None,
         client_secret: str | None,
         http: Http,
-        open_url: Callable[[str], Awaitable[None]],
+        browser: Browser,
     ) -> None:
         self.client_id = client_id
         self.client_secret = client_secret
         self.http = http
-        self.open_url = open_url
+        self.browser = browser
 
     async def sign_in(self, scopes: Sequence[str]) -> Grant:
         raise NotImplementedError

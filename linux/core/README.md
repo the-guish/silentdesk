@@ -18,7 +18,7 @@ uv run pytest -q                # unit tests
 | `src/silentdesk/apps/gmail/` | The Gmail connector |
 | `src/silentdesk/apps/google_tasks/` | The Google Tasks connector |
 | `src/silentdesk/apps/desk/` | The orchestration app: one queue of topics, and sync rounds over every connector |
-| `src/silentdesk/infra/` | Shared technical pieces for adapters: settings, the SQLCipher database, the keyring, HTTPS, the browser |
+| `src/silentdesk/adapters/` | Adapters every app can be given: settings, the SQLCipher database, the keyring, HTTPS, the browser |
 | `tests/` | Unit tests, including the layout rules in `test_architecture.py` |
 | `conformance-pending.txt` | Conformance cases this core does not pass yet |
 
@@ -30,10 +30,10 @@ Every app has the same four layers, and its package `__init__` wires them togeth
 |-------|-------|------------|
 | `core` | The domain: data and pure logic, no I/O | `contract` |
 | `ports` | Abstract classes for what the app needs from outside, used only inside the app | `contract`, `core` |
-| `adapters` | The ports' implementations | `contract`, `core`, `ports`, `infra`, third-party packages |
+| `adapters` | The ports' implementations | `contract`, `core`, `ports`, third-party packages |
 | `application` | The use cases, implementing the app's classes in `contract` | `contract`, `core`, `ports` |
 
-Apps never import each other; they meet only through `contract`. `core`, `ports`, `application` and `contract` use only the standard library. `tests/test_architecture.py` enforces these rules, and checks that every abstract class has a concrete implementation.
+Apps never import each other, nor anything else in `silentdesk` but `contract`: the shared services they need (settings, the database, the keyring, HTTPS, the browser) are classes in `contract`, which `src/silentdesk/adapters/` implements and `api.py` passes in. `core`, `ports`, `application` and `contract` use only the standard library. `tests/test_architecture.py` enforces these rules and checks that every abstract class has a concrete implementation; `uv run lint-imports` checks the import rules between apps.
 
 Most methods still raise `NotImplementedError`: this is the skeleton the legacy backend's code moves into.
 
