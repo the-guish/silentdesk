@@ -57,6 +57,21 @@ Jira issue:
 
 The issue summary becomes the topic title; descriptions and comments are not fetched.
 
+GitHub pull request:
+
+| Field        | Type     | Notes                                           |
+|--------------|----------|-------------------------------------------------|
+| `prId`       | number   | GitHub's ID                                     |
+| `repo`, `number` | string, number | `owner/name` and the pull request number |
+| `topicId`    | UUID     | The topic it belongs to                         |
+| `reason`     | `reviewRequested` \| `assigned` \| `authored` | Why it is in the queue |
+| `direction`  | `inbound` \| `outbound` | `outbound` when the user opened it   |
+| `draft`, `author` | bool, string | Draft flag and author login             |
+| `url`        | URL      | Opens the pull request                          |
+| `date`       | RFC 3339 | Last updated                                    |
+
+The title becomes the topic title; descriptions, diffs and comments are not fetched.
+
 ### Task
 Still stored separately in the webview's `localStorage`, unencrypted (see `docs/working-notes/todo.md`). It will move into the vault, and gain links to topics.
 
@@ -67,10 +82,11 @@ Still stored separately in the webview's `localStorage`, unencrypted (see `docs/
 | Topics                                      | Email bodies and attachments         |
 | Source item references and display headers  | Slack message text (beyond the title)|
 |                                             | Jira descriptions and comments       |
-| Connected accounts (Gmail address; Slack user and workspace; Jira user and site) | Google access tokens (kept in memory only) |
+|                                             | Pull request descriptions, diffs and comments |
+| Connected accounts (Gmail address; Slack user and workspace; Jira user and site; GitHub login and server) | Google access tokens (kept in memory only) |
 | Gmail history ID, where the next sync starts | Passwords                            |
 
-Secrets (the vault key, the Gmail refresh token, the Slack credential and the Jira token) live in the OS credential store: Keychain on macOS, Credential Manager on Windows, Secret Service on Linux. They are never written to disk by SilentDesk.
+Secrets (the vault key, the Gmail refresh token, the Slack credential, the Jira token and the GitHub token) live in the OS credential store: Keychain on macOS, Credential Manager on Windows, Secret Service on Linux. They are never written to disk by SilentDesk.
 
 ## The vault
 

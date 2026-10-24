@@ -550,8 +550,8 @@ code {
   filter: brightness(1.08);
 }
 
-/* Jira connect form */
-.jira-form {
+/* Token sign-in form (Jira, GitHub) */
+.token-form {
   display: grid;
   gap: 8px;
   margin-top: 8px;
@@ -587,13 +587,13 @@ code {
   box-shadow: 0 0 0 3px var(--focus);
 }
 
-.jira-form__hint {
+.token-form__hint {
   margin: 0;
   color: var(--text-muted);
   font-size: 12px;
 }
 
-.jira-form__actions {
+.token-form__actions {
   display: flex;
   justify-content: flex-end;
   gap: 6px;

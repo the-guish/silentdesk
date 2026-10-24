@@ -9,45 +9,44 @@ import {
   serviceSync,
 } from "../api/backend";
 import type { SyncProgress } from "../api/backend";
-import type { JiraConnectArgs, Service, ServiceStatus } from "../types";
+import type { Service, ServiceStatus, Topic } from "../types";
 import { ConnectionRow, type Busy } from "./ConnectionRow";
-import { JiraConnectForm } from "./JiraConnectForm";
+import { TOKEN_FORMS, TokenConnectForm, type TokenService } from "./TokenConnectForm";
 
-const SERVICES: Service[] = ["gmail", "slack", "jira"];
+const SERVICES: Service[] = ["gmail", "slack", "jira", "github"];
 
 type PerService<T> = Record<Service, T>;
 
+function perService<T>(value: T): PerService<T> {
+  return Object.fromEntries(SERVICES.map((s) => [s, value])) as PerService<T>;
+}
+
+/** Whether a topic came from service `s`. */
+const FROM: Record<Service, (t: Topic) => boolean> = {
+  gmail: (t) => t.emails.length > 0,
+  slack: (t) => t.slackMessages.length > 0,
+  jira: (t) => t.jiraIssues.length > 0,
+  github: (t) => t.pullRequests.length > 0,
+};
+
+const isTokenService = (s: Service): s is TokenService => s in TOKEN_FORMS;
+
 export function SettingsView() {
   const desktop = hasBackend();
-  const [statuses, setStatuses] = useState<PerService<ServiceStatus | null>>({
-    gmail: null,
-    slack: null,
-    jira: null,
-  });
-  const [busy, setBusy] = useState<PerService<Busy>>({ gmail: null, slack: null, jira: null });
-  const [errors, setErrors] = useState<PerService<string | null>>({
-    gmail: null,
-    slack: null,
-    jira: null,
-  });
+  const [statuses, setStatuses] = useState(perService<ServiceStatus | null>(null));
+  const [busy, setBusy] = useState(perService<Busy>(null));
+  const [errors, setErrors] = useState(perService<string | null>(null));
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [synced, setSynced] = useState<PerService<number | null>>({
-    gmail: null,
-    slack: null,
-    jira: null,
-  });
-  const [jiraFormOpen, setJiraFormOpen] = useState(false);
+  const [synced, setSynced] = useState(perService<number | null>(null));
+  /** The token service whose sign-in form is open, if any. */
+  const [form, setForm] = useState<TokenService | null>(null);
 
   const setStatus = (s: Service, status: ServiceStatus) =>
     setStatuses((prev) => ({ ...prev, [s]: status }));
 
   const refresh = useCallback(async () => {
-    const [gmail, slack, jira] = await Promise.all([
-      serviceStatus("gmail"),
-      serviceStatus("slack"),
-      serviceStatus("jira"),
-    ]);
-    setStatuses({ gmail, slack, jira });
+    const all = await Promise.all(SERVICES.map(serviceStatus));
+    setStatuses(Object.fromEntries(SERVICES.map((s, i) => [s, all[i]])) as PerService<ServiceStatus>);
   }, []);
 
   useEffect(() => {
@@ -81,20 +80,14 @@ export function SettingsView() {
 
   async function pull(s: Service) {
     const topics = await serviceSync(s);
-    const count = topics.filter((t) =>
-      s === "gmail"
-        ? t.emails.length > 0
-        : s === "slack"
-          ? t.slackMessages.length > 0
-          : t.jiraIssues.length > 0,
-    ).length;
+    const count = topics.filter(FROM[s]).length;
     setSynced((prev) => ({ ...prev, [s]: count }));
   }
 
-  const connect = (s: Service, args?: JiraConnectArgs) =>
+  const connect = (s: Service, args?: Record<string, string | null>) =>
     run(s, "connect", async () => {
       setStatus(s, await serviceConnect(s, args));
-      if (s === "jira") setJiraFormOpen(false);
+      if (form === s) setForm(null);
       setBusy((prev) => ({ ...prev, [s]: "sync" }));
       await pull(s);
     });
@@ -127,15 +120,16 @@ export function SettingsView() {
                     ? `${gmailProgress.done.toLocaleString()} of ${gmailProgress.total.toLocaleString()}`
                     : null
                 }
-                onConnect={() => (s === "jira" ? setJiraFormOpen(true) : connect(s))}
+                onConnect={() => (isTokenService(s) ? setForm(s) : connect(s))}
                 onSync={() => sync(s)}
                 onDisconnect={() => disconnect(s)}
               >
-                {s === "jira" && jiraFormOpen && !statuses.jira?.connected && (
-                  <JiraConnectForm
-                    busy={busy.jira !== null}
-                    onSubmit={(args) => connect("jira", args)}
-                    onCancel={() => setJiraFormOpen(false)}
+                {isTokenService(s) && form === s && !statuses[s]?.connected && (
+                  <TokenConnectForm
+                    {...TOKEN_FORMS[s]}
+                    busy={busy[s] !== null}
+                    onSubmit={(values) => connect(s, values)}
+                    onCancel={() => setForm(null)}
                   />
                 )}
               </ConnectionRow>

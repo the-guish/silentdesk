@@ -225,6 +225,28 @@ function describe(topic: Topic): Source | null {
       date: issue.date,
     });
   }
+  const pull = topic.pullRequests[0];
+  if (pull) {
+    const why =
+      pull.reason === "reviewRequested"
+        ? "Review requested"
+        : pull.reason === "assigned"
+          ? "Assigned to you"
+          : "Opened by you";
+    candidates.push({
+      name: "GitHub",
+      direction: pull.direction,
+      who: [
+        `${pull.repo}#${pull.number}`,
+        pull.draft ? "Draft" : null,
+        why,
+        pull.reason === "authored" ? null : `by ${pull.author}`,
+      ]
+        .filter(Boolean)
+        .join(" · "),
+      date: pull.date,
+    });
+  }
   return candidates.reduce<Source | null>((a, b) => (a && a.date >= b.date ? a : b), null);
 }
 

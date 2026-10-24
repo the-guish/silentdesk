@@ -14,7 +14,9 @@ Working notes. Not a spec.
 - [ ] Group emails into topics (by thread first).
 - [x] Jira: connect with an API token and sync the last 10 open issues as topics.
 - [ ] Jira: test against a real Cloud site (scoped token via the gateway) and a Data Center instance.
-- [ ] Open source items (email, Slack message, Jira issue) from the queue.
+- [x] GitHub: connect with a personal access token and sync open pull requests (review requested, assigned, authored) as topics.
+- [ ] GitHub: test against a real account (this sandbox's proxy replaces GitHub credentials and blocks /search).
+- [ ] Open source items (email, Slack message, Jira issue, pull request) from the queue.
 - [ ] Link items across services (e.g. an email that mentions PAY-412 joins that issue's topic).
 - [ ] In-app setup screen for client IDs, instead of `.env` (see the Gmail client ID discussion).
 - [ ] Run `pnpm tauri dev` on a desktop machine to check the native window.

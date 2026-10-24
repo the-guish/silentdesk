@@ -53,6 +53,23 @@ export interface JiraIssue {
   date: string;
 }
 
+/** One GitHub pull request, as stored by the backend. No description or diff. */
+export interface PullRequest {
+  prId: number;
+  /** `owner/name`. */
+  repo: string;
+  number: number;
+  topicId: string;
+  reason: "reviewRequested" | "assigned" | "authored";
+  /** Inbound when the user's review or work is asked for; outbound when they opened it. */
+  direction: Direction;
+  draft: boolean;
+  author: string;
+  url: string;
+  /** ISO 8601 timestamp of the last update. */
+  date: string;
+}
+
 export interface Topic {
   id: string;
   title: string;
@@ -61,16 +78,10 @@ export interface Topic {
   emails: GmailEmail[];
   slackMessages: SlackMessage[];
   jiraIssues: JiraIssue[];
+  pullRequests: PullRequest[];
 }
 
-export type Service = "gmail" | "slack" | "jira";
-
-/** What the Jira connect form sends. `email` is empty for Data Center. */
-export type JiraConnectArgs = {
-  site: string;
-  email: string | null;
-  token: string;
-};
+export type Service = "gmail" | "slack" | "jira" | "github";
 
 export interface ServiceStatus {
   /** The app has the client ID it needs to sign in. */
