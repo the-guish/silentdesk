@@ -101,6 +101,36 @@ pub struct JiraAccount {
     pub user_name: String,
 }
 
+/// A reference to one GitHub pull request. The description, diff and
+/// comments are not kept: the title becomes the topic title, and the URL
+/// opens the pull request.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PullRequest {
+    pub pr_id: u64,
+    /// `owner/name`.
+    pub repo: String,
+    pub number: u64,
+    pub topic_id: String,
+    pub reason: crate::github::api::Reason,
+    /// Inbound when the user's review or work is asked for; outbound when
+    /// the user opened it.
+    pub direction: Direction,
+    pub draft: bool,
+    pub author: String,
+    pub url: String,
+    /// RFC 3339, when the pull request was last updated.
+    pub date: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GitHubAccount {
+    pub endpoint: crate::github::api::Endpoint,
+    pub login: String,
+    pub name: String,
+}
+
 /// Everything SilentDesk stores locally. Encrypted at rest by `vault`.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", default)]
@@ -115,6 +145,8 @@ pub struct VaultData {
     pub slack_messages: Vec<SlackMessage>,
     pub jira_account: Option<JiraAccount>,
     pub jira_issues: Vec<JiraIssue>,
+    pub github_account: Option<GitHubAccount>,
+    pub pull_requests: Vec<PullRequest>,
 }
 
 impl VaultData {
@@ -126,6 +158,7 @@ impl VaultData {
             .map(|m| m.topic_id.as_str())
             .chain(self.slack_messages.iter().map(|m| m.topic_id.as_str()))
             .chain(self.jira_issues.iter().map(|i| i.topic_id.as_str()))
+            .chain(self.pull_requests.iter().map(|p| p.topic_id.as_str()))
             .collect();
         self.topics.retain(|t| used.contains(t.id.as_str()));
     }
@@ -146,6 +179,12 @@ impl VaultData {
     pub fn clear_jira(&mut self) {
         self.jira_account = None;
         self.jira_issues.clear();
+        self.prune_topics();
+    }
+
+    pub fn clear_github(&mut self) {
+        self.github_account = None;
+        self.pull_requests.clear();
         self.prune_topics();
     }
 
@@ -172,6 +211,13 @@ impl VaultData {
                 .or_default()
                 .push(i.clone());
         }
+        let mut pulls_by_topic: HashMap<&str, Vec<PullRequest>> = HashMap::new();
+        for p in &self.pull_requests {
+            pulls_by_topic
+                .entry(&p.topic_id)
+                .or_default()
+                .push(p.clone());
+        }
         let mut views: Vec<TopicView> = self
             .topics
             .iter()
@@ -182,11 +228,14 @@ impl VaultData {
                 slack_messages.sort_by(|a, b| b.date.cmp(&a.date));
                 let mut jira_issues = jira_by_topic.remove(t.id.as_str()).unwrap_or_default();
                 jira_issues.sort_by(|a, b| b.date.cmp(&a.date));
+                let mut pull_requests = pulls_by_topic.remove(t.id.as_str()).unwrap_or_default();
+                pull_requests.sort_by(|a, b| b.date.cmp(&a.date));
                 TopicView {
                     topic: t.clone(),
                     emails,
                     slack_messages,
                     jira_issues,
+                    pull_requests,
                 }
             })
             .collect();
@@ -199,9 +248,11 @@ fn latest(view: &TopicView) -> &str {
     let email = view.emails.first().map(|m| m.date.as_str());
     let slack = view.slack_messages.first().map(|m| m.date.as_str());
     let jira = view.jira_issues.first().map(|i| i.date.as_str());
+    let pull = view.pull_requests.first().map(|p| p.date.as_str());
     email
         .max(slack)
         .max(jira)
+        .max(pull)
         .unwrap_or(view.topic.created_at.as_str())
 }
 
@@ -213,4 +264,5 @@ pub struct TopicView {
     pub emails: Vec<GmailMessage>,
     pub slack_messages: Vec<SlackMessage>,
     pub jira_issues: Vec<JiraIssue>,
+    pub pull_requests: Vec<PullRequest>,
 }

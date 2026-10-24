@@ -37,6 +37,14 @@ const INFO: Record<Service, Info> = {
       "Pull your last 10 open issues assigned to you or reported by you. Keeps key, summary, status and people only.",
     browser: false,
   },
+  github: {
+    name: "GitHub",
+    envVar: "",
+    doc: "docs/setup/github.md",
+    pitch:
+      "Pull the open pull requests waiting for your review, assigned to you, or opened by you. Keeps title, repository, number and author only.",
+    browser: false,
+  },
 };
 
 interface Props {
