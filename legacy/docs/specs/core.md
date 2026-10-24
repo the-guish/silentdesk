@@ -1,6 +1,6 @@
 # SilentDesk — Core Principles
 
-Status: draft · Last updated: 2026-10-23
+Status: draft · Last updated: 2026-10-24
 
 These principles override everything else. A feature that conflicts with any of them is not built, or is redesigned until it no longer conflicts.
 
@@ -15,7 +15,7 @@ All information stored locally is encrypted at rest. Security is the default and
 SilentDesk must meet the security, compliance and IT requirements that most companies apply to desktop software.
 
 ### 3. Open source and auditable
-- MIT licensed, so it is free for commercial use.
+- Apache 2.0 licensed, so it is free for commercial use and includes a patent grant.
 - The full codebase is public and auditable. There are no closed components and no hidden behaviour.
 
 ---
