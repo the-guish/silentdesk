@@ -6,19 +6,20 @@ from abc import ABC, abstractmethod
 from collections.abc import Mapping
 from dataclasses import dataclass
 
-from .source import Direction, ServiceStatus
+from .connector import Item, ServiceStatus
 
 
 @dataclass(frozen=True)
 class TopicView:
-    """One topic, as the queue shows it."""
+    """One topic, as the queue and the topic screen show it."""
 
+    # SilentDesk's own ID, a UUID.
     id: str
-    title: str
     service: str
-    direction: Direction | None
-    url: str | None
-    # RFC 3339.
+    title: str
+    # One or more, oldest first.
+    items: list[Item]
+    # RFC 3339: the newest item's date.
     updated_at: str
 
 
@@ -49,8 +50,8 @@ class Desk(ABC):
 
     @abstractmethod
     async def reply(self, topic_id: str, body: str) -> None:
-        """Replies to the message behind a mail topic."""
+        """Replies to the newest item of a mail topic."""
 
     @abstractmethod
     async def trash(self, topic_id: str) -> None:
-        """Trashes the message behind a mail topic and drops the topic."""
+        """Trashes every item of a mail topic and drops the topic."""

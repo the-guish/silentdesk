@@ -10,7 +10,7 @@ from ..ports.state_store import StateStore
 
 
 class Gmail(Mail):
-    """The Gmail inbox as a mail source."""
+    """The Gmail inbox as a mail connector: one topic per thread."""
 
     def __init__(
         self, api: GmailApi, authorization: Authorization, credentials: Credentials, state: StateStore

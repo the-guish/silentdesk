@@ -125,6 +125,6 @@ def test_adapters_and_applications_are_concrete():
 def test_the_desk_is_wired_but_not_built_yet(tmp_path):
     desk = api.desk(Settings(data_dir=tmp_path))
     assert isinstance(desk, contract.Desk)
-    assert sorted(desk.sources) == ["gmail", "tasks"]
+    assert sorted(desk.connectors) == ["gmail", "tasks"]
     with pytest.raises(NotImplementedError):
         asyncio.run(desk.topics())

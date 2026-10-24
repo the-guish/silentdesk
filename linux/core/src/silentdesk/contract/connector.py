@@ -1,5 +1,6 @@
-"""What every source app offers for each service it connects: Gmail, Google
-Tasks, and later Slack, Jira and GitHub."""
+"""What every connector app offers for each service it connects: Gmail,
+Google Tasks, and later Slack, Jira and GitHub. A connector both reads from
+its service and sends to it."""
 
 from __future__ import annotations
 
@@ -28,32 +29,46 @@ class ServiceStatus:
 
 @dataclass(frozen=True)
 class Item:
-    """One thing in a corporate system that can become a topic: an email, a
-    task, a message, an issue or a pull request. Only what the queue shows."""
+    """One message in a topic, such as an email or a chat message. A task,
+    an issue or a pull request is a topic with one item. Only what the queue
+    shows: bodies are never kept."""
 
-    service: str
     # Stable within the service, such as a Gmail message ID.
     key: str
-    title: str
     direction: Direction | None
+    # Who wrote it, as shown to the user.
+    author: str | None
     # Opens the item in its own system.
     url: str | None
     # RFC 3339.
-    updated_at: str
+    date: str
+
+
+@dataclass(frozen=True)
+class Topic:
+    """A unit of work, as the connector groups it: an email thread, a chat
+    conversation, a task, an issue or a pull request."""
+
+    # Stable within the service, such as a Gmail thread ID.
+    key: str
+    title: str
+    # One or more, oldest first.
+    items: list[Item]
 
 
 @dataclass(frozen=True)
 class SyncResult:
-    """What one sync found. When `complete` is true, `items` is everything the
-    service has now, and any item not in it is gone."""
+    """What one sync found. When `complete` is true, `topics` is everything
+    the service has now, and any topic not in it is gone."""
 
-    items: list[Item]
-    # Keys of items that are gone from the service.
+    # New or changed topics, each with all of its items.
+    topics: list[Topic]
+    # Keys of topics that are gone from the service.
     removed: list[str]
     complete: bool
 
 
-class Source(ABC):
+class Connector(ABC):
     """One connected service."""
 
     @property

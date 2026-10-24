@@ -2,15 +2,15 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 
-from ....contract import ServiceStatus, Source, SyncResult
+from ....contract import Connector, ServiceStatus, SyncResult
 from ..ports.authorization import Authorization
 from ..ports.credentials import Credentials
 from ..ports.state_store import StateStore
 from ..ports.tasks_api import TasksApi
 
 
-class GoogleTasks(Source):
-    """Every open task in Google Tasks, read-only."""
+class GoogleTasks(Connector):
+    """Every open task in Google Tasks, read-only: one topic per task, with one item."""
 
     def __init__(
         self, api: TasksApi, authorization: Authorization, credentials: Credentials, state: StateStore

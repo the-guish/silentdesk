@@ -2,14 +2,14 @@ from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 
-from ....contract import Desk, ServiceStatus, Source, TopicView
+from ....contract import Connector, Desk, ServiceStatus, TopicView
 from ..ports.clock import Clock
 from ..ports.topic_store import TopicStore
 
 
 class DeskService(Desk):
-    def __init__(self, sources: Sequence[Source], store: TopicStore, clock: Clock) -> None:
-        self.sources = {source.service: source for source in sources}
+    def __init__(self, connectors: Sequence[Connector], store: TopicStore, clock: Clock) -> None:
+        self.connectors = {connector.service: connector for connector in connectors}
         self.store = store
         self.clock = clock
 
