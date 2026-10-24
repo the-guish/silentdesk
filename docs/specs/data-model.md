@@ -72,8 +72,21 @@ GitHub pull request:
 
 The title becomes the topic title; descriptions, diffs and comments are not fetched.
 
-### Task
-Still stored separately in the webview's `localStorage`, unencrypted (see `docs/working-notes/todo.md`). It will move into the vault, and gain links to topics.
+Google Task:
+
+| Field        | Type     | Notes                                           |
+|--------------|----------|-------------------------------------------------|
+| `taskId`, `listId` | string | Google's IDs                              |
+| `listTitle`  | string   | e.g. "My Tasks"                                 |
+| `topicId`    | UUID     | The topic it belongs to                         |
+| `due`        | `YYYY-MM-DD` or null | Google keeps the day only           |
+| `origin`     | `Gmail` \| `Docs` \| `Chat` or null | Where the task came from |
+| `url`        | URL      | Opens the task in Google Tasks                  |
+| `date`       | RFC 3339 | Last updated                                    |
+
+The task title becomes the topic title and follows renames; notes are not fetched. Only open tasks are kept.
+
+Tasks have no separate store: they are a topic kind like the others, kept in Google Tasks.
 
 ## What is stored locally
 
@@ -83,10 +96,11 @@ Still stored separately in the webview's `localStorage`, unencrypted (see `docs/
 | Source item references and display headers  | Slack message text (beyond the title)|
 |                                             | Jira descriptions and comments       |
 |                                             | Pull request descriptions, diffs and comments |
-| Connected accounts (Gmail address; Slack user and workspace; Jira user and site; GitHub login and server) | Google access tokens (kept in memory only) |
+|                                             | Task notes                           |
+| Connected accounts (Gmail address; Slack user and workspace; Jira user and site; GitHub login and server; Google Tasks email) | Google access tokens (kept in memory only) |
 | Gmail history ID, where the next sync starts | Passwords                            |
 
-Secrets (the vault key, the Gmail refresh token, the Slack credential, the Jira token and the GitHub token) live in the OS credential store: Keychain on macOS, Credential Manager on Windows, Secret Service on Linux. They are never written to disk by SilentDesk.
+Secrets (the vault key, the Gmail refresh token, the Slack credential, the Jira token, the GitHub token and the Google Tasks refresh token) live in the OS credential store: Keychain on macOS, Credential Manager on Windows, Secret Service on Linux. They are never written to disk by SilentDesk.
 
 ## The vault
 

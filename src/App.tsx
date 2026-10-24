@@ -1,17 +1,11 @@
 import { useState } from "react";
 import { SettingsView } from "./components/SettingsView";
-import { TasksView } from "./components/TasksView";
 import { TopicsView } from "./components/TopicsView";
 
-type View = "tasks" | "topics" | "settings";
-
-const VIEWS: { value: View; label: string }[] = [
-  { value: "tasks", label: "Tasks" },
-  { value: "topics", label: "Topics" },
-];
+type View = "topics" | "settings";
 
 export default function App() {
-  const [view, setView] = useState<View>("tasks");
+  const [view, setView] = useState<View>("topics");
   const settings = view === "settings";
 
   return (
@@ -19,26 +13,18 @@ export default function App() {
       <header className="header">
         <h1 className="header__title">{settings ? "Settings" : "SilentDesk"}</h1>
         <div className="header__nav">
-          <nav className="segmented" aria-label="Views">
-            {VIEWS.map((v) => (
-              <button
-                key={v.value}
-                type="button"
-                className={`segmented__btn${view === v.value ? " is-active" : ""}`}
-                aria-current={view === v.value ? "page" : undefined}
-                onClick={() => setView(v.value)}
-              >
-                {v.label}
-              </button>
-            ))}
-          </nav>
+          {settings && (
+            <button type="button" className="button" onClick={() => setView("topics")}>
+              Back to topics
+            </button>
+          )}
           <button
             type="button"
             className={`icon-button${settings ? " is-active" : ""}`}
             aria-label="Settings"
             title="Settings"
-            aria-current={settings ? "page" : undefined}
-            onClick={() => setView("settings")}
+            aria-pressed={settings}
+            onClick={() => setView(settings ? "topics" : "settings")}
           >
             <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
               <circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" strokeWidth="1.8" />
@@ -54,13 +40,7 @@ export default function App() {
         </div>
       </header>
 
-      {view === "tasks" ? (
-        <TasksView />
-      ) : view === "topics" ? (
-        <TopicsView onOpenSettings={() => setView("settings")} />
-      ) : (
-        <SettingsView />
-      )}
+      {settings ? <SettingsView /> : <TopicsView onOpenSettings={() => setView("settings")} />}
     </div>
   );
 }

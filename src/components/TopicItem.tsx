@@ -247,6 +247,21 @@ function describe(topic: Topic): Source | null {
       date: pull.date,
     });
   }
+  const task = topic.googleTasks[0];
+  if (task) {
+    candidates.push({
+      name: "Task",
+      direction: "inbound",
+      who: [
+        task.listTitle,
+        task.due ? `Due ${formatDay(task.due)}` : null,
+        task.origin ? `From ${task.origin}` : null,
+      ]
+        .filter(Boolean)
+        .join(" · "),
+      date: task.date,
+    });
+  }
   return candidates.reduce<Source | null>((a, b) => (a && a.date >= b.date ? a : b), null);
 }
 
@@ -257,6 +272,18 @@ function formatAddresses(header: string): string {
   const named = parts[0].match(/^"?([^"<]*?)"?\s*<([^>]+)>$/);
   const first = named ? named[1].trim() || named[2] : parts[0];
   return parts.length > 1 ? `${first} +${parts.length - 1}` : first;
+}
+
+/** `2026-10-30` → `Oct 30`, read as a calendar day (no time zone shift). */
+function formatDay(day: string): string {
+  const [y, m, d] = day.split("-").map(Number);
+  const date = new Date(y, m - 1, d);
+  if (Number.isNaN(date.getTime())) return day;
+  return date.toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+    year: y === new Date().getFullYear() ? undefined : "numeric",
+  });
 }
 
 function formatDate(iso: string): string {
