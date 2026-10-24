@@ -1,0 +1,54 @@
+{
+  "description": "a token GitHub rejects is not stored",
+  "env": {
+    "SILENTDESK_TEST_KEYRING": "{home}/keyring.json",
+    "SILENTDESK_TEST_BASE_URL": "{server}",
+    "SILENTDESK_TEST_NOW": "2026-10-24T12:00:00Z"
+  },
+  "http": [
+    {
+      "path": "/github/user",
+      "status": 401,
+      "body": {
+        "message": "Bad credentials"
+      }
+    }
+  ],
+  "steps": [
+    {
+      "args": [
+        "connect",
+        "github"
+      ],
+      "stdin": {
+        "token": "ghp_bad"
+      },
+      "exit": 1,
+      "schema": "error.json",
+      "stdout": {
+        "error": {
+          "kind": "auth",
+          "message": {
+            "$any": "string"
+          }
+        }
+      }
+    },
+    {
+      "args": [
+        "sync",
+        "github"
+      ],
+      "exit": 1,
+      "schema": "error.json",
+      "stdout": {
+        "error": {
+          "kind": "auth",
+          "message": {
+            "$any": "string"
+          }
+        }
+      }
+    }
+  ]
+}

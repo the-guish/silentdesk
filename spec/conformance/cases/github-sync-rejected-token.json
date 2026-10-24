@@ -1,0 +1,83 @@
+{
+  "description": "a token GitHub rejects on sync is forgotten, so the next sync is not connected",
+  "env": {
+    "SILENTDESK_TEST_KEYRING": "{home}/keyring.json",
+    "SILENTDESK_TEST_BASE_URL": "{server}",
+    "SILENTDESK_TEST_NOW": "2026-10-24T12:00:00Z"
+  },
+  "http": [
+    {
+      "path": "/github/user",
+      "body": {
+        "login": "ana",
+        "name": "Ana Ruiz"
+      }
+    },
+    {
+      "path": "/github/search/issues",
+      "status": 401,
+      "body": {
+        "message": "Bad credentials"
+      }
+    }
+  ],
+  "steps": [
+    {
+      "args": [
+        "connect",
+        "github"
+      ],
+      "stdin": {
+        "token": "ghp_test"
+      },
+      "exit": 0,
+      "schema": "status.json",
+      "stdout": {
+        "service": "github",
+        "configured": true,
+        "connected": true,
+        "account": "ana · github.com"
+      }
+    },
+    {
+      "args": [
+        "sync"
+      ],
+      "exit": 1,
+      "schema": "error.json",
+      "stdout": {
+        "error": {
+          "kind": "sync",
+          "message": {
+            "$any": "string"
+          },
+          "failures": [
+            {
+              "service": "github",
+              "kind": "auth",
+              "message": {
+                "$any": "string"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "args": [
+        "sync",
+        "github"
+      ],
+      "exit": 1,
+      "schema": "error.json",
+      "stdout": {
+        "error": {
+          "kind": "auth",
+          "message": {
+            "$any": "string"
+          }
+        }
+      }
+    }
+  ]
+}

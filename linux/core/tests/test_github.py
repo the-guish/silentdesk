@@ -1,0 +1,204 @@
+"""The GitHub connector: its rules, its use cases and its HTTP adapter."""
+
+from __future__ import annotations
+
+import asyncio
+import json
+
+import httpx
+import pytest
+
+from silentdesk.adapters.file_keyring import FileKeyring
+from silentdesk.adapters.https_client import HttpsClient
+from silentdesk.adapters.sqlcipher_database import SqlcipherDatabase
+from silentdesk.apps.github.adapters.github_http import GitHubHttpApi
+from silentdesk.apps.github.adapters.keyring_credentials import KeyringCredentials
+from silentdesk.apps.github.adapters.sqlcipher_state_store import SqlcipherStateStore
+from silentdesk.apps.github.application.github import GitHub
+from silentdesk.apps.github.core import github
+from silentdesk.apps.github.domain.github import PullRequest, Reason
+from silentdesk.apps.github.ports.github_api import GitHubApi, Me
+from silentdesk.contract import AuthError, Direction, NetworkError, RemoteError, Unsupported
+
+
+def pull(pr_id: int, reason: Reason = Reason.REVIEW_REQUESTED, updated: str = "2026-10-23T10:00:00Z", title="Fix"):
+    return PullRequest(
+        pr_id, "acme/web", pr_id, title, reason, "ana", False, f"https://github.com/acme/web/pull/{pr_id}", updated
+    )
+
+
+def test_endpoints_for_github_com_and_enterprise_server():
+    assert github.endpoint_for_server(None) == github.GITHUB_COM
+    assert github.endpoint_for_server("  ") == github.GITHUB_COM
+    assert github.endpoint_for_server("https://github.com/") == github.GITHUB_COM
+
+    ghes = github.endpoint_for_server("github.acme.com/")
+    assert (ghes.api_base, ghes.web_base) == ("https://github.acme.com/api/v3", "https://github.acme.com")
+    assert github.endpoint_for_server("github.acme.com:8443").api_base == "https://github.acme.com:8443/api/v3"
+
+    with pytest.raises(AuthError, match="https"):
+        github.endpoint_for_server("http://github.acme.com")
+    with pytest.raises(AuthError, match="not valid"):
+        github.endpoint_for_server("https://")
+
+
+def test_merge_keeps_the_strongest_reason_and_sorts_newest_first():
+    merged = github.merge(
+        [
+            pull(1, Reason.REVIEW_REQUESTED, "2026-10-01T00:00:00Z"),
+            pull(2, Reason.ASSIGNED, "2026-10-05T00:00:00Z"),
+            pull(1, Reason.AUTHORED, "2026-10-01T00:00:00Z"),
+            pull(3, Reason.AUTHORED, "2026-10-05T00:00:00Z"),
+        ]
+    )
+    assert [(p.pr_id, p.reason) for p in merged] == [
+        (2, Reason.ASSIGNED),
+        (3, Reason.AUTHORED),
+        (1, Reason.REVIEW_REQUESTED),
+    ]
+
+
+def test_a_pull_request_is_a_topic_with_one_item():
+    topic = github.topic(pull(7, Reason.AUTHORED, title="  "))
+    assert (topic.key, topic.title) == ("7", "acme/web#7")
+    [item] = topic.items
+    assert (item.key, item.direction, item.author) == ("7", Direction.OUTBOUND, "ana")
+
+
+ANA = Me("ana", "Ana Ruiz")
+
+
+class FakeApi(GitHubApi):
+    def __init__(self, me: Me | Exception = ANA, found: list | Exception = ()):
+        self._me, self.found, self.calls = me, found, []
+
+    async def me(self, api_base, token):
+        self.calls.append(("me", api_base, token))
+        if isinstance(self._me, Exception):
+            raise self._me
+        return self._me
+
+    async def search(self, api_base, token, query, reason):
+        self.calls.append(("search", api_base, query))
+        if isinstance(self.found, Exception):
+            raise self.found
+        return [p for p in self.found if p.reason == reason]
+
+
+@pytest.fixture
+def keyring(tmp_path) -> FileKeyring:
+    return FileKeyring(tmp_path / "keyring.json")
+
+
+def connector(tmp_path, keyring, api: FakeApi) -> GitHub:
+    database = SqlcipherDatabase(tmp_path / "silentdesk.db", keyring)
+    return GitHub(api, KeyringCredentials(keyring), SqlcipherStateStore(database), lambda e: e.api_base)
+
+
+def test_connect_checks_the_token_then_keeps_it(tmp_path, keyring):
+    api = FakeApi()
+    status = asyncio.run(connector(tmp_path, keyring, api).connect({"token": " ghp_x ", "server": "github.acme.com"}))
+    assert (status.connected, status.account) == (True, "ana · github.acme.com")
+    assert keyring.get("github-token") == "ghp_x"
+    assert api.calls == [("me", "https://github.acme.com/api/v3", "ghp_x")]
+
+
+def test_a_rejected_token_stores_nothing(tmp_path, keyring):
+    github_app = connector(tmp_path, keyring, FakeApi(me=AuthError("github", "Rejected.")))
+    with pytest.raises(AuthError):
+        asyncio.run(github_app.connect({"token": "bad"}))
+    assert keyring.get("github-token") is None
+    assert asyncio.run(github_app.status()).connected is False
+
+
+def test_connect_needs_a_token(tmp_path, keyring):
+    with pytest.raises(AuthError, match="personal access token"):
+        asyncio.run(connector(tmp_path, keyring, FakeApi()).connect({}))
+
+
+def test_sync_runs_the_three_queries_and_returns_every_pull_request(tmp_path, keyring):
+    api = FakeApi(found=[pull(1), pull(2, Reason.AUTHORED, "2026-10-24T00:00:00Z")])
+    app = connector(tmp_path, keyring, api)
+    asyncio.run(app.connect({"token": "t"}))
+
+    result = asyncio.run(app.sync())
+
+    assert [call[2] for call in api.calls if call[0] == "search"] == [query for query, _ in github.QUERIES]
+    assert result.complete and [t.key for t in result.topics] == ["2", "1"]
+
+
+def test_a_rejected_token_on_sync_is_forgotten(tmp_path, keyring):
+    api = FakeApi()
+    app = connector(tmp_path, keyring, api)
+    asyncio.run(app.connect({"token": "t"}))
+    api.found = AuthError("github", "Rejected.")
+
+    with pytest.raises(AuthError, match="Connect again"):
+        asyncio.run(app.sync())
+    assert keyring.get("github-token") is None
+
+
+def test_github_cannot_reply_or_delete(tmp_path, keyring):
+    app = connector(tmp_path, keyring, FakeApi())
+    with pytest.raises(Unsupported):
+        asyncio.run(app.reply("1", "Thanks"))
+    with pytest.raises(Unsupported):
+        asyncio.run(app.delete_topic("1"))
+
+
+def http_api(handler) -> GitHubHttpApi:
+    return GitHubHttpApi(HttpsClient(transport=httpx.MockTransport(handler)))
+
+
+def test_the_http_adapter_sends_the_token_and_reads_search_results():
+    seen = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.append(request)
+        item = {
+            "id": 9,
+            "number": 4,
+            "title": "Add retries",
+            "html_url": "https://github.com/acme/web/pull/4",
+            "repository_url": "https://api.github.com/repos/acme/web",
+            "user": {"login": "bo"},
+            "draft": True,
+            "updated_at": "2026-10-24T09:00:00Z",
+        }
+        return httpx.Response(200, json={"items": [item]})
+
+    [found] = asyncio.run(http_api(handler).search("https://api.github.com", "t", "is:pr", Reason.ASSIGNED))
+
+    assert found == PullRequest(
+        9,
+        "acme/web",
+        4,
+        "Add retries",
+        Reason.ASSIGNED,
+        "bo",
+        True,
+        "https://github.com/acme/web/pull/4",
+        "2026-10-24T09:00:00Z",
+    )
+    request = seen[0]
+    assert request.headers["Authorization"] == "Bearer t"
+    assert request.headers["X-GitHub-Api-Version"] == "2022-11-28"
+    assert dict(request.url.params) == {"q": "is:pr", "sort": "updated", "order": "desc", "per_page": "50"}
+
+
+@pytest.mark.parametrize(
+    ("status", "body", "error", "match"),
+    [
+        (401, {"message": "Bad credentials"}, AuthError, "rejected the token"),
+        (404, {"message": "Not Found"}, AuthError, "No GitHub API"),
+        (503, {"message": "Unavailable"}, RemoteError, "503: Unavailable"),
+        (200, "not json", NetworkError, "could not be read"),
+    ],
+)
+def test_the_http_adapter_reports_errors_by_kind(status, body, error, match):
+    def handler(request: httpx.Request) -> httpx.Response:
+        content = body if isinstance(body, str) else json.dumps(body)
+        return httpx.Response(status, content=content.encode())
+
+    with pytest.raises(error, match=match):
+        asyncio.run(http_api(handler).me("https://api.github.com", "t"))
