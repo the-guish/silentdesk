@@ -37,7 +37,7 @@ root_package = "silentdesk"
 name = "Apps import only silentdesk.contract"
 type = "forbidden"
 source_modules = ["silentdesk.apps.*"]
-forbidden_modules = ["silentdesk.api", "silentdesk.cli", "silentdesk.infra"]
+forbidden_modules = ["silentdesk.adapters", "silentdesk.api", "silentdesk.cli"]
 
 [[tool.importlinter.contracts]]
 name = "Apps do not import each other"

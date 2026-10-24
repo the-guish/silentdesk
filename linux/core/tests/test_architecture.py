@@ -14,20 +14,21 @@ import pytest
 
 import silentdesk
 from silentdesk import api, contract
-from silentdesk.infra.settings import LocalSettings
+from silentdesk.adapters.local_settings import LocalSettings
 
 PACKAGE = Path(silentdesk.__file__).parent
 
 # What each layer may import from inside silentdesk. Layers inside an app may
-# only import from the same app.
+# only import from the same app. "shared adapters" is silentdesk/adapters/,
+# the adapters every app can be given; "adapters" is an app's own.
 ALLOWED = {
     "contract": {"contract"},
-    "infra": {"contract", "infra"},
+    "shared adapters": {"contract", "shared adapters"},
     "core": {"contract", "core"},
     "ports": {"contract", "core", "ports"},
     "application": {"contract", "core", "ports", "application"},
-    "adapters": {"contract", "core", "ports", "adapters", "infra"},
-    "wiring": {"contract", "core", "ports", "application", "adapters", "infra"},
+    "adapters": {"contract", "core", "ports", "adapters"},
+    "wiring": {"contract", "core", "ports", "application", "adapters"},
     "apps": set(),
 }
 # Layers that may import only the standard library from outside silentdesk.
@@ -45,8 +46,10 @@ def layer(module: str) -> tuple[str, str | None]:
     parts = module.split(".")[1:]
     if not parts:
         return "top", None
-    if parts[0] in ("contract", "infra"):
-        return parts[0], None
+    if parts[0] == "contract":
+        return "contract", None
+    if parts[0] == "adapters":
+        return "shared adapters", None
     if parts[0] == "apps":
         if len(parts) == 1:
             return "apps", None
@@ -118,7 +121,7 @@ def test_every_contract_and_port_has_a_concrete_implementation():
 
 def test_adapters_and_applications_are_concrete():
     for c in all_classes():
-        if layer(c.__module__)[0] in ("adapters", "application"):
+        if layer(c.__module__)[0] in ("shared adapters", "adapters", "application"):
             assert not inspect.isabstract(c), f"{c.__module__}.{c.__name__} leaves abstract methods unimplemented"
 
 

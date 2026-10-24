@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from ....infra.keyring import Keyring
+from ....contract import Keyring
 from ..ports.credentials import Credentials
 
 
