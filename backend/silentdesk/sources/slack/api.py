@@ -126,6 +126,29 @@ class Match:
         return self.is_im() or self.channel.is_mpim
 
 
+@dataclass
+class HistoryItem:
+    user: str | None
+    username: str | None
+    text: str
+    ts: str
+    subtype: str | None
+
+    @classmethod
+    def parse(cls, obj: Any) -> HistoryItem:
+        return cls(
+            user=field(obj, "user", _STR_OR_NONE, None),
+            username=field(obj, "username", _STR_OR_NONE, None),
+            text=field(obj, "text", str, ""),
+            ts=field(obj, "ts", str),
+            subtype=field(obj, "subtype", _STR_OR_NONE, None),
+        )
+
+
+def _history(body: Any) -> list[HistoryItem]:
+    return [HistoryItem.parse(m) for m in field(body, "messages", list, [])]
+
+
 def _auth_test(body: Any) -> Identity:
     return Identity(
         user_id=field(body, "user_id", str),
@@ -194,6 +217,8 @@ async def call[T](
         error = error if error is not None else "unknown_error"
         if error in ("invalid_auth", "not_authed", "token_revoked", "token_expired", "account_inactive"):
             raise errors.Reauthorize(SERVICE)
+        if error == "missing_scope":
+            raise errors.MissingPermission(SERVICE)
         raise errors.Api(SERVICE, status, error)
     try:
         return parse(body)
@@ -292,6 +317,57 @@ async def to_meta(http: httpx.AsyncClient, token: str, me: str, m: Match, names:
         permalink=m.permalink,
         date=ts_to_rfc3339(m.ts),
     )
+
+
+@dataclass
+class ConversationMessage:
+    """One message of a conversation, read live for the topic screen. It is
+    shown, never stored."""
+
+    ts: str
+    direction: Direction
+    author: str
+    text: str
+    date: str
+
+
+# Subtypes that are events, not messages someone wrote.
+_EVENT_SUBTYPES = {"channel_join", "channel_leave", "group_join", "group_leave"}
+
+
+async def conversation(
+    http: httpx.AsyncClient, token: str, me: str, channel_id: str, count: int
+) -> list[ConversationMessage]:
+    """The `count` most recent messages of a conversation, oldest first.
+    Needs `im:history` and `mpim:history`."""
+    items = await call(
+        http,
+        token,
+        "conversations.history",
+        [("channel", channel_id), ("limit", str(count))],
+        _history,
+    )
+    names = Names()
+    out = []
+    for item in items:
+        if item.subtype in _EVENT_SUBTYPES:
+            continue
+        if item.user is not None:
+            author = await names.get(http, token, item.user)
+        else:
+            author = item.username or "someone"
+        mentioned = {id: await names.get(http, token, id) for id in mention_ids(item.text)}
+        out.append(
+            ConversationMessage(
+                ts=item.ts,
+                direction=Direction.OUTBOUND if item.user == me else Direction.INBOUND,
+                author=author,
+                text=plain_text(item.text, mentioned).strip(),
+                date=ts_to_rfc3339(item.ts),
+            )
+        )
+    out.sort(key=lambda m: ts_value(m.ts))
+    return out
 
 
 _INTEGER = re.compile(r"[+-]?[0-9]+")

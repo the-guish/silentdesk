@@ -8,9 +8,12 @@ from ...core import errors
 from ...core.model import SlackAccount, VaultData
 from ...core.secret_names import SLACK_CREDENTIAL
 from ...core.topics import now_rfc3339, topic_views
-from ..base import ServiceStatus, Source
+from ..base import Method, ServiceStatus, Source
 from . import api, domain, oauth
 from .api import SERVICE
+
+# How many recent messages the topic screen shows per conversation.
+HISTORY_COUNT = 50
 
 
 def account_label(a: SlackAccount) -> str:
@@ -118,6 +121,36 @@ class SlackSource(Source):
             return topic_views(data)
 
         return await self.host.store.update(change)
+
+    def actions(self) -> dict[str, Method]:
+        async def history(params: dict[str, Any]) -> list[api.ConversationMessage]:
+            async with self.op:
+                return await self.history(str(params.get("topicId", "")))
+
+        return {"history": history}
+
+    async def history(self, topic_id: str) -> list[api.ConversationMessage]:
+        """The recent messages of the topic's conversation, read live from
+        Slack, oldest first. Nothing is stored."""
+        client = self._client()
+        data = await self.host.store.read()
+        if data.slack_account is None:
+            raise errors.NotConnected(SERVICE)
+        channels = sorted({m.channel_id for m in data.slack_messages if m.topic_id == topic_id})
+        if not channels:
+            raise errors.AppError("This topic has no Slack conversation any more. Go back to the list.")
+        credential = await self._fresh_credential(client)
+        messages: list[api.ConversationMessage] = []
+        try:
+            for channel in channels:
+                messages += await api.conversation(
+                    self.http, credential.access_token, data.slack_account.user_id, channel, HISTORY_COUNT
+                )
+        except errors.Reauthorize:
+            await self.host.secrets.delete(SLACK_CREDENTIAL)
+            raise
+        messages.sort(key=lambda m: api.ts_value(m.ts))
+        return messages
 
     async def disconnect(self) -> ServiceStatus:
         """Revokes the token at Slack, deletes it and all local Slack

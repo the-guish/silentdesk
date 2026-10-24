@@ -27,6 +27,17 @@ export interface SlackMessage {
   date: string;
 }
 
+/** One message of a Slack conversation, read live for the topic screen. Never stored. */
+export interface ConversationMessage {
+  ts: string;
+  direction: Direction;
+  author: string;
+  /** Plain text, with mentions and links made readable. */
+  text: string;
+  /** ISO 8601 timestamp. */
+  date: string;
+}
+
 /** One Jira issue, as stored by the backend. No description or comments. */
 export interface JiraIssue {
   issueId: string;

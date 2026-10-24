@@ -509,3 +509,69 @@ code {
   justify-content: flex-end;
   gap: 6px;
 }
+
+/* A topic row opens the topic's screen. */
+.topic__open {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+}
+
+/* Topic screen */
+.topic-screen__bar {
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+}
+
+.topic-screen__title {
+  margin: 0;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 16px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.conversation + .list {
+  margin-top: 12px;
+}
+
+.message {
+  padding: 10px 14px;
+}
+
+.message + .message {
+  border-top: 1px solid var(--border);
+}
+
+.message__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.message__author {
+  font-weight: 600;
+}
+
+.message--out .message__author {
+  color: var(--accent);
+}
+
+.message__text {
+  margin: 2px 0 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  user-select: text;
+  -webkit-user-select: text;
+}
