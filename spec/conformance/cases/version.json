@@ -1,0 +1,11 @@
+{
+  "description": "version reports the contract this core implements",
+  "args": ["version"],
+  "exit": 0,
+  "schema": "version.json",
+  "stdout": {
+    "contract": 1,
+    "implementation": { "$any": "string" },
+    "version": { "$any": "string" }
+  }
+}

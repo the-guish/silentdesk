@@ -1,0 +1,7 @@
+{
+  "description": "running silentdesk without a command is a usage error",
+  "args": [],
+  "exit": 2,
+  "schema": "error.json",
+  "stdout": { "error": { "kind": "usage", "message": { "$any": "string" } } }
+}

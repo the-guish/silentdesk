@@ -1,21 +1,26 @@
 # Dependencies
 node_modules/
 
-# Frontend build output
+# Frontend build output (legacy)
 dist/
 dist-ssr/
 *.local
 
-# Rust / Tauri build output
-src-tauri/target/
-src-tauri/gen/schemas/
-# Made by scripts/bundle-backend.sh
-src-tauri/resources/
+# Rust / Tauri build output (legacy)
+legacy/src-tauri/target/
+legacy/src-tauri/gen/schemas/
+# Made by legacy/scripts/bundle-backend.sh
+legacy/src-tauri/resources/
 
 # Python
-backend/.venv/
+.venv/
 __pycache__/
 .pytest_cache/
+.ruff_cache/
+
+# Swift
+.build/
+.swiftpm/
 
 # Logs
 logs/
