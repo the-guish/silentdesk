@@ -1,0 +1,8 @@
+{
+  "description": "a sync round with nothing connected changes nothing",
+  "args": ["sync"],
+  "env": { "SILENTDESK_TEST_KEYRING": "{home}/keyring.json", "SILENTDESK_TEST_NOW": "2026-10-24T12:00:00Z" },
+  "exit": 0,
+  "schema": "sync.json",
+  "stdout": { "lastSynced": null }
+}

@@ -1,0 +1,8 @@
+{
+  "description": "syncing a service SilentDesk does not know is a usage error",
+  "args": ["sync", "zulip"],
+  "env": { "SILENTDESK_TEST_KEYRING": "{home}/keyring.json" },
+  "exit": 2,
+  "schema": "error.json",
+  "stdout": { "error": { "kind": "usage", "message": { "$any": "string" } } }
+}

@@ -35,9 +35,22 @@ On failure, stdout holds an error document ([schema](schema/error.json)):
 
 | Kind | Exit code | When |
 |------|-----------|------|
-| `usage` | 2 | The command line is wrong. |
+| `usage` | 2 | The command line is wrong, including an unknown service name or connect fields that are not a JSON object of strings. |
+| `auth` | 1 | The service is not connected, or it rejected the credentials. A sync that gets this deletes the stored credentials. |
+| `network` | 1 | The service could not be reached, or its answer could not be read. |
+| `remote` | 1 | The service answered with an error. |
+| `unsupported` | 1 | The service cannot do this, such as replying to a task. |
+| `sync` | 1 | A sync round where one or more services failed; see below. |
 | `storage` | 1 | The database cannot be opened, such as when its key is missing from the keyring ([storage.md](storage.md)). |
 | `internal` | 1 | Anything unexpected. |
+
+When a sync round fails, the error also lists each failed service, with the kind and message it would have had alone. The other services were synced.
+
+```json
+{"error": {"kind": "sync", "message": "1 service failed to sync.", "failures": [
+  {"service": "github", "kind": "auth", "message": "GitHub rejected the token. Connect again."}
+]}}
+```
 
 `message` is for people. Tests check that it is there, not what it says.
 
@@ -48,6 +61,8 @@ On failure, stdout holds an error document ([schema](schema/error.json)):
 | `SILENTDESK_GOOGLE_CLIENT_ID` | The Google OAuth client that Gmail and Google Tasks sign in with. Unset or empty: those services are not configured. |
 | `SILENTDESK_GOOGLE_CLIENT_SECRET` | That client's secret, if it has one. |
 | `SILENTDESK_TEST_KEYRING` | **Tests only.** A JSON file used instead of the OS credential store; see below. |
+| `SILENTDESK_TEST_BASE_URL` | **Tests only.** Every service's API at `<url>/<service>`, such as `<url>/github`, instead of its real address. Plain `http` is then allowed, to loopback addresses only. |
+| `SILENTDESK_TEST_NOW` | **Tests only.** A fixed time, in RFC 3339, used instead of the clock. |
 
 ### Test keyring
 
@@ -117,6 +132,22 @@ Takes no arguments. Lists every topic, newest first: by `updatedAt`, then by `id
 | `items[].url` | string \| null | Opens the item in its own system. |
 | `items[].date` | string | RFC 3339. |
 | `updatedAt` | string | The newest item's date. |
+
+### `connect <service>`
+
+Connects one service. Reads the service's fields as one JSON object of strings on stdin, such as `{"token": "…"}`; empty input means no fields. Each service lists its fields in its own section. Prints the service's status, as one item of `services` ([schema](schema/status.json)).
+
+### `disconnect <service>`
+
+Disconnects one service: forgets its credentials, its stored state and its topics. Prints the service's status ([schema](schema/status.json)).
+
+### `sync [service]`
+
+Syncs one service, or, without an argument, every connected service in turn: Google Tasks, GitHub, Jira, Slack, then Gmail. Prints when topics last changed ([schema](schema/sync.json)).
+
+```json
+{"lastSynced": "2026-10-24T12:00:00Z"}
+```
 
 ## Planned
 

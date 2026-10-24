@@ -23,8 +23,28 @@ Each file in [`cases/`](cases) is one test. The runner starts a core's `silentde
 | `exit` | The expected exit code. |
 | `schema` | The file in [`../schema`](../schema) that stdout must match. |
 | `stdout` | The expected JSON document. |
-| `env` | Optional environment variables for the run. `{home}` in a value stands for the throwaway home folder. |
+| `stdin` | Optional input: a string as is, anything else as JSON. |
+| `env` | Optional environment variables for the run. In a value, `{home}` stands for the throwaway home folder and `{server}` for the fake server's address. |
 | `files` | Optional files to create before the run, by path relative to the home folder: a string is written as text, anything else as JSON. |
+
+### Several commands
+
+A case with `steps` runs several commands in a row, in the same home folder and against the same fake server. Each step has its own `args`, `stdin`, `exit`, `schema` and `stdout`; `env`, `files`, `http` and `requests` belong to the case.
+
+### The fake server
+
+`http` lists the replies a fake server sends, which `{server}` in `env` points the core at:
+
+```json
+"http": [
+  {"method": "GET", "path": "/github/user", "status": 200, "body": {"login": "ana"}},
+  {"path": "/github/search/issues", "query": {"q": "is:pr is:open archived:false author:@me"}, "body": {"items": []}}
+]
+```
+
+A reply answers every request with its `method` (default `GET`) and `path` whose query contains the reply's `query`; the first match wins. `status` defaults to 200, and a string `body` is sent as is. Any other request gets a 404.
+
+`requests`, if given, lists the requests the core must send, in order, and no others. Each names its `method` and `path`; its `query` and `headers` must be present in the request sent, and its `body`, if given, is compared as `stdout` is.
 
 ## How stdout is compared
 
@@ -44,6 +64,3 @@ Each file in [`cases/`](cases) is one test. The runner starts a core's `silentde
 
 A core that does not pass a case yet lists its name in a pending file (`--pending`), one per line; `#` starts a comment. A pending case that fails is reported but does not fail the run. A pending case that passes does fail it, so the list only ever shrinks.
 
-## Planned
-
-Cases for commands that call Gmail, Slack, Jira, GitHub or Google Tasks will add an `http` section: the replies a fake server sends, and the requests the core is expected to make. The runner will serve them, so the same recordings test both cores.

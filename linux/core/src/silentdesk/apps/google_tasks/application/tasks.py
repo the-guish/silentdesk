@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 
-from ....contract import Connector, ServiceStatus, SyncResult
+from ....contract import AuthError, Connector, ServiceStatus, SyncResult
 from ..ports.authorization import Authorization
 from ..ports.credentials import Credentials
 from ..ports.state_store import StateStore
@@ -38,9 +38,15 @@ class GoogleTasks(Connector):
         raise NotImplementedError
 
     async def disconnect(self) -> ServiceStatus:
-        raise NotImplementedError
+        """Forgets the refresh token and the account. Revoking the grant at
+        Google comes with sign-in."""
+        self.credentials.delete_refresh_token(self.service)
+        await self.state.clear(self.service)
+        return await self.status()
 
     async def sync(self) -> SyncResult:
+        if self.credentials.refresh_token(self.service) is None:
+            raise AuthError(self.service, "Google Tasks is not connected.")
         raise NotImplementedError
 
     async def reply(self, topic_key: str, body: str) -> None:

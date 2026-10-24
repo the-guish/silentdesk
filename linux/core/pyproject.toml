@@ -7,8 +7,10 @@ authors = [{ name = "The SilentDesk Authors" }]
 # 3.12 is Ubuntu 24.04's Python, which the GTK app runs on.
 requires-python = ">=3.12"
 dependencies = [
+    "httpx>=0.28.1",
     "keyring>=25.7.0",
     "sqlcipher3-binary>=0.6.0",
+    "truststore>=0.10.5",
 ]
 
 [project.scripts]

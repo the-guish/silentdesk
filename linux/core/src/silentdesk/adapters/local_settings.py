@@ -18,6 +18,7 @@ class LocalSettings(Settings):
         google_client_id: str | None = None,
         google_client_secret: str | None = None,
         test_keyring: Path | None = None,
+        test_base_url: str | None = None,
     ) -> None:
         self._data_dir = data_dir
         self._now = now
@@ -25,8 +26,10 @@ class LocalSettings(Settings):
         self._base_urls = dict(base_urls or {})
         self._google_client_id = google_client_id
         self._google_client_secret = google_client_secret
-        # A file that replaces the OS credential store, for tests only. See spec/cli.md.
+        # For tests only, see spec/cli.md: a file that replaces the OS
+        # credential store, and a fake server that replaces every service.
         self.test_keyring = test_keyring
+        self.test_base_url = test_base_url.rstrip("/") if test_base_url else None
 
     @classmethod
     def from_environment(cls, environ: Mapping[str, str] = os.environ) -> LocalSettings:
@@ -40,9 +43,11 @@ class LocalSettings(Settings):
         test_keyring = variable("SILENTDESK_TEST_KEYRING")
         return cls(
             data_dir=Path(data_home) / "silentdesk",
+            now=variable("SILENTDESK_TEST_NOW"),
             google_client_id=variable("SILENTDESK_GOOGLE_CLIENT_ID"),
             google_client_secret=variable("SILENTDESK_GOOGLE_CLIENT_SECRET"),
             test_keyring=Path(test_keyring) if test_keyring else None,
+            test_base_url=variable("SILENTDESK_TEST_BASE_URL"),
         )
 
     @property
@@ -54,7 +59,9 @@ class LocalSettings(Settings):
         return self._now
 
     def base_url(self, service: str, default: str) -> str:
-        return self._base_urls.get(service, default)
+        if service in self._base_urls:
+            return self._base_urls[service]
+        return f"{self.test_base_url}/{service}" if self.test_base_url else default
 
     @property
     def google_client_id(self) -> str | None:

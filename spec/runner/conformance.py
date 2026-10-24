@@ -21,8 +21,11 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import threading
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from typing import Any
+from typing import Any, Self
+from urllib.parse import parse_qsl, urlsplit
 
 import jsonschema
 
@@ -108,25 +111,118 @@ def write_files(home: Path, files: dict[str, Any]) -> None:
         path.write_text(content if isinstance(content, str) else json.dumps(content))
 
 
-def run_case(case: dict[str, Any], command: list[str], schemas: Path = SCHEMAS) -> list[str]:
-    """Runs one case; returns what was wrong, or nothing if it passed."""
-    with tempfile.TemporaryDirectory(prefix="silentdesk-conformance-") as home:
-        write_files(Path(home), case.get("files", {}))
-        try:
-            process = subprocess.run(
-                [*command, *case["args"]],
-                check=False,
-                cwd=home,
-                env=isolated_env(home, case.get("env")),
-                capture_output=True,
-                timeout=TIMEOUT_SECONDS,
-            )
-        except subprocess.TimeoutExpired:
-            return [f"did not finish within {TIMEOUT_SECONDS} s"]
+class FakeServer:
+    """Serves a case's `http` replies on a loopback port, and records every
+    request the core sends. A reply answers every request with its method
+    and path whose query contains the reply's `query`; the first match wins.
+    Anything else gets a 404."""
+
+    def __init__(self, replies: list[dict[str, Any]]) -> None:
+        self.replies = replies
+        self.requests: list[dict[str, Any]] = []
+        server = self
+
+        class Handler(BaseHTTPRequestHandler):
+            def handle_one(self) -> None:
+                url = urlsplit(self.path)
+                length = int(self.headers.get("Content-Length") or 0)
+                raw = self.rfile.read(length).decode("utf-8", "replace") if length else ""
+                try:
+                    body: Any = json.loads(raw) if raw else None
+                except json.JSONDecodeError:
+                    body = raw
+                request = {
+                    "method": self.command,
+                    "path": url.path,
+                    "query": dict(parse_qsl(url.query, keep_blank_values=True)),
+                    "headers": {name.lower(): value for name, value in self.headers.items()},
+                    "body": body,
+                }
+                server.requests.append(request)
+                reply = server.reply_for(request)
+                status = reply.get("status", 200) if reply else 404
+                content = reply.get("body") if reply else {"message": "No fake reply for this request."}
+                data = (content if isinstance(content, str) else json.dumps(content)).encode()
+                self.send_response(status)
+                self.send_header("Content-Type", "application/json")
+                self.send_header("Content-Length", str(len(data)))
+                self.end_headers()
+                self.wfile.write(data)
+
+            do_GET = do_POST = do_PUT = do_PATCH = do_DELETE = handle_one
+
+            def log_message(self, *args: Any) -> None:
+                pass
+
+        self.http = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+        self.url = f"http://127.0.0.1:{self.http.server_port}"
+
+    def reply_for(self, request: dict[str, Any]) -> dict[str, Any] | None:
+        for reply in self.replies:
+            if (
+                reply.get("method", "GET") == request["method"]
+                and reply["path"] == request["path"]
+                and reply.get("query", {}).items() <= request["query"].items()
+            ):
+                return reply
+        return None
+
+    def __enter__(self) -> Self:
+        threading.Thread(target=self.http.serve_forever, kwargs={"poll_interval": 0.02}, daemon=True).start()
+        return self
+
+    def __exit__(self, *exc: object) -> None:
+        self.http.shutdown()
+        self.http.server_close()
+
+
+def request_mismatches(expected: list[dict[str, Any]] | None, actual: list[dict[str, Any]]) -> list[str]:
+    """Checks the requests the core sent, in order. Each expected request
+    names its method and path; its query and headers must be present in the
+    actual one, and its body, if given, must match."""
+    if expected is None:
+        return []
+    sent = [f"{r['method']} {r['path']}" for r in actual]
+    if len(expected) != len(actual):
+        return [f"sent {len(actual)} requests, expected {len(expected)}: {sent}"]
+    problems = []
+    for number, (want, got) in enumerate(zip(expected, actual), 1):
+        where = f"request {number} ({got['method']} {got['path']})"
+        if (want.get("method", "GET"), want["path"]) != (got["method"], got["path"]):
+            problems.append(f"{where}: expected {want.get('method', 'GET')} {want['path']}")
+            continue
+        for name, value in want.get("query", {}).items():
+            if got["query"].get(name) != value:
+                problems.append(f"{where}: query {name} is {got['query'].get(name)!r}, expected {value!r}")
+        for name, value in want.get("headers", {}).items():
+            if got["headers"].get(name.lower()) != value:
+                problems.append(f"{where}: header {name} is {got['headers'].get(name.lower())!r}, expected {value!r}")
+        if "body" in want:
+            problems += [f"{where}: body {problem}" for problem in mismatches(want["body"], got["body"])]
+    return problems
+
+
+def run_step(step: dict[str, Any], command: list[str], home: str, env: dict[str, str], schemas: Path) -> list[str]:
+    """Runs one command of a case; returns what was wrong."""
+    stdin = step.get("stdin")
+    if stdin is not None and not isinstance(stdin, str):
+        stdin = json.dumps(stdin)
+    try:
+        process = subprocess.run(
+            [*command, *step["args"]],
+            check=False,
+            cwd=home,
+            env=env,
+            input=(stdin or "").encode(),
+            capture_output=True,
+            timeout=TIMEOUT_SECONDS,
+        )
+    except subprocess.TimeoutExpired:
+        return [f"did not finish within {TIMEOUT_SECONDS} s"]
 
     problems = []
-    if process.returncode != case["exit"]:
-        problems.append(f"exit code {process.returncode}, expected {case['exit']}")
+    if process.returncode != step["exit"]:
+        problems.append(f"exit code {process.returncode}, expected {step['exit']}")
     try:
         stdout = process.stdout.decode("utf-8")
         document = json.loads(stdout)
@@ -135,12 +231,31 @@ def run_case(case: dict[str, Any], command: list[str], schemas: Path = SCHEMAS) 
     else:
         if not stdout.endswith("\n"):
             problems.append("stdout does not end with a newline")
-        schema = json.loads((schemas / case["schema"]).read_text())
+        schema = json.loads((schemas / step["schema"]).read_text())
         for error in jsonschema.Draft202012Validator(schema).iter_errors(document):
-            problems.append(f"does not match {case['schema']} at {error.json_path}: {error.message}")
-        problems += mismatches(case["stdout"], document)
+            problems.append(f"does not match {step['schema']} at {error.json_path}: {error.message}")
+        problems += mismatches(step["stdout"], document)
     if problems and process.stderr:
         problems.append("stderr: " + process.stderr.decode("utf-8", "replace").strip()[-2000:])
+    return problems
+
+
+def run_case(case: dict[str, Any], command: list[str], schemas: Path = SCHEMAS) -> list[str]:
+    """Runs one case, every step in the same home and against the same fake
+    server; returns what was wrong, or nothing if it passed."""
+    steps = case.get("steps", [case])
+    with (
+        tempfile.TemporaryDirectory(prefix="silentdesk-conformance-") as home,
+        FakeServer(case.get("http", [])) as server,
+    ):
+        write_files(Path(home), case.get("files", {}))
+        extra = {name: value.replace("{server}", server.url) for name, value in case.get("env", {}).items()}
+        env = isolated_env(home, extra)
+        problems = []
+        for number, step in enumerate(steps, 1):
+            label = f"step {number}: " if "steps" in case else ""
+            problems += [label + problem for problem in run_step(step, command, home, env, schemas)]
+        problems += request_mismatches(case.get("requests"), server.requests)
     return problems
 
 
