@@ -15,3 +15,8 @@ github-connect-sync-topics
 github-disconnect-drops-topics
 github-enterprise-server
 github-sync-rejected-token
+jira-cloud-connect-sync-topics
+jira-connect-rejected-token
+jira-data-center
+jira-scoped-token-gateway
+jira-site-must-use-https

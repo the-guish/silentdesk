@@ -1,0 +1,27 @@
+{
+  "description": "a plain http Jira site is refused before any request",
+  "env": {
+    "SILENTDESK_TEST_KEYRING": "{home}/keyring.json",
+    "SILENTDESK_TEST_BASE_URL": "{server}",
+    "SILENTDESK_TEST_NOW": "2026-10-24T12:00:00Z"
+  },
+  "args": [
+    "connect",
+    "jira"
+  ],
+  "stdin": {
+    "site": "http://jira.acme.com",
+    "token": "t"
+  },
+  "exit": 1,
+  "schema": "error.json",
+  "stdout": {
+    "error": {
+      "kind": "auth",
+      "message": {
+        "$any": "string"
+      }
+    }
+  },
+  "requests": []
+}

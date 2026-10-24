@@ -1,0 +1,60 @@
+{
+  "description": "a Jira Data Center token the site rejects is not stored, and no gateway is tried",
+  "env": {
+    "SILENTDESK_TEST_KEYRING": "{home}/keyring.json",
+    "SILENTDESK_TEST_BASE_URL": "{server}",
+    "SILENTDESK_TEST_NOW": "2026-10-24T12:00:00Z"
+  },
+  "http": [
+    {
+      "path": "/jira/rest/api/2/myself",
+      "status": 401,
+      "body": {
+        "message": "Unauthorized"
+      }
+    }
+  ],
+  "steps": [
+    {
+      "args": [
+        "connect",
+        "jira"
+      ],
+      "stdin": {
+        "site": "jira.acme.com",
+        "token": "bad"
+      },
+      "exit": 1,
+      "schema": "error.json",
+      "stdout": {
+        "error": {
+          "kind": "auth",
+          "message": {
+            "$any": "string"
+          }
+        }
+      }
+    },
+    {
+      "args": [
+        "sync",
+        "jira"
+      ],
+      "exit": 1,
+      "schema": "error.json",
+      "stdout": {
+        "error": {
+          "kind": "auth",
+          "message": {
+            "$any": "string"
+          }
+        }
+      }
+    }
+  ],
+  "requests": [
+    {
+      "path": "/jira/rest/api/2/myself"
+    }
+  ]
+}

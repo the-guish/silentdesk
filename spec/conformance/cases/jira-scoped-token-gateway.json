@@ -1,0 +1,87 @@
+{
+  "description": "a scoped Jira Cloud token the site rejects is tried through Atlassian's gateway",
+  "env": {
+    "SILENTDESK_TEST_KEYRING": "{home}/keyring.json",
+    "SILENTDESK_TEST_BASE_URL": "{server}",
+    "SILENTDESK_TEST_NOW": "2026-10-24T12:00:00Z"
+  },
+  "http": [
+    {
+      "path": "/jira/rest/api/3/myself",
+      "status": 401,
+      "body": {
+        "errorMessages": [
+          "Unauthorized"
+        ]
+      }
+    },
+    {
+      "path": "/jira/_edge/tenant_info",
+      "body": {
+        "cloudId": "cloud-123"
+      }
+    },
+    {
+      "path": "/atlassian/cloud-123/rest/api/3/myself",
+      "body": {
+        "accountId": "acc-ana",
+        "displayName": "Ana Ruiz"
+      }
+    },
+    {
+      "path": "/atlassian/cloud-123/rest/api/3/search/jql",
+      "body": {
+        "issues": []
+      }
+    }
+  ],
+  "steps": [
+    {
+      "args": [
+        "connect",
+        "jira"
+      ],
+      "stdin": {
+        "site": "https://acme.atlassian.net/",
+        "email": "ana@acme.com",
+        "token": "jira-token"
+      },
+      "exit": 0,
+      "schema": "status.json",
+      "stdout": {
+        "service": "jira",
+        "configured": true,
+        "connected": true,
+        "account": "Ana Ruiz · acme.atlassian.net"
+      }
+    },
+    {
+      "args": [
+        "sync",
+        "jira"
+      ],
+      "exit": 0,
+      "schema": "sync.json",
+      "stdout": {
+        "lastSynced": "2026-10-24T12:00:00Z"
+      }
+    }
+  ],
+  "requests": [
+    {
+      "path": "/jira/rest/api/3/myself"
+    },
+    {
+      "path": "/jira/_edge/tenant_info"
+    },
+    {
+      "path": "/atlassian/cloud-123/rest/api/3/myself",
+      "headers": {
+        "Authorization": "Basic YW5hQGFjbWUuY29tOmppcmEtdG9rZW4="
+      }
+    },
+    {
+      "path": "/atlassian/cloud-123/rest/api/3/search/jql"
+    }
+  ]
+}
