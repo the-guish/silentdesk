@@ -1,0 +1,25 @@
+[project]
+name = "silentdesk"
+version = "0.1.0"
+description = "SilentDesk's core logic and JSON command line, for Linux"
+license = "MIT"
+authors = [{ name = "The SilentDesk Authors" }]
+# 3.12 is Ubuntu 24.04's Python, which the GTK app runs on.
+requires-python = ">=3.12"
+dependencies = []
+
+[project.scripts]
+silentdesk = "silentdesk.cli:main"
+
+[dependency-groups]
+dev = ["pytest>=8", "ruff>=0.8"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.ruff]
+line-length = 120
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
