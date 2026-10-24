@@ -1,5 +1,17 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { errorMessage, gmailReply, gmailTrash, hasBackend, listTopics } from "../api/backend";
+import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
+import {
+  errorMessage,
+  gmailReply,
+  gmailTrash,
+  hasBackend,
+  lastSynced,
+  listTopics,
+  onSyncRound,
+  onTopicsUpdated,
+  refresh,
+  subscribe,
+  syncRunning,
+} from "../api/backend";
 import type { Topic } from "../types";
 import { TopicItem } from "./TopicItem";
 
@@ -7,21 +19,56 @@ import { TopicItem } from "./TopicItem";
 const PAGE = 200;
 
 interface Props {
+  /** Shown first in the footer: the Settings button. */
+  footer: ReactNode;
   onOpenSettings: () => void;
 }
 
-export function TopicsView({ onOpenSettings }: Props) {
+export function TopicsView({ footer, onOpenSettings }: Props) {
   const desktop = hasBackend();
   const [topics, setTopics] = useState<Topic[]>([]);
   const [query, setQuery] = useState("");
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [updatedAt, setUpdatedAt] = useState<string | null>(null);
 
   useEffect(() => {
     if (!desktop) return;
     listTopics()
       .then(setTopics)
       .catch((e) => setLoadError(errorMessage(e)));
+    lastSynced()
+      .then((at) => setUpdatedAt((prev) => prev ?? at))
+      .catch(() => {});
+    return subscribe(
+      onTopicsUpdated((at) => {
+        setUpdatedAt(at);
+        listTopics()
+          .then(setTopics)
+          .catch(() => {});
+      }),
+    );
   }, [desktop]);
+
+  const [refreshing, setRefreshing] = useState(false);
+  useEffect(() => {
+    if (!desktop) return;
+    syncRunning()
+      .then(setRefreshing)
+      .catch(() => {});
+    return subscribe(onSyncRound(setRefreshing));
+  }, [desktop]);
+
+  function startRefresh() {
+    setRefreshing(true);
+    refresh().catch(() => setRefreshing(false));
+  }
+
+  // Re-render the "Updated … ago" label every 30 seconds.
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    const timer = setInterval(() => setTick((n) => n + 1), 30_000);
+    return () => clearInterval(timer);
+  }, []);
 
   const matches = useMemo(() => {
     const words = query.toLowerCase().split(/\s+/).filter(Boolean);
@@ -53,15 +100,27 @@ export function TopicsView({ onOpenSettings }: Props) {
   return (
     <>
       <div className="toolbar">
-        <form className="search" role="search" onSubmit={(e) => e.preventDefault()}>
-          <input
-            type="search"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search topics"
-            aria-label="Search topics"
-          />
-        </form>
+        <div className="search-row">
+          <form className="search" role="search" onSubmit={(e) => e.preventDefault()}>
+            <input
+              type="search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search topics"
+              aria-label="Search topics"
+            />
+          </form>
+          {desktop && (
+            <button
+              type="button"
+              className="button search-row__refresh"
+              onClick={startRefresh}
+              disabled={refreshing}
+            >
+              {refreshing ? "Refreshing…" : "Refresh"}
+            </button>
+          )}
+        </div>
         {loadError && (
           <p className="notice notice--error" role="alert">
             {loadError}
@@ -100,14 +159,24 @@ export function TopicsView({ onOpenSettings }: Props) {
       </main>
 
       <footer className="footer">
+        {footer}
         <span className="footer__count">
           {query.trim()
             ? `${matches.length.toLocaleString()} of ${topics.length.toLocaleString()} topics`
             : `${topics.length.toLocaleString()} ${topics.length === 1 ? "topic" : "topics"}`}
         </span>
+        {updatedAt && <span className="footer__updated">Updated {ago(updatedAt)}</span>}
       </footer>
     </>
   );
+}
+
+/** `"just now"`, `"5 min ago"`, `"2 h ago"`. */
+function ago(iso: string): string {
+  const minutes = Math.floor((Date.now() - new Date(iso).getTime()) / 60_000);
+  if (Number.isNaN(minutes) || minutes < 1) return "just now";
+  if (minutes < 60) return `${minutes} min ago`;
+  return `${Math.floor(minutes / 60)} h ago`;
 }
 
 /** Everything a search matches against, lowercased. */

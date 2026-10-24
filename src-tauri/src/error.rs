@@ -20,8 +20,6 @@ pub enum Error {
     UnknownMessage,
     #[error("Write a reply before sending.")]
     EmptyReply,
-    #[error("Another {0} operation is already running.")]
-    Busy(&'static str),
     #[error("Sign-in timed out. Try again.")]
     AuthTimeout,
     #[error("Sign-in failed: {0}")]

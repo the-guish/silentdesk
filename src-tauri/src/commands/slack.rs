@@ -1,6 +1,6 @@
 use tauri::AppHandle;
 
-use super::{AppState, ServiceStatus, now_rfc3339, open_browser, try_op};
+use super::{AppState, ServiceStatus, now_rfc3339, open_browser};
 use crate::error::{Error, Result};
 use crate::model::{SlackAccount, TopicView, VaultData};
 use crate::secrets::{self, SLACK_CREDENTIAL};
@@ -82,7 +82,7 @@ pub async fn slack_connect(
     state: tauri::State<'_, AppState>,
 ) -> Result<ServiceStatus> {
     let client = state.slack()?;
-    let _op = try_op(&state.slack_op, SERVICE)?;
+    let _op = state.slack_op.lock().await;
 
     let credential = oauth::authorize(&state.http, client, open_browser(&app)).await?;
     let me = api::identity(&state.http, &credential.access_token).await?;
@@ -114,19 +114,16 @@ pub async fn slack_connect(
     status(&state).await
 }
 
-/// Pulls the most recent direct messages and maps each one to a topic. Only
-/// runs when the user asks for it (core principle 6).
-#[tauri::command]
-pub async fn slack_sync(state: tauri::State<'_, AppState>) -> Result<Vec<TopicView>> {
+/// Pulls the most recent direct messages and maps each one to a topic.
+pub(super) async fn sync(state: &AppState) -> Result<Vec<TopicView>> {
     let client = state.slack()?;
-    let _op = try_op(&state.slack_op, SERVICE)?;
 
     let account = state
         .read()
         .await?
         .slack_account
         .ok_or(Error::NotConnected(SERVICE))?;
-    let credential = fresh_credential(&state, client).await?;
+    let credential = fresh_credential(state, client).await?;
     let latest = match api::recent_direct_messages(
         &state.http,
         &credential.access_token,
@@ -151,10 +148,16 @@ pub async fn slack_sync(state: tauri::State<'_, AppState>) -> Result<Vec<TopicVi
         .await
 }
 
+#[tauri::command]
+pub async fn slack_sync(state: tauri::State<'_, AppState>) -> Result<Vec<TopicView>> {
+    let _op = state.slack_op.lock().await;
+    sync(&state).await
+}
+
 /// Revokes the token at Slack, deletes it and all local Slack data.
 #[tauri::command]
 pub async fn slack_disconnect(state: tauri::State<'_, AppState>) -> Result<ServiceStatus> {
-    let _op = try_op(&state.slack_op, SERVICE)?;
+    let _op = state.slack_op.lock().await;
     if let Some(mut credential) = load_credential().await? {
         // An expired access token cannot revoke itself; renew it first.
         if credential.needs_refresh(oauth::now())

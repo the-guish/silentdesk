@@ -25,10 +25,15 @@ pub fn run() {
                 std::fs::set_permissions(&dir, std::fs::Permissions::from_mode(0o700))?;
             }
             app.manage(commands::AppState::new(dir.join("vault.bin"))?);
+            tauri::async_runtime::spawn(commands::auto_sync::run(app.handle().clone()));
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
             commands::list_topics,
+            commands::auto_sync::sync_soon,
+            commands::auto_sync::refresh,
+            commands::auto_sync::sync_running,
+            commands::auto_sync::last_synced,
             commands::gmail::gmail_status,
             commands::gmail::gmail_connect,
             commands::gmail::gmail_sync,

@@ -1,7 +1,7 @@
 use serde::Serialize;
 use tauri::{AppHandle, Emitter};
 
-use super::{AppState, ServiceStatus, now_rfc3339, open_browser, try_op};
+use super::{AppState, ServiceStatus, now_rfc3339, open_browser};
 use crate::error::{Error, Result};
 use crate::gmail::{self, api, oauth};
 use crate::model::{GmailAccount, GmailMessage, TopicView, VaultData};
@@ -92,7 +92,7 @@ pub async fn gmail_connect(
     state: tauri::State<'_, AppState>,
 ) -> Result<ServiceStatus> {
     let client = state.google()?;
-    let _op = try_op(&state.gmail_op, SERVICE)?;
+    let _op = state.gmail_op.lock().await;
 
     let tokens = oauth::authorize(&state.http, client, &oauth::GMAIL, open_browser(&app)).await?;
     let email = api::profile(&state.http, &tokens.access_token)
@@ -124,15 +124,10 @@ pub async fn gmail_connect(
 /// Pulls the subject of every Inbox message SilentDesk does not have yet,
 /// each as a topic of its own. The first sync lists the whole Inbox; later
 /// ones list only what entered it since. Messages stay after they leave the
-/// Inbox. Only runs when the user asks for it (core principle 6).
-#[tauri::command]
-pub async fn gmail_sync(
-    app: AppHandle,
-    state: tauri::State<'_, AppState>,
-) -> Result<Vec<TopicView>> {
+/// Inbox.
+pub(super) async fn sync(app: &AppHandle, state: &AppState) -> Result<Vec<TopicView>> {
     state.google()?;
-    let _op = try_op(&state.gmail_op, SERVICE)?;
-    let access = access_token(&state).await?;
+    let access = access_token(state).await?;
     let data = state.read().await?;
 
     let changes = match &data.gmail_history_id {
@@ -157,7 +152,7 @@ pub async fn gmail_sync(
     };
     report(0);
     for (batch, chunk) in ids.chunks(SAVE_EVERY).enumerate() {
-        let access = access_token(&state).await?;
+        let access = access_token(state).await?;
         let offset = batch * SAVE_EVERY;
         let messages = api::subjects(&state.http, &access, chunk, |n| {
             if n % PROGRESS_EVERY == 0 {
@@ -180,6 +175,15 @@ pub async fn gmail_sync(
         .await
 }
 
+#[tauri::command]
+pub async fn gmail_sync(
+    app: AppHandle,
+    state: tauri::State<'_, AppState>,
+) -> Result<Vec<TopicView>> {
+    let _op = state.gmail_op.lock().await;
+    sync(&app, &state).await
+}
+
 /// Moves an email to the Gmail trash and drops it, with its topic, from
 /// SilentDesk.
 #[tauri::command]
@@ -187,7 +191,7 @@ pub async fn gmail_trash(
     state: tauri::State<'_, AppState>,
     message_id: String,
 ) -> Result<Vec<TopicView>> {
-    let _op = try_op(&state.gmail_op, SERVICE)?;
+    let _op = state.gmail_op.lock().await;
     known_message(&state, &message_id).await?;
     let access = access_token(&state).await?;
     api::trash(&state.http, &access, &message_id).await?;
@@ -210,7 +214,7 @@ pub async fn gmail_reply(
     if body.trim().is_empty() {
         return Err(Error::EmptyReply);
     }
-    let _op = try_op(&state.gmail_op, SERVICE)?;
+    let _op = state.gmail_op.lock().await;
     let message = known_message(&state, &message_id).await?;
     let access = access_token(&state).await?;
     let original = api::original(&state.http, &access, &message_id).await?;
@@ -221,7 +225,7 @@ pub async fn gmail_reply(
 /// Revokes the grant at Google, deletes the token and all local Gmail data.
 #[tauri::command]
 pub async fn gmail_disconnect(state: tauri::State<'_, AppState>) -> Result<ServiceStatus> {
-    let _op = try_op(&state.gmail_op, SERVICE)?;
+    let _op = state.gmail_op.lock().await;
     if let Some(token) = refresh_token().await? {
         oauth::revoke(&state.http, &token).await;
     }
