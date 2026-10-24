@@ -1,5 +1,6 @@
 //! Google sign-in: authorization code flow with PKCE and a loopback redirect
-//! on any free port.
+//! on any free port. Shared by every Google service; each one asks for its
+//! own grant and keeps its own refresh token.
 
 use serde::Deserialize;
 use url::Url;
@@ -11,12 +12,30 @@ const AUTH_URL: &str = "https://accounts.google.com/o/oauth2/v2/auth";
 const TOKEN_URL: &str = "https://oauth2.googleapis.com/token";
 const REVOKE_URL: &str = "https://oauth2.googleapis.com/revoke";
 
+/// What one SilentDesk service asks Google for.
+pub struct Grant {
+    /// Named in errors, e.g. "Gmail access was not granted."
+    pub service: &'static str,
+    /// Requested at sign-in.
+    pub scopes: &'static [&'static str],
+    /// Must all be granted; the user can untick scopes on Google's consent
+    /// screen.
+    pub required: &'static [&'static str],
+}
+
 /// `gmail.modify` reads headers and moves messages to the trash; it cannot
 /// delete them for good. `gmail.send` sends replies.
-pub const GMAIL_SCOPES: &[&str] = &[
-    "https://www.googleapis.com/auth/gmail.modify",
-    "https://www.googleapis.com/auth/gmail.send",
-];
+pub const GMAIL: Grant = Grant {
+    service: "Gmail",
+    scopes: &[
+        "https://www.googleapis.com/auth/gmail.modify",
+        "https://www.googleapis.com/auth/gmail.send",
+    ],
+    required: &[
+        "https://www.googleapis.com/auth/gmail.modify",
+        "https://www.googleapis.com/auth/gmail.send",
+    ],
+};
 
 /// The OAuth client the organization registered in Google Cloud. Read at
 /// runtime from the environment, or baked in at build time.
@@ -65,6 +84,7 @@ struct TokenError {
 
 fn authorization_url(
     client: &OAuthClient,
+    grant: &Grant,
     redirect_uri: &str,
     challenge: &str,
     state: &str,
@@ -74,7 +94,7 @@ fn authorization_url(
         .append_pair("client_id", &client.client_id)
         .append_pair("redirect_uri", redirect_uri)
         .append_pair("response_type", "code")
-        .append_pair("scope", &GMAIL_SCOPES.join(" "))
+        .append_pair("scope", &grant.scopes.join(" "))
         .append_pair("code_challenge", challenge)
         .append_pair("code_challenge_method", "S256")
         .append_pair("state", state)
@@ -88,6 +108,7 @@ fn authorization_url(
 pub async fn authorize(
     http: &reqwest::Client,
     client: &OAuthClient,
+    grant: &Grant,
     open_browser: impl FnOnce(&str) -> Result<()>,
 ) -> Result<Tokens> {
     let loopback = Loopback::any_port().await?;
@@ -97,6 +118,7 @@ pub async fn authorize(
 
     open_browser(&authorization_url(
         client,
+        grant,
         &redirect_uri,
         &pkce.challenge,
         &state,
@@ -113,11 +135,14 @@ pub async fn authorize(
     if let Some(secret) = &client.client_secret {
         form.push(("client_secret", secret));
     }
-    let token = token_request(http, &form).await?;
+    let token = token_request(http, &form, grant.service).await?;
 
     let granted: Vec<&str> = token.scope.split_whitespace().collect();
-    if !GMAIL_SCOPES.iter().all(|s| granted.contains(s)) {
-        return Err(Error::Auth("Gmail access was not granted.".into()));
+    if !grant.required.iter().all(|s| granted.contains(s)) {
+        return Err(Error::Auth(format!(
+            "{} access was not granted.",
+            grant.service
+        )));
     }
     let refresh_token = token
         .refresh_token
@@ -132,6 +157,7 @@ pub async fn authorize(
 pub async fn access_token(
     http: &reqwest::Client,
     client: &OAuthClient,
+    grant: &Grant,
     refresh_token: &str,
 ) -> Result<String> {
     let mut form = vec![
@@ -142,7 +168,9 @@ pub async fn access_token(
     if let Some(secret) = &client.client_secret {
         form.push(("client_secret", secret));
     }
-    Ok(token_request(http, &form).await?.access_token)
+    Ok(token_request(http, &form, grant.service)
+        .await?
+        .access_token)
 }
 
 /// Asks Google to invalidate the grant. Best effort: the local token is
@@ -155,7 +183,11 @@ pub async fn revoke(http: &reqwest::Client, refresh_token: &str) {
         .await;
 }
 
-async fn token_request(http: &reqwest::Client, form: &[(&str, &str)]) -> Result<TokenResponse> {
+async fn token_request(
+    http: &reqwest::Client,
+    form: &[(&str, &str)],
+    service: &'static str,
+) -> Result<TokenResponse> {
     let response = http.post(TOKEN_URL).form(form).send().await?;
     if response.status().is_success() {
         return Ok(response.json().await?);
@@ -167,7 +199,7 @@ async fn token_request(http: &reqwest::Client, form: &[(&str, &str)]) -> Result<
         .map(|e| e.error)
         .unwrap_or_else(|_| "unknown_error".into());
     Err(match error.as_str() {
-        "invalid_grant" => Error::Reauthorize("Gmail"),
+        "invalid_grant" => Error::Reauthorize(service),
         "invalid_client" | "unauthorized_client" => Error::Auth(
             "Google rejected the OAuth client. Check SILENTDESK_GOOGLE_CLIENT_ID and \
              SILENTDESK_GOOGLE_CLIENT_SECRET."
@@ -189,6 +221,7 @@ mod tests {
         };
         let url = Url::parse(&authorization_url(
             &client,
+            &GMAIL,
             "http://127.0.0.1:5000",
             "chal",
             "st",

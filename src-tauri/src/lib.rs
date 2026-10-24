@@ -7,6 +7,7 @@ mod model;
 mod oauth;
 mod secrets;
 mod slack;
+mod tasks;
 mod vault;
 
 use tauri::Manager;
@@ -46,6 +47,10 @@ pub fn run() {
             commands::github::github_connect,
             commands::github::github_sync,
             commands::github::github_disconnect,
+            commands::tasks::tasks_status,
+            commands::tasks::tasks_connect,
+            commands::tasks::tasks_sync,
+            commands::tasks::tasks_disconnect,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

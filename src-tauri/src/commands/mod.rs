@@ -5,6 +5,7 @@ pub mod github;
 pub mod gmail;
 pub mod jira;
 pub mod slack;
+pub mod tasks;
 
 use std::path::PathBuf;
 use std::time::Duration;
@@ -33,6 +34,7 @@ pub struct AppState {
     slack_op: Mutex<()>,
     jira_op: Mutex<()>,
     github_op: Mutex<()>,
+    tasks_op: Mutex<()>,
 }
 
 impl AppState {
@@ -53,6 +55,7 @@ impl AppState {
             slack_op: Mutex::new(()),
             jira_op: Mutex::new(()),
             github_op: Mutex::new(()),
+            tasks_op: Mutex::new(()),
         })
     }
 
