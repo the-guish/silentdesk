@@ -31,7 +31,10 @@ class DeskService(Desk):
         self.locks = {service: asyncio.Lock() for service in self.connectors}
 
     async def topics(self) -> list[TopicView]:
-        raise NotImplementedError
+        return [
+            TopicView(record.id, record.service, record.title, record.items, record.updated_at)
+            for record in topics.newest_first(await self.store.topics())
+        ]
 
     async def services(self) -> list[ServiceStatus]:
         return [await self.connectors[service].status() for service in sorted(self.connectors)]
@@ -70,7 +73,7 @@ class DeskService(Desk):
             await self.store.set_last_synced(now)
 
     async def last_synced(self) -> str | None:
-        raise NotImplementedError
+        return await self.store.last_synced()
 
     async def reply(self, topic_id: str, body: str) -> None:
         raise NotImplementedError

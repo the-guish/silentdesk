@@ -1,0 +1,15 @@
+{
+  "description": "a stored refresh token makes its service connected; the account is unknown until it signs in",
+  "args": ["services"],
+  "env": {
+    "SILENTDESK_TEST_KEYRING": "{home}/keyring.json",
+    "SILENTDESK_GOOGLE_CLIENT_ID": "test-client.apps.googleusercontent.com"
+  },
+  "files": { "keyring.json": { "gmail-refresh-token": "test-refresh-token" } },
+  "exit": 0,
+  "schema": "services.json",
+  "stdout": [
+    { "service": "gmail", "configured": true, "connected": true, "account": null },
+    { "service": "tasks", "configured": true, "connected": false, "account": null }
+  ]
+}
