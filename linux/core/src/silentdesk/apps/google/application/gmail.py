@@ -2,15 +2,16 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 
-from ....contract import Mail, ServiceStatus, SyncResult
+from ....contract import Connector, ServiceStatus, SyncResult
 from ..ports.authorization import Authorization
 from ..ports.credentials import Credentials
 from ..ports.gmail_api import GmailApi
 from ..ports.state_store import StateStore
 
 
-class Gmail(Mail):
-    """The Gmail inbox as a mail connector: one topic per thread."""
+class Gmail(Connector):
+    """The Gmail inbox: one topic per thread. Replies go to the thread's newest
+    message, and deleting moves the thread to the trash."""
 
     def __init__(
         self, api: GmailApi, authorization: Authorization, credentials: Credentials, state: StateStore
@@ -36,8 +37,8 @@ class Gmail(Mail):
     async def sync(self) -> SyncResult:
         raise NotImplementedError
 
-    async def reply(self, key: str, body: str) -> None:
+    async def reply(self, topic_key: str, body: str) -> None:
         raise NotImplementedError
 
-    async def trash(self, key: str) -> None:
+    async def delete(self, topic_key: str) -> None:
         raise NotImplementedError

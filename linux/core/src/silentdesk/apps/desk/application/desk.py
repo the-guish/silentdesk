@@ -34,5 +34,5 @@ class DeskService(Desk):
     async def reply(self, topic_id: str, body: str) -> None:
         raise NotImplementedError
 
-    async def trash(self, topic_id: str) -> None:
+    async def delete(self, topic_id: str) -> None:
         raise NotImplementedError
