@@ -36,6 +36,7 @@ On failure, stdout holds an error document ([schema](schema/error.json)):
 | Kind | Exit code | When |
 |------|-----------|------|
 | `usage` | 2 | The command line is wrong. |
+| `storage` | 1 | The database cannot be opened, such as when its key is missing from the keyring ([storage.md](storage.md)). |
 | `internal` | 1 | Anything unexpected. |
 
 `message` is for people. Tests check that it is there, not what it says.
@@ -85,6 +86,37 @@ Takes no arguments. Lists every service SilentDesk can connect, sorted by `servi
 | `configured` | boolean | The core has what it needs to sign in: for Google services, a client ID. |
 | `connected` | boolean | A sign-in is stored: for Google services, a refresh token in the keyring. |
 | `account` | string \| null | The connected account, such as an email address. `null` when not connected. |
+
+### `topics`
+
+Takes no arguments. Lists every topic, newest first: by `updatedAt`, then by `id`, both descending ([schema](schema/topics.json)). Creates the database on first use.
+
+```json
+[
+  {
+    "id": "5f0c…",
+    "service": "gmail",
+    "title": "Invoice for October",
+    "items": [
+      {"key": "18c2…", "direction": "inbound", "author": "Ana Ruiz", "url": null, "date": "2026-10-24T09:12:00Z"}
+    ],
+    "updatedAt": "2026-10-24T09:12:00Z"
+  }
+]
+```
+
+| Field | Type | Notes |
+|-------|------|-------|
+| `id` | string | SilentDesk's own ID for the topic, a UUID. |
+| `service` | string | The service every item of the topic comes from. |
+| `title` | string | |
+| `items` | array | One or more, oldest first. |
+| `items[].key` | string | The item's ID in its service, such as a Gmail message ID. |
+| `items[].direction` | `inbound` \| `outbound` \| null | |
+| `items[].author` | string \| null | Who wrote it, as shown to the user. |
+| `items[].url` | string \| null | Opens the item in its own system. |
+| `items[].date` | string | RFC 3339. |
+| `updatedAt` | string | The newest item's date. |
 
 ## Planned
 

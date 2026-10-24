@@ -99,9 +99,19 @@ def isolated_env(home: str, extra: dict[str, str] | None = None) -> dict[str, st
     return env
 
 
+def write_files(home: Path, files: dict[str, Any]) -> None:
+    """Writes a case's starting files, by path relative to its home: a string
+    as text, anything else as JSON."""
+    for relative, content in files.items():
+        path = home / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(content if isinstance(content, str) else json.dumps(content))
+
+
 def run_case(case: dict[str, Any], command: list[str], schemas: Path = SCHEMAS) -> list[str]:
     """Runs one case; returns what was wrong, or nothing if it passed."""
     with tempfile.TemporaryDirectory(prefix="silentdesk-conformance-") as home:
+        write_files(Path(home), case.get("files", {}))
         try:
             process = subprocess.run(
                 [*command, *case["args"]],

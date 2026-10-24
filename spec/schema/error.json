@@ -3,16 +3,30 @@
   "$id": "error.json",
   "title": "silentdesk error",
   "type": "object",
-  "required": ["error"],
+  "required": [
+    "error"
+  ],
   "additionalProperties": false,
   "properties": {
     "error": {
       "type": "object",
-      "required": ["kind", "message"],
+      "required": [
+        "kind",
+        "message"
+      ],
       "additionalProperties": false,
       "properties": {
-        "kind": { "enum": ["usage", "internal"] },
-        "message": { "type": "string", "minLength": 1 }
+        "kind": {
+          "enum": [
+            "usage",
+            "storage",
+            "internal"
+          ]
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1
+        }
       }
     }
   }
