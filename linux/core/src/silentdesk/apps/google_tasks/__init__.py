@@ -1,4 +1,4 @@
-"""The Google app: Google Tasks, as topics with one item each."""
+"""The Google Tasks app: open tasks as topics with one item each."""
 
 from __future__ import annotations
 
