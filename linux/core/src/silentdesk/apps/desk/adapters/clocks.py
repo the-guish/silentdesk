@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+from datetime import UTC, datetime
+
 from ..ports.clock import Clock
 
 
 class SystemClock(Clock):
     def now(self) -> str:
-        raise NotImplementedError
+        return datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 class FixedClock(Clock):
@@ -15,4 +17,4 @@ class FixedClock(Clock):
         self.fixed = now
 
     def now(self) -> str:
-        raise NotImplementedError
+        return self.fixed
