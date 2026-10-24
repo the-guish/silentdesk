@@ -1,0 +1,7 @@
+{
+  "description": "version takes no arguments",
+  "args": ["version", "extra"],
+  "exit": 2,
+  "schema": "error.json",
+  "stdout": { "error": { "kind": "usage", "message": { "$any": "string" } } }
+}
