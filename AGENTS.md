@@ -2,6 +2,10 @@
 
 Instructions for AI coding agents working in this repository.
 
+## Commit messages
+
+Commit messages carry no AI attribution. Add no `Co-Authored-By` line for an AI tool, no session link and no "generated with" line.
+
 ## Pull request descriptions
 
 End every pull request description with a rule and one line naming the tools that generated it. Add no link.
