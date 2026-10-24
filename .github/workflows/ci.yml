@@ -30,6 +30,8 @@ jobs:
         run: |
           uv run --directory linux/core ruff check
           uv run --directory linux/core ruff format --check
+      - name: Import rules
+        run: uv run --directory linux/core lint-imports
       - name: Unit tests
         run: uv run --directory linux/core pytest -q
       - name: Conformance

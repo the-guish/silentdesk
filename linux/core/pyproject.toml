@@ -12,7 +12,11 @@ dependencies = []
 silentdesk = "silentdesk.cli:main"
 
 [dependency-groups]
-dev = ["pytest>=8", "ruff>=0.8"]
+dev = [
+    "import-linter>=2.15",
+    "pytest>=8",
+    "ruff>=0.8",
+]
 
 [build-system]
 requires = ["hatchling"]
@@ -23,3 +27,75 @@ line-length = 120
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+
+# Apps may import nothing from silentdesk except silentdesk.contract.
+# Run with `uv run lint-imports`.
+[tool.importlinter]
+root_package = "silentdesk"
+
+[[tool.importlinter.contracts]]
+name = "Apps import only silentdesk.contract"
+type = "forbidden"
+source_modules = ["silentdesk.apps.*"]
+forbidden_modules = ["silentdesk.adapters", "silentdesk.api", "silentdesk.cli"]
+
+[[tool.importlinter.contracts]]
+name = "Apps do not import each other"
+type = "independence"
+modules = ["silentdesk.apps.*"]
+
+# Inside an app, besides silentdesk.contract, which every layer may import:
+# domain imports nothing, core and ports import domain, application imports
+# core, ports and domain, adapters import ports and domain, and wiring
+# imports anything. Only direct imports count, so an adapter may use a port
+# whose methods return domain types.
+[[tool.importlinter.contracts]]
+name = "Domain imports nothing from its app"
+type = "forbidden"
+allow_indirect_imports = true
+source_modules = ["silentdesk.apps.*.domain"]
+forbidden_modules = [
+    "silentdesk.apps.*.adapters",
+    "silentdesk.apps.*.application",
+    "silentdesk.apps.*.core",
+    "silentdesk.apps.*.ports",
+    "silentdesk.apps.*.wiring",
+]
+
+[[tool.importlinter.contracts]]
+name = "Core imports only domain"
+type = "forbidden"
+allow_indirect_imports = true
+source_modules = ["silentdesk.apps.*.core"]
+forbidden_modules = [
+    "silentdesk.apps.*.adapters",
+    "silentdesk.apps.*.application",
+    "silentdesk.apps.*.ports",
+    "silentdesk.apps.*.wiring",
+]
+
+[[tool.importlinter.contracts]]
+name = "Ports import only domain"
+type = "forbidden"
+allow_indirect_imports = true
+source_modules = ["silentdesk.apps.*.ports"]
+forbidden_modules = [
+    "silentdesk.apps.*.adapters",
+    "silentdesk.apps.*.application",
+    "silentdesk.apps.*.core",
+    "silentdesk.apps.*.wiring",
+]
+
+[[tool.importlinter.contracts]]
+name = "Application imports only core, ports and domain"
+type = "forbidden"
+allow_indirect_imports = true
+source_modules = ["silentdesk.apps.*.application"]
+forbidden_modules = ["silentdesk.apps.*.adapters", "silentdesk.apps.*.wiring"]
+
+[[tool.importlinter.contracts]]
+name = "Adapters import only ports and domain"
+type = "forbidden"
+allow_indirect_imports = true
+source_modules = ["silentdesk.apps.*.adapters"]
+forbidden_modules = ["silentdesk.apps.*.application", "silentdesk.apps.*.core", "silentdesk.apps.*.wiring"]
