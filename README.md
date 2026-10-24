@@ -13,6 +13,7 @@ SilentDesk is moving from one Tauri app to two native apps: Python with GTK4 on 
 | [`linux/gtk/`](linux/gtk) | The Linux app: GTK4 and libadwaita, in Python, on `linux/core` | Scaffold |
 | [`apple/core/`](apple/core) | Core logic and JSON command line, in Swift | Scaffold |
 | [`apple/app/`](apple/app) | The macOS app, in SwiftUI, on `apple/core`; iOS may follow | Deferred |
+| [`docs/`](docs) | Notes for the native apps, such as [open-source apps on the Mac App Store](docs/apple-store-reference-apps.md) | Reference |
 | [`legacy/`](legacy) | The current Tauri app, unchanged. It works until the new apps replace it | Working |
 
 The product specs and core principles are still in [`legacy/docs/`](legacy/docs).
