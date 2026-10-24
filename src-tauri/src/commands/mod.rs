@@ -1,6 +1,7 @@
 //! Tauri commands called by the frontend. Tokens and keys never cross this
 //! boundary: the webview only sees account status and topic data.
 
+pub mod auto_sync;
 pub mod github;
 pub mod gmail;
 pub mod jira;
@@ -15,7 +16,7 @@ use tauri::AppHandle;
 use tauri_plugin_opener::OpenerExt;
 use time::OffsetDateTime;
 use time::format_description::well_known::Rfc3339;
-use tokio::sync::{Mutex, MutexGuard, OnceCell};
+use tokio::sync::{Mutex, OnceCell};
 
 use crate::error::{Error, Result};
 use crate::model::{TopicView, VaultData};
@@ -29,12 +30,15 @@ pub struct AppState {
     vault: OnceCell<Vault>,
     /// Serializes load-modify-save cycles on the vault file.
     data_lock: Mutex<()>,
-    /// One operation (connect, sync, disconnect) per service at a time.
+    /// One operation (connect, sync, disconnect, an action) per service at a
+    /// time. User actions wait for the lock; automatic syncs skip a service
+    /// whose lock is taken.
     gmail_op: Mutex<()>,
     slack_op: Mutex<()>,
     jira_op: Mutex<()>,
     github_op: Mutex<()>,
     tasks_op: Mutex<()>,
+    auto_sync: auto_sync::AutoSync,
 }
 
 impl AppState {
@@ -56,6 +60,7 @@ impl AppState {
             jira_op: Mutex::new(()),
             github_op: Mutex::new(()),
             tasks_op: Mutex::new(()),
+            auto_sync: auto_sync::AutoSync::default(),
         })
     }
 
@@ -79,10 +84,6 @@ impl AppState {
         vault.save(&data)?;
         Ok(out)
     }
-}
-
-fn try_op<'a>(lock: &'a Mutex<()>, service: &'static str) -> Result<MutexGuard<'a, ()>> {
-    lock.try_lock().map_err(|_| Error::Busy(service))
 }
 
 fn open_browser(app: &AppHandle) -> impl FnOnce(&str) -> Result<()> + '_ {

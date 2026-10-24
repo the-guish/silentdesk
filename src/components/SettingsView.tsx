@@ -1,12 +1,14 @@
-import { useCallback, useEffect, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useState } from "react";
 import {
   errorMessage,
   hasBackend,
   onGmailSyncProgress,
+  onSyncFinished,
   serviceConnect,
   serviceDisconnect,
   serviceStatus,
   serviceSync,
+  subscribe,
 } from "../api/backend";
 import type { SyncProgress } from "../api/backend";
 import type { Service, ServiceStatus, Topic } from "../types";
@@ -32,7 +34,12 @@ const FROM: Record<Service, (t: Topic) => boolean> = {
 
 const isTokenService = (s: Service): s is TokenService => s in TOKEN_FORMS;
 
-export function SettingsView() {
+interface Props {
+  /** Shown first in the footer: the Settings button. */
+  footer: ReactNode;
+}
+
+export function SettingsView({ footer }: Props) {
   const desktop = hasBackend();
   const [statuses, setStatuses] = useState(perService<ServiceStatus | null>(null));
   const [busy, setBusy] = useState(perService<Busy>(null));
@@ -58,11 +65,24 @@ export function SettingsView() {
   const [gmailProgress, setGmailProgress] = useState<SyncProgress | null>(null);
   useEffect(() => {
     if (!desktop) return;
-    const unlisten = onGmailSyncProgress(setGmailProgress);
-    return () => {
-      unlisten.then((stop) => stop());
-    };
+    return subscribe(onGmailSyncProgress(setGmailProgress));
   }, [desktop]);
+
+  // Automatic syncs report here, and their errors show on the service's row.
+  useEffect(() => {
+    if (!desktop) return;
+    return subscribe(
+      onSyncFinished((s, error) => {
+        setErrors((prev) => ({ ...prev, [s]: error }));
+        if (s === "gmail") setGmailProgress(null);
+        if (error) refresh().catch(() => {});
+      }),
+    );
+  }, [desktop, refresh]);
+
+  /** A Gmail sync is reading messages, started by the user or automatically. */
+  const gmailReading =
+    gmailProgress !== null && gmailProgress.total > 0 && gmailProgress.done < gmailProgress.total;
 
   async function run(s: Service, kind: Exclude<Busy, null>, action: () => Promise<void>) {
     setBusy((prev) => ({ ...prev, [s]: kind }));
@@ -101,53 +121,56 @@ export function SettingsView() {
     });
 
   return (
-    <main className="content settings">
-      <h2 className="settings__heading">Connections</h2>
-      {!desktop ? (
-        <p className="connection__text">
-          Connections are only available in the desktop app. Start it with <code>./dev.sh</code>.
-        </p>
-      ) : (
-        <div className="connections">
-          {SERVICES.map((s) => (
-            <div key={s}>
-              <ConnectionRow
-                service={s}
-                status={statuses[s]}
-                busy={busy[s]}
-                error={errors[s]}
-                progress={
-                  s === "gmail" && busy.gmail === "sync" && gmailProgress && gmailProgress.total > 0
-                    ? `${gmailProgress.done.toLocaleString()} of ${gmailProgress.total.toLocaleString()}`
-                    : null
-                }
-                onConnect={() => (isTokenService(s) ? setForm(s) : connect(s))}
-                onSync={() => sync(s)}
-                onDisconnect={() => disconnect(s)}
-              >
-                {isTokenService(s) && form === s && !statuses[s]?.connected && (
-                  <TokenConnectForm
-                    {...TOKEN_FORMS[s]}
-                    busy={busy[s] !== null}
-                    onSubmit={(values) => connect(s, values)}
-                    onCancel={() => setForm(null)}
-                  />
+    <>
+      <main className="content settings">
+        <h2 className="settings__heading">Connections</h2>
+        {!desktop ? (
+          <p className="connection__text">
+            Connections are only available in the desktop app. Start it with <code>./dev.sh</code>.
+          </p>
+        ) : (
+          <div className="connections">
+            {SERVICES.map((s) => (
+              <div key={s}>
+                <ConnectionRow
+                  service={s}
+                  status={statuses[s]}
+                  busy={busy[s] ?? (s === "gmail" && gmailReading ? "sync" : null)}
+                  error={errors[s]}
+                  progress={
+                    s === "gmail" && gmailReading
+                      ? `${gmailProgress.done.toLocaleString()} of ${gmailProgress.total.toLocaleString()}`
+                      : null
+                  }
+                  onConnect={() => (isTokenService(s) ? setForm(s) : connect(s))}
+                  onSync={() => sync(s)}
+                  onDisconnect={() => disconnect(s)}
+                >
+                  {isTokenService(s) && form === s && !statuses[s]?.connected && (
+                    <TokenConnectForm
+                      {...TOKEN_FORMS[s]}
+                      busy={busy[s] !== null}
+                      onSubmit={(values) => connect(s, values)}
+                      onCancel={() => setForm(null)}
+                    />
+                  )}
+                </ConnectionRow>
+                {synced[s] !== null && (
+                  <p className="notice settings__synced" role="status">
+                    Synced. {synced[s]} {synced[s] === 1 ? "topic" : "topics"} in Topics.
+                  </p>
                 )}
-              </ConnectionRow>
-              {synced[s] !== null && (
-                <p className="notice settings__synced" role="status">
-                  Synced. {synced[s]} {synced[s] === 1 ? "topic" : "topics"} in Topics.
-                </p>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
-      {loadError && (
-        <p className="notice notice--error" role="alert">
-          {loadError}
-        </p>
-      )}
-    </main>
+              </div>
+            ))}
+          </div>
+        )}
+        {loadError && (
+          <p className="notice notice--error" role="alert">
+            {loadError}
+          </p>
+        )}
+      </main>
+      <footer className="footer">{footer}</footer>
+    </>
   );
 }
