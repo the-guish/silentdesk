@@ -43,3 +43,13 @@ forbidden_modules = ["silentdesk.adapters", "silentdesk.api", "silentdesk.cli"]
 name = "Apps do not import each other"
 type = "independence"
 modules = ["silentdesk.apps.*"]
+
+# Inside an app: application imports only core and ports, and wiring
+# anything. silentdesk.contract is allowed everywhere.
+[[tool.importlinter.contracts]]
+name = "Application imports only core and ports"
+type = "forbidden"
+# Only direct imports count: ports may use core's types.
+allow_indirect_imports = true
+source_modules = ["silentdesk.apps.*.application"]
+forbidden_modules = ["silentdesk.apps.*.adapters", "silentdesk.apps.*.wiring"]
