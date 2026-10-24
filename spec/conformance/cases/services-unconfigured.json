@@ -1,11 +1,31 @@
 {
   "description": "without a Google client ID, no service is configured or connected",
-  "args": ["services"],
-  "env": { "SILENTDESK_TEST_KEYRING": "{home}/keyring.json" },
+  "args": [
+    "services"
+  ],
+  "env": {
+    "SILENTDESK_TEST_KEYRING": "{home}/keyring.json"
+  },
   "exit": 0,
   "schema": "services.json",
   "stdout": [
-    { "service": "gmail", "configured": false, "connected": false, "account": null },
-    { "service": "tasks", "configured": false, "connected": false, "account": null }
+    {
+      "service": "github",
+      "configured": true,
+      "connected": false,
+      "account": null
+    },
+    {
+      "service": "gmail",
+      "configured": false,
+      "connected": false,
+      "account": null
+    },
+    {
+      "service": "tasks",
+      "configured": false,
+      "connected": false,
+      "account": null
+    }
   ]
 }

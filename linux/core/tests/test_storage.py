@@ -34,7 +34,7 @@ def test_first_use_creates_a_private_encrypted_database_and_its_key(database, ke
     with database.transaction() as db:
         (version,) = db.execute("PRAGMA user_version").fetchone()
 
-    assert version == 1
+    assert version == 2
     assert len(keyring.get("database-key")) == 64
     assert stat.S_IMODE(database.path.stat().st_mode) == 0o600
     assert stat.S_IMODE(database.path.parent.stat().st_mode) == 0o700

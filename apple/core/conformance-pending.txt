@@ -9,3 +9,9 @@ topics-empty
 disconnect-forgets-the-sign-in
 sync-not-connected
 sync-nothing-connected
+github-connect-needs-a-token
+github-connect-rejected-token
+github-connect-sync-topics
+github-disconnect-drops-topics
+github-enterprise-server
+github-sync-rejected-token
