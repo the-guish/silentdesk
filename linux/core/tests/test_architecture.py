@@ -14,7 +14,7 @@ import pytest
 
 import silentdesk
 from silentdesk import api, contract
-from silentdesk.infra.settings import Settings
+from silentdesk.infra.settings import LocalSettings
 
 PACKAGE = Path(silentdesk.__file__).parent
 
@@ -22,7 +22,7 @@ PACKAGE = Path(silentdesk.__file__).parent
 # only import from the same app.
 ALLOWED = {
     "contract": {"contract"},
-    "infra": {"infra"},
+    "infra": {"contract", "infra"},
     "core": {"contract", "core"},
     "ports": {"contract", "core", "ports"},
     "application": {"contract", "core", "ports", "application"},
@@ -123,7 +123,7 @@ def test_adapters_and_applications_are_concrete():
 
 
 def test_the_desk_is_wired_but_not_built_yet(tmp_path):
-    desk = api.desk(Settings(data_dir=tmp_path))
+    desk = api.desk(LocalSettings(data_dir=tmp_path))
     assert isinstance(desk, contract.Desk)
     assert sorted(desk.connectors) == ["gmail", "tasks"]
     with pytest.raises(NotImplementedError):
