@@ -6,7 +6,7 @@ from ..core.state import GoogleState
 
 
 class StateStore(ABC):
-    """The Google app's own tables in the shared database."""
+    """The Google Tasks app's own tables in the shared database."""
 
     @abstractmethod
     async def load(self, service: str) -> GoogleState | None: ...

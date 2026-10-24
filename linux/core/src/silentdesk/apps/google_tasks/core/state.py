@@ -1,4 +1,4 @@
-"""What the Google app remembers between syncs."""
+"""What the Google Tasks app remembers between syncs."""
 
 from __future__ import annotations
 

@@ -9,7 +9,7 @@ from importlib.metadata import version as package_version
 from typing import Literal, TypedDict
 
 from .apps import desk as desk_app
-from .apps import gmail, google
+from .apps import gmail, google_tasks
 from .contract import Desk, Settings
 from .infra.database import SqlcipherDatabase
 from .infra.http import Http
@@ -36,6 +36,6 @@ def desk(settings: Settings) -> Desk:
     http = Http()
     connectors = [
         gmail.create(settings, database, keyring, http),
-        google.create(settings, database, keyring, http),
+        google_tasks.create(settings, database, keyring, http),
     ]
     return desk_app.create(connectors, settings, database)
