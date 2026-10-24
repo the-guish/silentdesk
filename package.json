@@ -9,7 +9,10 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "test:backend": "cd backend && uv run pytest -q",
+    "bundle:backend": "./scripts/bundle-backend.sh",
+    "release": "pnpm bundle:backend && tauri build --config src-tauri/tauri.release.conf.json"
   },
   "dependencies": {
     "@tauri-apps/api": "^2",

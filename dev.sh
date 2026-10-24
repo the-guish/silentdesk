@@ -17,4 +17,7 @@ if [ ! -d node_modules ]; then
   pnpm install
 fi
 
+# The Python backend's environment; the app uses backend/.venv in dev.
+uv sync --directory backend --quiet
+
 exec pnpm tauri dev "$@"

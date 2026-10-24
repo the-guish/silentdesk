@@ -1,12 +1,13 @@
 # SilentDesk
 
 A quiet desktop task tracker for work. Built with [Tauri v2](https://v2.tauri.app/),
-React, TypeScript and Vite.
+React, TypeScript and Vite, with a Python backend for the connected services.
 
 ## Prerequisites
 
 - [Node.js](https://nodejs.org/) 20 or newer and [pnpm](https://pnpm.io/)
 - [Rust](https://www.rust-lang.org/tools/install) (stable) with `cargo`
+- [uv](https://docs.astral.sh/uv/), which installs Python 3.12 or newer and the backend's packages
 - Platform libraries for Tauri. See the
   [Tauri prerequisites](https://v2.tauri.app/start/prerequisites/) for macOS and Windows.
 
@@ -42,7 +43,8 @@ Other useful commands:
 | ------------------ | --------------------------------------------------- |
 | `pnpm dev`         | Run only the web frontend at http://localhost:1420  |
 | `pnpm build`       | Type-check and build the frontend into `dist/`      |
-| `pnpm tauri build` | Build a release desktop bundle for your platform    |
+| `pnpm test:backend` | Run the Python backend's tests                     |
+| `pnpm release`     | Bundle Python and the backend, then build a release desktop bundle for your platform |
 
 ## Connections
 
@@ -63,18 +65,23 @@ Gmail, Google Tasks and Slack need an app or client ID that you or your organiza
 ```
 src/                     React frontend
   App.tsx                Header, Topics list and Settings
-  api/backend.ts         Calls into the Rust backend
+  api/backend.ts         Calls into the backend
   components/            Views and list items
   types.ts               Shared types
   styles.css             App styles (light and dark)
-src-tauri/src/           Rust backend
-  commands/              Commands the frontend can call
-  vault.rs               Encrypted local store
+src-tauri/src/           Rust host: storage, secrets, starts and talks to the backend
+  backend.rs             Starts the Python backend and relays messages
+  host.rs                What the backend may ask of Rust
+  store.rs, vault.rs     Schema-checked, encrypted local store
   secrets.rs             OS credential store access
-  model.rs               Topics and source items
-  oauth.rs               Shared sign-in pieces (PKCE, loopback redirect)
-  gmail/, tasks/, slack/, jira/, github/  Sign-in, API calls and sync per service
-docs/specs/              Product specs, starting with core.md
+  model.rs               Topics and source items: the schemas the backend writes
+backend/silentdesk/      Python backend, ports and adapters
+  core/                  Model, errors, topic logic, ports
+  sources/               gmail/, tasks/, slack/, jira/, github/: sign-in, API calls and sync
+  adapters/              IPC with Rust, HTTP, OAuth loopback
+  app.py                 Methods the UI calls, automatic syncing
+scripts/bundle-backend.sh  Puts a standalone Python and the backend in the release bundle
+docs/specs/              Product specs, starting with core.md; backend.md for the backend
 ```
 
 Topics and connected-service data are kept in an encrypted vault; see [docs/specs/data-model.md](docs/specs/data-model.md). Tasks live in Google Tasks.
