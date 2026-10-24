@@ -13,7 +13,7 @@ import type { Service, ServiceStatus, Topic } from "../types";
 import { ConnectionRow, type Busy } from "./ConnectionRow";
 import { TOKEN_FORMS, TokenConnectForm, type TokenService } from "./TokenConnectForm";
 
-const SERVICES: Service[] = ["gmail", "slack", "jira", "github"];
+const SERVICES: Service[] = ["gmail", "tasks", "slack", "jira", "github"];
 
 type PerService<T> = Record<Service, T>;
 
@@ -27,6 +27,7 @@ const FROM: Record<Service, (t: Topic) => boolean> = {
   slack: (t) => t.slackMessages.length > 0,
   jira: (t) => t.jiraIssues.length > 0,
   github: (t) => t.pullRequests.length > 0,
+  tasks: (t) => t.googleTasks.length > 0,
 };
 
 const isTokenService = (s: Service): s is TokenService => s in TOKEN_FORMS;

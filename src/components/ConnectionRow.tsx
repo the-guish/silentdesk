@@ -29,6 +29,14 @@ const INFO: Record<Service, Info> = {
       "Pull your last 10 direct messages as topics. Keeps sender, time and a short preview only.",
     browser: true,
   },
+  tasks: {
+    name: "Google Tasks",
+    envVar: "SILENTDESK_GOOGLE_CLIENT_ID",
+    doc: "docs/setup/google-tasks.md",
+    pitch:
+      "Pull every open task from your Google Tasks lists. Read-only; keeps title, list and due date.",
+    browser: true,
+  },
   jira: {
     name: "Jira",
     envVar: "",

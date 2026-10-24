@@ -89,7 +89,7 @@ export function TopicsView({ onOpenSettings }: Props) {
         ) : (
           desktop && (
             <p className="empty">
-              No topics yet. Connect Gmail, Slack, Jira or GitHub and sync them in{" "}
+              No topics yet. Connect Gmail, Google Tasks, Slack, Jira or GitHub and sync them in{" "}
               <button type="button" className="link" onClick={onOpenSettings}>
                 Settings
               </button>
@@ -118,6 +118,7 @@ function searchText(topic: Topic): string {
     ...topic.slackMessages.flatMap((m) => [m.author, m.counterpart]),
     ...topic.jiraIssues.flatMap((i) => [i.key, i.status, i.assignee, i.reporter]),
     ...topic.pullRequests.flatMap((p) => [`${p.repo}#${p.number}`, p.author]),
+    ...topic.googleTasks.flatMap((t) => [t.listTitle, t.origin ?? ""]),
   ]
     .join("\n")
     .toLowerCase();
