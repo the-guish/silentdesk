@@ -1,1 +1,1 @@
-"""The Gmail app's domain: messages and sync state, with no I/O."""
+"""The Gmail app's logic, with no I/O."""

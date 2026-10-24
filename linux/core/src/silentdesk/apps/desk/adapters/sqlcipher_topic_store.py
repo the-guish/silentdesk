@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 
 from ....contract import Database
-from ..core.topics import TopicRecord
+from ..domain.topics import TopicRecord
 from ..ports.topic_store import TopicStore
 
 

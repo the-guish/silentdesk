@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from ....contract import Http
-from ..core.gmail import GmailMessage
+from ..domain.gmail import GmailMessage
 from ..ports.gmail_api import Changes, GmailApi, InboxPage
 
 

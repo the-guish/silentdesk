@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 
-from ..core.state import GoogleState
+from ..domain.state import GoogleState
 
 
 class StateStore(ABC):

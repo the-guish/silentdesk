@@ -1,1 +1,1 @@
-"""The Google Tasks app's domain: tasks and sync state, with no I/O."""
+"""The Google Tasks app's logic, with no I/O."""

@@ -3,7 +3,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 
-from ..core.tasks import GoogleTask
+from ..domain.tasks import GoogleTask
 
 
 @dataclass(frozen=True)

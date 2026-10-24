@@ -44,12 +44,58 @@ name = "Apps do not import each other"
 type = "independence"
 modules = ["silentdesk.apps.*"]
 
-# Inside an app: application imports only core and ports, and wiring
-# anything. silentdesk.contract is allowed everywhere.
+# Inside an app, besides silentdesk.contract, which every layer may import:
+# domain imports nothing, core and ports import domain, application imports
+# core, ports and domain, adapters import ports and domain, and wiring
+# imports anything. Only direct imports count, so an adapter may use a port
+# whose methods return domain types.
 [[tool.importlinter.contracts]]
-name = "Application imports only core and ports"
+name = "Domain imports nothing from its app"
 type = "forbidden"
-# Only direct imports count: ports may use core's types.
+allow_indirect_imports = true
+source_modules = ["silentdesk.apps.*.domain"]
+forbidden_modules = [
+    "silentdesk.apps.*.adapters",
+    "silentdesk.apps.*.application",
+    "silentdesk.apps.*.core",
+    "silentdesk.apps.*.ports",
+    "silentdesk.apps.*.wiring",
+]
+
+[[tool.importlinter.contracts]]
+name = "Core imports only domain"
+type = "forbidden"
+allow_indirect_imports = true
+source_modules = ["silentdesk.apps.*.core"]
+forbidden_modules = [
+    "silentdesk.apps.*.adapters",
+    "silentdesk.apps.*.application",
+    "silentdesk.apps.*.ports",
+    "silentdesk.apps.*.wiring",
+]
+
+[[tool.importlinter.contracts]]
+name = "Ports import only domain"
+type = "forbidden"
+allow_indirect_imports = true
+source_modules = ["silentdesk.apps.*.ports"]
+forbidden_modules = [
+    "silentdesk.apps.*.adapters",
+    "silentdesk.apps.*.application",
+    "silentdesk.apps.*.core",
+    "silentdesk.apps.*.wiring",
+]
+
+[[tool.importlinter.contracts]]
+name = "Application imports only core, ports and domain"
+type = "forbidden"
 allow_indirect_imports = true
 source_modules = ["silentdesk.apps.*.application"]
 forbidden_modules = ["silentdesk.apps.*.adapters", "silentdesk.apps.*.wiring"]
+
+[[tool.importlinter.contracts]]
+name = "Adapters import only ports and domain"
+type = "forbidden"
+allow_indirect_imports = true
+source_modules = ["silentdesk.apps.*.adapters"]
+forbidden_modules = ["silentdesk.apps.*.application", "silentdesk.apps.*.core", "silentdesk.apps.*.wiring"]

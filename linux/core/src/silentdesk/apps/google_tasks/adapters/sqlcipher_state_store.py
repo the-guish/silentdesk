@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from ....contract import Database
-from ..core.state import GoogleState
+from ..domain.state import GoogleState
 from ..ports.state_store import StateStore
 
 

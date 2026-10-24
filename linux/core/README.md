@@ -24,17 +24,18 @@ uv run pytest -q                # unit tests
 
 ## Layout
 
-Every app has the same five folders:
+Every app has the same six folders. Every folder may also import `contract`:
 
-| Layer | Holds | May import |
-|-------|-------|------------|
-| `core` | The domain: data and pure logic, no I/O | `contract` |
-| `ports` | Abstract classes for what the app needs from outside, used only inside the app | `contract`, `core` |
-| `adapters` | The ports' implementations | `contract`, `core`, `ports`, third-party packages |
-| `application` | The use cases, implementing the app's classes in `contract` | `contract`, `core`, `ports` |
-| `wiring` | `create()`, which builds the application with its adapters; `api.py` calls it | `contract`, `core`, `ports`, `application`, `adapters` |
+| Folder | Holds | May import |
+|--------|-------|------------|
+| `domain` | The app's data types, such as `GmailMessage` | nothing else |
+| `core` | Pure logic on that data, no I/O | `domain` |
+| `ports` | Abstract classes for what the app needs from outside, used only inside the app | `domain` |
+| `application` | The use cases, implementing the app's classes in `contract` | `core`, `ports`, `domain` |
+| `adapters` | The ports' implementations | `ports`, `domain`, third-party packages |
+| `wiring` | `create()`, which builds the application with its adapters; `api.py` calls it | everything in the app |
 
-Apps never import each other, nor anything else in `silentdesk` but `contract`: the shared services they need (settings, the database, the keyring, HTTPS, the browser) are classes in `contract`, which `src/silentdesk/adapters/` implements and `api.py` passes in. `core`, `ports`, `application` and `contract` use only the standard library. `tests/test_architecture.py` enforces these rules and checks that every abstract class has a concrete implementation; `uv run lint-imports` checks the import rules between apps.
+Apps never import each other, nor anything else in `silentdesk` but `contract`: the shared services they need (settings, the database, the keyring, HTTPS, the browser) are classes in `contract`, which `src/silentdesk/adapters/` implements and `api.py` passes in. `domain`, `core`, `ports`, `application` and `contract` use only the standard library. `tests/test_architecture.py` enforces these rules and checks that every abstract class has a concrete implementation; `uv run lint-imports` checks the same import rules.
 
 Most methods still raise `NotImplementedError`: this is the skeleton the legacy backend's code moves into.
 
