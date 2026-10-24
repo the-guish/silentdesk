@@ -1,0 +1,7 @@
+{
+  "description": "an unknown command is a usage error",
+  "args": ["no-such-command"],
+  "exit": 2,
+  "schema": "error.json",
+  "stdout": { "error": { "kind": "usage", "message": { "$any": "string" } } }
+}
