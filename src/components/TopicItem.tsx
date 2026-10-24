@@ -6,14 +6,15 @@ interface Props {
   topic: Topic;
   onTrash: (email: GmailEmail) => Promise<void>;
   onReply: (email: GmailEmail, body: string) => Promise<void>;
+  /** Opens the topic's screen. */
+  onOpen: () => void;
 }
 
 type Mode = "idle" | "confirm-trash" | "reply";
 type Busy = "trash" | "reply" | null;
 
-export function TopicItem({ topic, onTrash, onReply }: Props) {
+export function TopicItem({ topic, onTrash, onReply, onOpen }: Props) {
   const source = describe(topic);
-  const outbound = source?.direction === "outbound";
   const email = topic.emails[0];
   const [mode, setMode] = useState<Mode>("idle");
   const [draft, setDraft] = useState("");
@@ -55,37 +56,23 @@ export function TopicItem({ topic, onTrash, onReply }: Props) {
 
   return (
     <li className="topic">
-      <span
-        className={`topic__dir${outbound ? " topic__dir--out" : ""}`}
-        role="img"
-        aria-label={outbound ? "Sent" : "Received"}
-        title={outbound ? "Sent" : "Received"}
-      >
-        <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
-          <path
-            d={outbound ? "M5 11l6-6M6 5h5v5" : "M11 5l-6 6M10 11H5V6"}
-            stroke="currentColor"
-            strokeWidth="1.6"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            fill="none"
-          />
-        </svg>
-      </span>
-      <div className="topic__main">
-        <span className="topic__title">{topic.title}</span>
+      <button type="button" className="topic__open" onClick={onOpen}>
+        <DirectionIcon direction={source?.direction ?? "inbound"} />
+        <span className="topic__main">
+          <span className="topic__title">{topic.title}</span>
+          {source && (
+            <span className="topic__meta">
+              <span className="topic__source">{source.name}</span>
+              {source.who && <> · {source.who}</>}
+            </span>
+          )}
+        </span>
         {source && (
-          <span className="topic__meta">
-            <span className="topic__source">{source.name}</span>
-            {source.who && <> · {source.who}</>}
-          </span>
+          <time className="topic__date" dateTime={source.date}>
+            {formatDate(source.date)}
+          </time>
         )}
-      </div>
-      {source && (
-        <time className="topic__date" dateTime={source.date}>
-          {formatDate(source.date)}
-        </time>
-      )}
+      </button>
       {email && (
         <div className="topic__actions">
           {mode === "confirm-trash" ? (
@@ -174,7 +161,32 @@ export function TopicItem({ topic, onTrash, onReply }: Props) {
   );
 }
 
-interface Source {
+export function DirectionIcon({ direction }: { direction: Direction }) {
+  const outbound = direction === "outbound";
+  return (
+    <span
+      className={`topic__dir${outbound ? " topic__dir--out" : ""}`}
+      role="img"
+      aria-label={outbound ? "Sent" : "Received"}
+      title={outbound ? "Sent" : "Received"}
+    >
+      <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
+        <path
+          d={outbound ? "M5 11l6-6M6 5h5v5" : "M11 5l-6 6M10 11H5V6"}
+          stroke="currentColor"
+          strokeWidth="1.6"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          fill="none"
+        />
+      </svg>
+    </span>
+  );
+}
+
+export interface Source {
+  /** Unique within the topic. */
+  key: string;
   name: string;
   direction: Direction;
   who: string | null;
@@ -183,22 +195,26 @@ interface Source {
 
 /** The topic's most recent source item, ready to display. */
 function describe(topic: Topic): Source | null {
-  const candidates: Source[] = [];
-  const email = topic.emails[0];
-  if (email) {
+  return describeItems(topic).reduce<Source | null>((a, b) => (a && a.date >= b.date ? a : b), null);
+}
+
+/** Every source item of the topic, ready to display, in source order. */
+export function describeItems(topic: Topic): Source[] {
+  const out: Source[] = [];
+  for (const email of topic.emails) {
     const outbound = email.direction === "outbound";
     const address = outbound ? email.to : email.from;
     // Inbox syncs keep the subject only.
     const who = !address ? null : outbound ? `To ${formatAddresses(address)}` : formatAddresses(address);
-    candidates.push({
+    out.push({
+      key: `gmail:${email.messageId}`,
       name: "Gmail",
       direction: email.direction,
       who,
       date: email.date,
     });
   }
-  const slack = topic.slackMessages[0];
-  if (slack) {
+  for (const slack of topic.slackMessages) {
     const outbound = slack.direction === "outbound";
     const group = slack.counterpart === "Group DM";
     const who = outbound
@@ -208,32 +224,38 @@ function describe(topic: Topic): Source | null {
       : group
         ? `${slack.author} in group DM`
         : slack.author;
-    candidates.push({ name: "Slack", direction: slack.direction, who, date: slack.date });
+    out.push({
+      key: `slack:${slack.channelId}:${slack.ts}`,
+      name: "Slack",
+      direction: slack.direction,
+      who,
+      date: slack.date,
+    });
   }
-  const issue = topic.jiraIssues[0];
-  if (issue) {
+  for (const issue of topic.jiraIssues) {
     const holder =
       issue.direction === "inbound"
         ? "Assigned to you"
         : issue.assignee
           ? `Assigned to ${issue.assignee}`
           : "Unassigned";
-    candidates.push({
+    out.push({
+      key: `jira:${issue.issueId}`,
       name: "Jira",
       direction: issue.direction,
       who: [issue.key, issue.status, holder].filter(Boolean).join(" · "),
       date: issue.date,
     });
   }
-  const pull = topic.pullRequests[0];
-  if (pull) {
+  for (const pull of topic.pullRequests) {
     const why =
       pull.reason === "reviewRequested"
         ? "Review requested"
         : pull.reason === "assigned"
           ? "Assigned to you"
           : "Opened by you";
-    candidates.push({
+    out.push({
+      key: `github:${pull.prId}`,
       name: "GitHub",
       direction: pull.direction,
       who: [
@@ -247,9 +269,9 @@ function describe(topic: Topic): Source | null {
       date: pull.date,
     });
   }
-  const task = topic.googleTasks[0];
-  if (task) {
-    candidates.push({
+  for (const task of topic.googleTasks) {
+    out.push({
+      key: `tasks:${task.taskId}`,
       name: "Task",
       direction: "inbound",
       who: [
@@ -262,7 +284,7 @@ function describe(topic: Topic): Source | null {
       date: task.date,
     });
   }
-  return candidates.reduce<Source | null>((a, b) => (a && a.date >= b.date ? a : b), null);
+  return out;
 }
 
 /** `"Ana Ruiz" <ana@x.com>, bo@y.com` → `Ana Ruiz +1`. */
@@ -286,7 +308,7 @@ function formatDay(day: string): string {
   });
 }
 
-function formatDate(iso: string): string {
+export function formatDate(iso: string): string {
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return "";
   const now = new Date();

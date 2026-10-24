@@ -41,7 +41,7 @@ Slack direct message:
 | `permalink`   | URL      | Opens the message in Slack                  |
 | `date`        | RFC 3339 | From `ts`                                   |
 
-The Slack message text is not stored; its first 120 characters become the topic title.
+A Slack conversation is one topic. The message text is not stored. The first 120 characters of the conversation's newest message become the topic title. The topic screen reads the messages live from Slack.
 
 Jira issue:
 

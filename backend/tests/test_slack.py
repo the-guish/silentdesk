@@ -14,6 +14,7 @@ from silentdesk.core.model import (
     SlackMessage,
     Topic,
     VaultData,
+    to_json,
 )
 from silentdesk.core.ports import Config
 from silentdesk.core.secret_names import SLACK_CREDENTIAL
@@ -41,21 +42,53 @@ def meta(channel: str, ts: str, preview: str) -> MessageMeta:
     )
 
 
-def test_each_message_gets_its_own_topic():
+def titles_by_channel(data: VaultData) -> dict[str, str]:
+    titles = {t.id: t.title for t in data.topics}
+    return {m.channel_id: titles[m.topic_id] for m in data.slack_messages}
+
+
+@pytest.mark.parametrize(
+    ("first", "second", "expected"),
+    [
+        # One conversation is one topic, titled by its newest message.
+        ([("D1", "1.0", "hi m"), ("D1", "2.0", "how are you doing")], None, {"D1": "how are you doing"}),
+        ([("D1", "2.0", "newer"), ("D1", "1.0", "older")], None, {"D1": "newer"}),
+        ([("D1", "1.0", ""), ("D2", "2.0", "B")], None, {"D1": "(empty message)", "D2": "B"}),
+        # A new message renames the conversation's topic.
+        ([("D1", "1.0", "A")], [("D1", "1.0", "A"), ("D1", "3.0", "C")], {"D1": "C"}),
+        # A conversation that leaves the last messages loses its topic.
+        ([("D1", "1.0", "A"), ("D2", "2.0", "B")], [("D2", "2.0", "B"), ("D3", "3.0", "C")], {"D2": "B", "D3": "C"}),
+    ],
+)
+def test_groups_messages_by_conversation(first, second, expected):
     data = VaultData()
-    domain.apply_sync(data, [meta("D1", "1.0", "Can you review?"), meta("D1", "2.0", "")], "now")
-    assert len(data.topics) == 2
-    assert [t.title for t in data.topics] == ["Can you review?", "(empty message)"]
+    domain.apply_sync(data, [meta(*m) for m in first], "now")
+    if second is not None:
+        domain.apply_sync(data, [meta(*m) for m in second], "later")
+    assert titles_by_channel(data) == expected
+    assert len(data.topics) == len(expected)
 
 
-def test_resync_keeps_topics_and_drops_old_ones():
+def test_resync_keeps_the_conversation_topic():
     data = VaultData()
     domain.apply_sync(data, [meta("D1", "1.0", "A"), meta("D2", "2.0", "B")], "now")
-    topic_of_b = data.slack_messages[1].topic_id
-    domain.apply_sync(data, [meta("D3", "3.0", "C"), meta("D2", "2.0", "B")], "later")
-    assert data.slack_messages[1].topic_id == topic_of_b
-    assert len(data.topics) == 2
-    assert all(t.title != "A" for t in data.topics)
+    topic_of_d2 = data.slack_messages[1].topic_id
+    domain.apply_sync(data, [meta("D2", "4.0", "D"), meta("D2", "2.0", "B")], "later")
+    assert {m.topic_id for m in data.slack_messages} == {topic_of_d2}
+
+
+def test_merges_topics_stored_one_per_message():
+    # Before grouping, each message had a topic of its own.
+    data = VaultData()
+    for ts, title in [("1.0", "hi m"), ("2.0", "how are you doing")]:
+        topic_id = new_topic(data, title, "then")
+        data.slack_messages.append(
+            SlackMessage("D1", ts, topic_id, Direction.INBOUND, "Ana", "Ana", "https://x", "2026-10-23T10:00:00Z")
+        )
+    newest_topic = data.slack_messages[1].topic_id
+    domain.apply_sync(data, [meta("D1", "1.0", "hi m"), meta("D1", "2.0", "how are you doing")], "now")
+    assert [t.id for t in data.topics] == [newest_topic]
+    assert {m.topic_id for m in data.slack_messages} == {newest_topic}
 
 
 def test_slack_sync_leaves_gmail_topics_alone():
@@ -140,7 +173,7 @@ def test_authorization_url_requests_user_scopes_with_pkce():
     q = dict(parse_qsl(url.query))
     assert url.hostname == "slack.com"
     assert q["client_id"] == "123.456"
-    assert q["user_scope"] == "search:read,users:read"
+    assert q["user_scope"] == "search:read,users:read,im:history,mpim:history"
     assert "scope" not in q, "no bot scopes on a desktop redirect"
     assert "client_secret" not in q
     assert q["redirect_uri"] == "http://localhost:47615/slack/callback"
@@ -229,7 +262,11 @@ class FakeSlack:
         self.access: list[dict] = [
             {
                 "ok": True,
-                "authed_user": {"id": "ME", "scope": "search:read,users:read", "access_token": "xoxp-new"},
+                "authed_user": {
+                    "id": "ME",
+                    "scope": "search:read,users:read,im:history,mpim:history",
+                    "access_token": "xoxp-new",
+                },
             }
         ]
         self.identity = {"ok": True, "user_id": "ME", "user": "me", "team_id": "T1", "team": "Acme"}
@@ -262,6 +299,15 @@ class FakeSlack:
             ],
         }
         self.search_reply: httpx.Response | None = None
+        # Newest first, as Slack returns it.
+        self.history = {
+            "D9": [
+                {"type": "message", "user": "ME", "text": "Sure, <@U2>", "ts": "1761213700.0"},
+                {"type": "message", "subtype": "channel_join", "user": "U2", "text": "joined", "ts": "1761213650.0"},
+                {"type": "message", "user": "U2", "text": "hi m\nhow are you doing", "ts": "1761213600.0"},
+            ]
+        }
+        self.history_reply: httpx.Response | None = None
         self.users = {"U2": "Bo", "U3": "Cy", "ME": "Me"}
 
     def tokens(self, path: str) -> list[str]:
@@ -290,6 +336,12 @@ class FakeSlack:
             q = request.url.params
             assert (q["sort"], q["sort_dir"], q["count"]) == ("timestamp", "desc", "30")
             return httpx.Response(200, json={"ok": True, "messages": {"matches": self.search[q["query"]]}})
+        if path == "/api/conversations.history":
+            if self.history_reply is not None:
+                return self.history_reply
+            q = request.url.params
+            assert q["limit"] == "50"
+            return httpx.Response(200, json={"ok": True, "messages": self.history[q["channel"]]})
         if path == "/api/users.info":
             name = self.users.get(request.url.params["user"])
             if name is None:
@@ -345,7 +397,7 @@ def stored(credential: Credential) -> dict[str, str]:
 
 def test_methods_are_prefixed():
     source, _, _ = slack_source()
-    assert set(source.methods()) == {"slack.status", "slack.connect", "slack.sync", "slack.disconnect"}
+    assert set(source.methods()) == {"slack.status", "slack.connect", "slack.sync", "slack.disconnect", "slack.history"}
 
 
 def test_status_reports_configuration_and_account():
@@ -376,7 +428,7 @@ def test_connect_signs_in_and_stores_the_account():
     assert host.store.data().slack_account == ACCOUNT
     (url,) = browser.opened
     q = dict(parse_qsl(urlsplit(url).query))
-    assert q["user_scope"] == "search:read,users:read"
+    assert q["user_scope"] == "search:read,users:read,im:history,mpim:history"
     (form,) = fake.forms()
     assert form["grant_type"] == "authorization_code"
     assert form["code"] == "the-code"
@@ -535,13 +587,48 @@ def test_rate_limit_shows_the_suggested_wait():
 
 def test_other_api_errors_keep_the_credential():
     fake = FakeSlack()
-    fake.search_reply = httpx.Response(200, json={"ok": False, "error": "missing_scope"})
+    fake.search_reply = httpx.Response(200, json={"ok": False, "error": "ratelimited_by_admin"})
     source, host, _ = slack_source(data=connected_data(), secrets=stored(Credential("xoxp-1", None, None)), fake=fake)
 
     with pytest.raises(errors.Api) as e:
         asyncio.run(source.sync())
-    assert e.value.message == "Slack API error (200): missing_scope"
+    assert e.value.message == "Slack API error (200): ratelimited_by_admin"
     assert host.secrets.get(SLACK_CREDENTIAL) is not None
+
+
+def test_history_reads_the_conversation_oldest_first():
+    source, host, fake = slack_source(data=connected_data(), secrets=stored(Credential("xoxp-1", None, None)))
+    writes = host.store.writes
+
+    messages = to_json(asyncio.run(source.methods()["slack.history"]({"topicId": "t-old"})))
+
+    assert [(m["author"], m["direction"], m["text"]) for m in messages] == [
+        ("Bo", "inbound", "hi m\nhow are you doing"),
+        ("Me", "outbound", "Sure, @Bo"),
+    ]
+    assert messages[0]["date"] == "2025-10-23T10:00:00Z"
+    assert set(fake.tokens("/api/conversations.history")) == {"Bearer xoxp-1"}
+    # Read live, never stored.
+    assert host.store.writes == writes
+
+
+def test_history_without_permission_asks_to_reconnect():
+    fake = FakeSlack()
+    fake.history_reply = httpx.Response(200, json={"ok": False, "error": "missing_scope"})
+    source, host, _ = slack_source(data=connected_data(), secrets=stored(Credential("xoxp-1", None, None)), fake=fake)
+
+    with pytest.raises(errors.MissingPermission):
+        asyncio.run(source.history("t-old"))
+    assert host.secrets.get(SLACK_CREDENTIAL) is not None
+
+
+def test_history_of_a_topic_without_slack_messages_fails():
+    source, _, fake = slack_source(data=connected_data(), secrets=stored(Credential("xoxp-1", None, None)))
+
+    with pytest.raises(errors.AppError) as e:
+        asyncio.run(source.history("t-gone"))
+    assert "no Slack conversation" in e.value.message
+    assert fake.requests == []
 
 
 def test_sync_without_account_or_token_is_not_connected():

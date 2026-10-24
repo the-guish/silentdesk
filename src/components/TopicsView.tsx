@@ -1,4 +1,4 @@
-import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
+import { type ReactNode, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
   errorMessage,
   gmailReply,
@@ -14,6 +14,7 @@ import {
 } from "../api/backend";
 import type { Topic } from "../types";
 import { TopicItem } from "./TopicItem";
+import { TopicScreen } from "./TopicScreen";
 
 /** Rows rendered at first, and added each time the list is scrolled to the end. */
 const PAGE = 200;
@@ -83,6 +84,18 @@ export function TopicsView({ footer, onOpenSettings }: Props) {
   useEffect(() => setShown(PAGE), [query]);
   const visible = matches.slice(0, shown);
 
+  // The open topic's screen replaces the list; the list keeps its place.
+  const [openId, setOpenId] = useState<string | null>(null);
+  const list = useRef<HTMLElement>(null);
+  const scroll = useRef(0);
+  function openTopic(id: string) {
+    scroll.current = list.current?.scrollTop ?? 0;
+    setOpenId(id);
+  }
+  useLayoutEffect(() => {
+    if (openId === null && list.current) list.current.scrollTop = scroll.current;
+  }, [openId]);
+
   const end = useRef<HTMLDivElement>(null);
   const more = matches.length > shown;
   useEffect(() => {
@@ -95,7 +108,18 @@ export function TopicsView({ footer, onOpenSettings }: Props) {
     );
     observer.observe(end.current);
     return () => observer.disconnect();
-  }, [more, shown]);
+  }, [more, shown, openId]);
+
+  if (openId !== null) {
+    return (
+      <TopicScreen
+        key={openId}
+        topic={topics.find((t) => t.id === openId) ?? null}
+        footer={footer}
+        onBack={() => setOpenId(null)}
+      />
+    );
+  }
 
   return (
     <>
@@ -128,7 +152,7 @@ export function TopicsView({ footer, onOpenSettings }: Props) {
         )}
       </div>
 
-      <main className="content">
+      <main className="content" ref={list}>
         {visible.length > 0 ? (
           <>
             <ul className="list">
@@ -138,6 +162,7 @@ export function TopicsView({ footer, onOpenSettings }: Props) {
                   topic={topic}
                   onTrash={async (email) => setTopics(await gmailTrash(email.messageId))}
                   onReply={(email, body) => gmailReply(email.messageId, body)}
+                  onOpen={() => openTopic(topic.id)}
                 />
               ))}
             </ul>

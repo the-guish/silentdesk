@@ -1,6 +1,6 @@
 import { invoke, isTauri } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
-import type { Service, ServiceStatus, Topic } from "../types";
+import type { ConversationMessage, Service, ServiceStatus, Topic } from "../types";
 
 /**
  * Calls into the backend: Rust relays each call to the Python backend, which
@@ -63,6 +63,10 @@ export function subscribe(listening: Promise<UnlistenFn>): () => void {
 export const gmailTrash = (messageId: string) => call<Topic[]>("gmail.trash", { messageId });
 export const gmailReply = (messageId: string, body: string) =>
   call<void>("gmail.reply", { messageId, body });
+
+/** The recent messages of a topic's Slack conversation, oldest first, read live from Slack. */
+export const slackHistory = (topicId: string) =>
+  call<ConversationMessage[]>("slack.history", { topicId });
 
 /** Backend errors arrive as plain strings. */
 export function errorMessage(err: unknown): string {
