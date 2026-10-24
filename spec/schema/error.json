@@ -19,6 +19,11 @@
         "kind": {
           "enum": [
             "usage",
+            "auth",
+            "network",
+            "remote",
+            "unsupported",
+            "sync",
             "storage",
             "internal"
           ]
@@ -26,6 +31,37 @@
         "message": {
           "type": "string",
           "minLength": 1
+        },
+        "failures": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "service",
+              "kind",
+              "message"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "service": {
+                "type": "string"
+              },
+              "kind": {
+                "enum": [
+                  "auth",
+                  "network",
+                  "remote",
+                  "unsupported",
+                  "storage",
+                  "internal"
+                ]
+              },
+              "message": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
         }
       }
     }

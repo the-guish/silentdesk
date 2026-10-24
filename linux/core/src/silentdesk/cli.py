@@ -13,7 +13,7 @@ from collections.abc import Callable, Sequence
 from typing import Any
 
 from . import api
-from .contract import StorageError
+from .contract import ConnectorError, StorageError, SyncFailed, UnknownService
 
 EXIT_OK = 0
 EXIT_FAILED = 1
@@ -46,23 +46,70 @@ def plain(value: Any) -> Any:
     return value
 
 
-def _version(args: list[str]) -> Any:
+# Every command takes its arguments and a function that reads stdin.
+Command = Callable[[list[str], Callable[[], str]], Any]
+
+
+def _version(args: list[str], stdin: Callable[[], str]) -> Any:
     _no_arguments("version", args)
     return api.version()
 
 
-def _services(args: list[str]) -> Any:
+def _services(args: list[str], stdin: Callable[[], str]) -> Any:
     _no_arguments("services", args)
     return plain(asyncio.run(api.desk().services()))
 
 
-def _topics(args: list[str]) -> Any:
+def _topics(args: list[str], stdin: Callable[[], str]) -> Any:
     _no_arguments("topics", args)
     return plain(asyncio.run(api.desk().topics()))
 
 
-COMMANDS: dict[str, Callable[[list[str]], Any]] = {
+def _one_service(command: str, args: list[str]) -> str:
+    if len(args) != 1:
+        raise UsageError(f"{command} takes one service name.")
+    return args[0]
+
+
+def _fields(text: str) -> dict[str, str]:
+    """The connect fields: one JSON object of strings, or nothing."""
+    if not text.strip():
+        return {}
+    try:
+        fields = json.loads(text)
+    except json.JSONDecodeError as error:
+        raise UsageError(f"The connect fields on stdin are not JSON: {error}.") from error
+    if not isinstance(fields, dict) or not all(isinstance(value, str) for value in fields.values()):
+        raise UsageError("The connect fields on stdin must be one JSON object of strings.")
+    return fields
+
+
+def _connect(args: list[str], stdin: Callable[[], str]) -> Any:
+    service = _one_service("connect", args)
+    return plain(asyncio.run(api.desk().connect(service, _fields(stdin()))))
+
+
+def _disconnect(args: list[str], stdin: Callable[[], str]) -> Any:
+    return plain(asyncio.run(api.desk().disconnect(_one_service("disconnect", args))))
+
+
+def _sync(args: list[str], stdin: Callable[[], str]) -> Any:
+    if len(args) > 1:
+        raise UsageError("sync takes at most one service name.")
+    desk = api.desk()
+
+    async def sync() -> str | None:
+        await desk.sync(args[0] if args else None)
+        return await desk.last_synced()
+
+    return {"lastSynced": asyncio.run(sync())}
+
+
+COMMANDS: dict[str, Command] = {
+    "connect": _connect,
+    "disconnect": _disconnect,
     "services": _services,
+    "sync": _sync,
     "topics": _topics,
     "version": _version,
 }
@@ -72,7 +119,12 @@ def _error(kind: str, message: str) -> dict[str, Any]:
     return {"error": {"kind": kind, "message": message}}
 
 
-def run(argv: Sequence[str]) -> tuple[int, Any]:
+def _failure(service: str, error: Exception) -> dict[str, str]:
+    kind = error.kind if isinstance(error, ConnectorError) else "internal"
+    return {"service": service, "kind": kind, "message": str(error) or type(error).__name__}
+
+
+def run(argv: Sequence[str], stdin: Callable[[], str] = lambda: sys.stdin.read()) -> tuple[int, Any]:
     """Runs one command line; returns the exit code and the document to print."""
     names = ", ".join(COMMANDS)
     try:
@@ -82,9 +134,15 @@ def run(argv: Sequence[str]) -> tuple[int, Any]:
         handler = COMMANDS.get(command)
         if handler is None:
             raise UsageError(f"Unknown command {command!r}. Commands: {names}.")
-        return EXIT_OK, handler(args)
-    except UsageError as error:
+        return EXIT_OK, handler(args, stdin)
+    except (UsageError, UnknownService) as error:
         return EXIT_USAGE, _error("usage", str(error))
+    except ConnectorError as error:
+        return EXIT_FAILED, _error(error.kind, str(error))
+    except SyncFailed as error:
+        document = _error("sync", str(error))
+        document["error"]["failures"] = [_failure(service, failure) for service, failure in error.failures]
+        return EXIT_FAILED, document
     except StorageError as error:
         return EXIT_FAILED, _error("storage", str(error))
     except Exception as error:  # noqa: BLE001 - every failure must still print a JSON document

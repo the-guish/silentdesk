@@ -6,3 +6,6 @@ services-unconfigured
 services-connected
 topics-database-without-key
 topics-empty
+disconnect-forgets-the-sign-in
+sync-not-connected
+sync-nothing-connected
