@@ -12,7 +12,11 @@ dependencies = []
 silentdesk = "silentdesk.cli:main"
 
 [dependency-groups]
-dev = ["pytest>=8", "ruff>=0.8"]
+dev = [
+    "import-linter>=2.15",
+    "pytest>=8",
+    "ruff>=0.8",
+]
 
 [build-system]
 requires = ["hatchling"]
@@ -23,3 +27,19 @@ line-length = 120
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+
+# Apps may import nothing from silentdesk except silentdesk.contract.
+# Run with `uv run lint-imports`.
+[tool.importlinter]
+root_package = "silentdesk"
+
+[[tool.importlinter.contracts]]
+name = "Apps import only silentdesk.contract"
+type = "forbidden"
+source_modules = ["silentdesk.apps.*"]
+forbidden_modules = ["silentdesk.api", "silentdesk.cli", "silentdesk.infra"]
+
+[[tool.importlinter.contracts]]
+name = "Apps do not import each other"
+type = "independence"
+modules = ["silentdesk.apps.*"]
