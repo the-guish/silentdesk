@@ -1,6 +1,6 @@
 use tauri::AppHandle;
 
-use super::{AppState, ServiceStatus, now_rfc3339, open_browser, try_op};
+use super::{AppState, ServiceStatus, now_rfc3339, open_browser};
 use crate::error::{Error, Result};
 use crate::gmail::oauth;
 use crate::model::{TasksAccount, TopicView, VaultData};
@@ -51,7 +51,7 @@ pub async fn tasks_connect(
     state: tauri::State<'_, AppState>,
 ) -> Result<ServiceStatus> {
     let client = state.google_for_tasks()?;
-    let _op = try_op(&state.tasks_op, SERVICE)?;
+    let _op = state.tasks_op.lock().await;
 
     let tokens = oauth::authorize(&state.http, client, &api::GRANT, open_browser(&app)).await?;
     let email = api::email(&state.http, &tokens.access_token).await?;
@@ -82,12 +82,9 @@ pub async fn tasks_connect(
     status(&state).await
 }
 
-/// Pulls every open task and maps each one to a topic. Only runs when the
-/// user asks for it (core principle 6).
-#[tauri::command]
-pub async fn tasks_sync(state: tauri::State<'_, AppState>) -> Result<Vec<TopicView>> {
+/// Pulls every open task and maps each one to a topic.
+pub(super) async fn sync(state: &AppState) -> Result<Vec<TopicView>> {
     let client = state.google_for_tasks()?;
-    let _op = try_op(&state.tasks_op, SERVICE)?;
 
     if state.read().await?.tasks_account.is_none() {
         return Err(Error::NotConnected(SERVICE));
@@ -112,10 +109,16 @@ pub async fn tasks_sync(state: tauri::State<'_, AppState>) -> Result<Vec<TopicVi
         .await
 }
 
+#[tauri::command]
+pub async fn tasks_sync(state: tauri::State<'_, AppState>) -> Result<Vec<TopicView>> {
+    let _op = state.tasks_op.lock().await;
+    sync(&state).await
+}
+
 /// Revokes the grant at Google, deletes the token and all local task data.
 #[tauri::command]
 pub async fn tasks_disconnect(state: tauri::State<'_, AppState>) -> Result<ServiceStatus> {
-    let _op = try_op(&state.tasks_op, SERVICE)?;
+    let _op = state.tasks_op.lock().await;
     if let Some(token) = refresh_token().await? {
         oauth::revoke(&state.http, &token).await;
     }

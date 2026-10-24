@@ -76,7 +76,7 @@ input {
   display: flex;
   flex-direction: column;
   height: 100%;
-  max-width: 720px;
+  width: 90%;
   margin: 0 auto;
 }
 
@@ -98,6 +98,7 @@ input {
 
 .header__nav {
   display: flex;
+  margin-left: auto;
   align-items: center;
   gap: 8px;
 }
@@ -231,6 +232,27 @@ input {
 
 .footer__count {
   min-width: 90px;
+  margin-right: auto;
+}
+
+.search-row {
+  display: flex;
+  gap: 8px;
+}
+
+.search-row .search {
+  flex: 1;
+  min-width: 0;
+}
+
+.search-row .search-row__refresh {
+  height: 36px;
+  min-width: 104px;
+}
+
+/* Without a header, the first toolbar needs the header's top space. */
+.app > .toolbar:first-child {
+  padding-top: 20px;
 }
 
 code {

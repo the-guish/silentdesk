@@ -29,7 +29,7 @@ The same flow as Gmail: system browser, PKCE, loopback redirect.
 
 ## Syncing
 
-- **On demand only** (core principle 6).
+- **Automatic,** at startup, every 2 minutes and on window focus. See `docs/specs/sync.md`.
 - **Fetching:** every task list (`users/@me/lists`), then each list's tasks with `showCompleted=false`, `showHidden=false`, `showDeleted=false` and `showAssigned=true`, 100 per page, at most 20 pages per list.
 - **Kept per task:**
   - task and list IDs, and the list title;

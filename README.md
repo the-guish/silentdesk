@@ -46,7 +46,7 @@ Other useful commands:
 
 ## Connections
 
-The **Topics** list pulls your communications and tasks as topics, on demand:
+The **Topics** list pulls your communications and tasks as topics. It syncs at startup, every 2 minutes and when you return to the window:
 
 | Service | Pulls                         | Setup                                      |
 |---------|-------------------------------|--------------------------------------------|

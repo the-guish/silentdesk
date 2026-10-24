@@ -1,4 +1,4 @@
-use super::{AppState, ServiceStatus, now_rfc3339, try_op};
+use super::{AppState, ServiceStatus, now_rfc3339};
 use crate::error::{Error, Result};
 use crate::github::{self, api};
 use crate::model::{GitHubAccount, TopicView, VaultData};
@@ -41,7 +41,7 @@ pub async fn github_connect(
     server: Option<String>,
     token: String,
 ) -> Result<ServiceStatus> {
-    let _op = try_op(&state.github_op, SERVICE)?;
+    let _op = state.github_op.lock().await;
 
     let endpoint = api::Endpoint::for_server(server.as_deref())?;
     let token = token.trim().to_owned();
@@ -71,11 +71,8 @@ pub async fn github_connect(
 }
 
 /// Pulls the open pull requests that involve the user and maps each one to
-/// a topic. Only runs when the user asks for it (core principle 6).
-#[tauri::command]
-pub async fn github_sync(state: tauri::State<'_, AppState>) -> Result<Vec<TopicView>> {
-    let _op = try_op(&state.github_op, SERVICE)?;
-
+/// a topic.
+pub(super) async fn sync(state: &AppState) -> Result<Vec<TopicView>> {
     let account = state
         .read()
         .await?
@@ -100,11 +97,17 @@ pub async fn github_sync(state: tauri::State<'_, AppState>) -> Result<Vec<TopicV
         .await
 }
 
+#[tauri::command]
+pub async fn github_sync(state: tauri::State<'_, AppState>) -> Result<Vec<TopicView>> {
+    let _op = state.github_op.lock().await;
+    sync(&state).await
+}
+
 /// Deletes the token and all local GitHub data. The user revokes the token
 /// itself in their GitHub settings.
 #[tauri::command]
 pub async fn github_disconnect(state: tauri::State<'_, AppState>) -> Result<ServiceStatus> {
-    let _op = try_op(&state.github_op, SERVICE)?;
+    let _op = state.github_op.lock().await;
     secrets::delete(GITHUB_TOKEN).await?;
     state.update(VaultData::clear_github).await?;
     status(&state).await
