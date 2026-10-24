@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from ....infra.database import Database
+from ....contract import Database
 from ..core.state import GoogleState
 from ..ports.state_store import StateStore
 

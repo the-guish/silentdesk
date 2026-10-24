@@ -10,11 +10,10 @@ from typing import Literal, TypedDict
 
 from .apps import desk as desk_app
 from .apps import gmail, google
-from .contract import Desk
-from .infra.database import Database
+from .contract import Desk, Settings
+from .infra.database import SqlcipherDatabase
 from .infra.http import Http
 from .infra.keyring import Keyring
-from .infra.settings import Settings
 
 CONTRACT = 1
 """The version of spec/cli.md this core implements."""
@@ -33,7 +32,7 @@ def version() -> Version:
 def desk(settings: Settings) -> Desk:
     """The desk with every connector app wired in. Building it does no I/O."""
     keyring = Keyring()
-    database = Database(settings.data_dir / "silentdesk.db", keyring)
+    database = SqlcipherDatabase(settings.data_dir / "silentdesk.db", keyring)
     http = Http()
     connectors = [
         gmail.create(settings, database, keyring, http),

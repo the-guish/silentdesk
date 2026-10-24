@@ -5,9 +5,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 
-from ...contract import Connector, Desk
-from ...infra.database import Database
-from ...infra.settings import Settings
+from ...contract import Connector, Database, Desk, Settings
 from .adapters.clocks import FixedClock, SystemClock
 from .adapters.sqlcipher_topic_store import SqlcipherTopicStore
 from .application.desk import DeskService
