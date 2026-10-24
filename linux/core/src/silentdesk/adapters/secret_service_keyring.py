@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import keyring
+from keyring.errors import PasswordDeleteError
+
 from ..contract import Keyring
 
 
@@ -10,10 +13,14 @@ class SecretServiceKeyring(Keyring):
     SERVICE = "com.silentdesk.app"
 
     def get(self, name: str) -> str | None:
-        raise NotImplementedError
+        return keyring.get_password(self.SERVICE, name)
 
     def set(self, name: str, value: str) -> None:
-        raise NotImplementedError
+        keyring.set_password(self.SERVICE, name, value)
 
     def delete(self, name: str) -> None:
-        raise NotImplementedError
+        try:
+            keyring.delete_password(self.SERVICE, name)
+        except PasswordDeleteError:
+            # Already gone.
+            pass

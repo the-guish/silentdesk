@@ -26,7 +26,12 @@ class Gmail(Connector):
         return "gmail"
 
     async def status(self) -> ServiceStatus:
-        raise NotImplementedError
+        if self.credentials.refresh_token() is None:
+            return ServiceStatus(self.service, self.authorization.configured, connected=False, account=None)
+        state = await self.state.load()
+        return ServiceStatus(
+            self.service, self.authorization.configured, connected=True, account=state.email if state else None
+        )
 
     async def connect(self, params: Mapping[str, str]) -> ServiceStatus:
         raise NotImplementedError

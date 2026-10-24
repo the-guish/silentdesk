@@ -82,10 +82,12 @@ def mismatches(expected: Any, actual: Any, path: str = "$") -> list[str]:
     return [] if same else [f"{path}: expected {json.dumps(expected)}, got {json.dumps(actual)}"]
 
 
-def isolated_env(home: str) -> dict[str, str]:
+def isolated_env(home: str, extra: dict[str, str] | None = None) -> dict[str, str]:
     """The runner's environment with a throwaway home, so a core never
-    touches the user's real data."""
-    env = dict(os.environ)
+    touches the user's real data, and without SILENTDESK_* variables, so
+    only the case decides them. `extra` adds the case's own variables, where
+    "{home}" stands for the throwaway home."""
+    env = {name: value for name, value in os.environ.items() if not name.startswith("SILENTDESK_")}
     env.update(
         HOME=home,
         XDG_DATA_HOME=f"{home}/.local/share",
@@ -93,6 +95,7 @@ def isolated_env(home: str) -> dict[str, str]:
         XDG_CACHE_HOME=f"{home}/.cache",
         XDG_STATE_HOME=f"{home}/.local/state",
     )
+    env.update({name: value.replace("{home}", home) for name, value in (extra or {}).items()})
     return env
 
 
@@ -104,7 +107,7 @@ def run_case(case: dict[str, Any], command: list[str], schemas: Path = SCHEMAS) 
                 [*command, *case["args"]],
                 check=False,
                 cwd=home,
-                env=isolated_env(home),
+                env=isolated_env(home, case.get("env")),
                 capture_output=True,
                 timeout=TIMEOUT_SECONDS,
             )

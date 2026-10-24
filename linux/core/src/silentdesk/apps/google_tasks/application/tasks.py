@@ -27,7 +27,12 @@ class GoogleTasks(Connector):
         return "tasks"
 
     async def status(self) -> ServiceStatus:
-        raise NotImplementedError
+        if self.credentials.refresh_token(self.service) is None:
+            return ServiceStatus(self.service, self.authorization.configured, connected=False, account=None)
+        state = await self.state.load(self.service)
+        return ServiceStatus(
+            self.service, self.authorization.configured, connected=True, account=state.email if state else None
+        )
 
     async def connect(self, params: Mapping[str, str]) -> ServiceStatus:
         raise NotImplementedError

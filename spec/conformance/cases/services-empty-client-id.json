@@ -1,0 +1,11 @@
+{
+  "description": "an empty Google client ID counts as unset",
+  "args": ["services"],
+  "env": { "SILENTDESK_TEST_KEYRING": "{home}/keyring.json", "SILENTDESK_GOOGLE_CLIENT_ID": "" },
+  "exit": 0,
+  "schema": "services.json",
+  "stdout": [
+    { "service": "gmail", "configured": false, "connected": false, "account": null },
+    { "service": "tasks", "configured": false, "connected": false, "account": null }
+  ]
+}
