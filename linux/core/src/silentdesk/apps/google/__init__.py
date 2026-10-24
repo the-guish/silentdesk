@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from ...contract import Mail, Source
+from ...contract import Connector, Mail
 from ...infra import browser
 from ...infra.database import Database
 from ...infra.http import Http
@@ -25,7 +25,7 @@ TASKS_API = "https://tasks.googleapis.com"
 @dataclass(frozen=True)
 class GoogleApp:
     gmail: Mail
-    tasks: Source
+    tasks: Connector
 
 
 def create(settings: Settings, database: Database, keyring: Keyring, http: Http) -> GoogleApp:

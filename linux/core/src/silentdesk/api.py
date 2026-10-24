@@ -1,7 +1,7 @@
 """The core's public API: one function per command in spec/cli.md.
 
 The CLI and the GTK app use only this module. It is also where the apps are
-wired together: each app's adapters, then the desk on top of every source."""
+wired together: each app's adapters, then the desk on top of every connector."""
 
 from __future__ import annotations
 
@@ -31,7 +31,7 @@ def version() -> Version:
 
 
 def desk(settings: Settings) -> Desk:
-    """The desk with every source app wired in. Building it does no I/O."""
+    """The desk with every connector app wired in. Building it does no I/O."""
     keyring = Keyring()
     database = Database(settings.data_dir / "silentdesk.db", keyring)
     http = Http()
