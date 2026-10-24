@@ -1,0 +1,2 @@
+# Conformance cases this core does not pass yet, one name per line.
+# See spec/conformance/README.md.

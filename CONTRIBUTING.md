@@ -2,40 +2,48 @@
 
 SilentDesk was started by Luis Castro and is maintained by The SilentDesk Authors (see [AUTHORS](AUTHORS)). Contributions are welcome.
 
-Before you build a feature, read the [core principles](docs/specs/core.md). A change that conflicts with them will not be merged.
+Before you build a feature, read the [core principles](legacy/docs/specs/core.md). A change that conflicts with them will not be merged.
+
+## How the repository fits together
+
+SilentDesk has two cores, one per platform, that must behave the same: [`linux/core`](linux/core) in Python and [`apple/core`](apple/core) in Swift. Their shared behaviour is defined in [`spec/`](spec) and tested by its conformance suite. Each app uses only its core's public API (`silentdesk.api` in Python, `SilentDeskCore` in Swift).
+
+To change behaviour:
+
+1. Change the contract in `spec/` first: [`cli.md`](spec/cli.md), a schema, and a conformance case.
+2. Implement it in `linux/core`.
+3. Implement it in `apple/core`, or list the case in [`apple/core/conformance-pending.txt`](apple/core/conformance-pending.txt) until it does.
+
+The legacy Tauri app in [`legacy/`](legacy) keeps its own setup and checks; see [legacy/README.md](legacy/README.md).
 
 ## Set up your workspace
 
-1. Install the prerequisites:
-   - Node.js 20 or newer, and pnpm
-   - Rust (stable), installed with [rustup](https://rustup.rs/)
-   - [uv](https://docs.astral.sh/uv/), for the Python backend
-   - The platform libraries Tauri needs. On Debian or Ubuntu, use the `apt-get` command in the [README](README.md#linux-debian--ubuntu). On other systems, follow the [Tauri prerequisites](https://v2.tauri.app/start/prerequisites/).
-
-2. Clone the repository and install dependencies:
-
-   ```sh
-   git clone https://github.com/the-guish/silentdesk.git
-   cd silentdesk
-   pnpm install
-   uv sync --directory backend
-   ```
-
-3. Run the app:
-
-   ```sh
-   cp .env.example .env   # optional, for Gmail (see docs/setup/gmail.md)
-   ./dev.sh
-   ```
+- [uv](https://docs.astral.sh/uv/) for the Python parts.
+- For the Linux app, the GTK packages listed in [linux/gtk/README.md](linux/gtk/README.md).
+- For the Swift core, Swift 6: Xcode 16 or newer on macOS, or [swift.org/install](https://www.swift.org/install/) on Linux.
 
 ## Before you open a pull request
 
-These must pass:
+CI runs these; run the ones for the parts you changed:
 
 ```sh
-pnpm build                                        # type-check and build the frontend
-pnpm test:backend                                 # test the Python backend
-cd src-tauri && cargo test && cargo clippy        # test and lint the Rust host
+# spec/
+uvx ruff check spec/runner && uvx ruff format --check spec/runner
+uv run --no-project --with pytest --with 'jsonschema>=4.23' pytest -q spec/runner/tests
+
+# linux/core
+uv sync --directory linux/core
+uv run --directory linux/core ruff check && uv run --directory linux/core ruff format --check
+uv run --directory linux/core pytest -q
+uv run spec/runner/conformance.py --pending linux/core/conformance-pending.txt -- linux/core/.venv/bin/silentdesk
+
+# linux/gtk (xvfb-run is only needed without a display)
+uv run --directory linux/gtk ruff check && uv run --directory linux/gtk ruff format --check
+xvfb-run -a uv run --directory linux/gtk pytest -q
+
+# apple/core
+swift build --package-path apple/core && swift test --package-path apple/core
+uv run spec/runner/conformance.py --pending apple/core/conformance-pending.txt -- apple/core/.build/debug/silentdesk
 ```
 
 - Keep each pull request small and focused on one change.

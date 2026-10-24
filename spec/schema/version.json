@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "version.json",
+  "title": "silentdesk version",
+  "type": "object",
+  "required": ["contract", "implementation", "version"],
+  "additionalProperties": false,
+  "properties": {
+    "contract": { "type": "integer", "minimum": 1 },
+    "implementation": { "enum": ["python", "swift"] },
+    "version": { "type": "string", "minLength": 1 }
+  }
+}

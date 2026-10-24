@@ -1,0 +1,75 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  spec:
+    name: Conformance runner
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - name: Lint
+        run: |
+          uvx ruff check spec/runner
+          uvx ruff format --check spec/runner
+      - name: Test
+        run: uv run --no-project --with pytest --with 'jsonschema>=4.23' pytest -q spec/runner/tests
+
+  linux-core:
+    name: Linux core (Python)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - run: uv sync --directory linux/core --locked
+      - name: Lint
+        run: |
+          uv run --directory linux/core ruff check
+          uv run --directory linux/core ruff format --check
+      - name: Unit tests
+        run: uv run --directory linux/core pytest -q
+      - name: Conformance
+        run: uv run spec/runner/conformance.py --pending linux/core/conformance-pending.txt -- linux/core/.venv/bin/silentdesk
+
+  linux-gtk:
+    name: Linux app (GTK)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - name: Install GTK, libadwaita and PyGObject
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gir1.2-adw-1 gir1.2-gtk-4.0 python3-gi xvfb
+      - name: Create the environment on the system Python
+        run: |
+          uv venv --directory linux/gtk --python /usr/bin/python3 --system-site-packages
+          uv sync --directory linux/gtk --locked
+      - name: Lint
+        run: |
+          uv run --directory linux/gtk ruff check
+          uv run --directory linux/gtk ruff format --check
+      - name: Tests
+        run: xvfb-run -a uv run --directory linux/gtk pytest -q
+
+  apple-core:
+    name: Apple core (Swift, ${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        # Linux keeps the core portable; macOS is the platform it ships on.
+        os: [ubuntu-24.04, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - run: swift --version
+      - run: swift build --package-path apple/core
+      - name: Unit tests
+        run: swift test --package-path apple/core
+      - name: Conformance
+        run: uv run spec/runner/conformance.py --pending apple/core/conformance-pending.txt -- apple/core/.build/debug/silentdesk
