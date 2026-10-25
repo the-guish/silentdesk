@@ -73,7 +73,8 @@ import Security
 
 @Test func theKeychainKeyringRoundTripsASecret() throws {
     // A build machine's login keychain can be locked. Without prompts the
-    // call fails instead of waiting for a password, and the test steps aside.
+    // call fails instead of waiting for a password, and the test steps
+    // aside, recording a known issue so the log says it proved nothing.
     _ = SecKeychainSetUserInteractionAllowed(false)
     let keyring = KeychainKeyring(service: "com.silentdesk.tests")
     let name = "entry-\(UUID().uuidString)"
@@ -81,6 +82,7 @@ import Security
     if let failure = caught(StorageError.self, { try keyring.set(name, "first") }) {
         let unavailable = [errSecInteractionNotAllowed, errSecNotAvailable].map { "(error \($0))" }
         guard unavailable.contains(where: failure.message.contains) else { throw failure }
+        withKnownIssue("the login keychain is locked or missing on this machine") { throw failure }
         return
     }
     #expect(try keyring.get(name) == "first")
