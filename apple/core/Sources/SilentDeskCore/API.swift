@@ -24,6 +24,7 @@ public enum API {
         let http = URLSessionHttp(allowLoopbackHTTP: settings.testBaseURL != nil)
         let connectors: [any Connector] = [
             GitHubWiring.create(settings: settings, database: database, keyring: keyring, http: http),
+            JiraWiring.create(settings: settings, database: database, keyring: keyring, http: http),
         ]
         return DeskWiring.create(connectors: connectors, settings: settings, database: database)
     }
