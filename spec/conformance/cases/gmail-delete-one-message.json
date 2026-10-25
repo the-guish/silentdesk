@@ -1,5 +1,5 @@
 {
-  "description": "deleting one message of a thread trashes only it; deleting the last one drops the topic",
+  "description": "deleting one message of a thread trashes only it, and the thread takes its next message's subject; deleting the last one drops the topic",
   "env": {
     "SILENTDESK_TEST_KEYRING": "{home}/keyring.json",
     "SILENTDESK_TEST_BASE_URL": "{server}",
@@ -247,7 +247,7 @@
       "args": [
         "delete",
         "{capture.invoice}",
-        "m2"
+        "m1"
       ],
       "exit": 0,
       "schema": "empty.json",
@@ -284,18 +284,18 @@
             "$any": "string"
           },
           "service": "gmail",
-          "title": "Invoice for October",
+          "title": "Re: Invoice for October",
           "items": [
             {
-              "key": "m1",
+              "key": "m2",
               "direction": "inbound",
               "author": "Bo Lind",
               "url": "https://mail.google.com/mail/#all/t1",
-              "date": "2025-10-24T10:00:00Z",
+              "date": "2025-10-24T11:00:00Z",
               "deletable": true
             }
           ],
-          "updatedAt": "2025-10-24T10:00:00Z",
+          "updatedAt": "2025-10-24T11:00:00Z",
           "deletable": true
         }
       ]
@@ -321,7 +321,7 @@
       "args": [
         "delete",
         "{capture.invoice}",
-        "m1"
+        "m2"
       ],
       "exit": 0,
       "schema": "empty.json",
@@ -399,7 +399,7 @@
     },
     {
       "method": "POST",
-      "path": "/gmail/gmail/v1/users/me/messages/m2/trash"
+      "path": "/gmail/gmail/v1/users/me/messages/m1/trash"
     },
     {
       "method": "POST",
@@ -407,7 +407,7 @@
     },
     {
       "method": "POST",
-      "path": "/gmail/gmail/v1/users/me/messages/m1/trash"
+      "path": "/gmail/gmail/v1/users/me/messages/m2/trash"
     }
   ]
 }

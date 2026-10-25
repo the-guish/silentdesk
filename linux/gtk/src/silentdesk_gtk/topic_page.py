@@ -4,7 +4,6 @@ has one, with Reply and Delete where its connector offers them."""
 from __future__ import annotations
 
 from collections.abc import Callable
-from dataclasses import replace
 from datetime import datetime
 
 from gi.repository import Adw, Gtk, Pango
@@ -40,16 +39,14 @@ class TopicPage(Adw.NavigationPage):
         # The delete button of each item that has one, by item key.
         self.item_buttons: dict[str, Gtk.Button] = {}
 
-        header = Adw.HeaderBar(
-            title_widget=Adw.WindowTitle(title=topic.title, subtitle=format.service_name(topic.service))
-        )
+        self.window_title = Adw.WindowTitle(title=topic.title, subtitle=format.service_name(topic.service))
+        header = Adw.HeaderBar(title_widget=self.window_title)
         self.spinner = Gtk.Spinner(spinning=True)
         header.pack_end(self.spinner)
-        self.delete_button: Gtk.Button | None = None
-        if topic.deletable:
-            self.delete_button = Gtk.Button(icon_name="user-trash-symbolic", tooltip_text="Delete")
-            self.delete_button.connect("clicked", lambda _: self._confirm_delete())
-            header.pack_end(self.delete_button)
+        # Shown while the topic is deletable, which can change as it does.
+        self.delete_button = Gtk.Button(icon_name="user-trash-symbolic", tooltip_text="Delete")
+        self.delete_button.connect("clicked", lambda _: self._confirm_delete())
+        header.pack_end(self.delete_button)
 
         self.list = Gtk.ListBox(
             selection_mode=Gtk.SelectionMode.NONE, valign=Gtk.Align.START, css_classes=["boxed-list"]
@@ -117,19 +114,27 @@ class TopicPage(Adw.NavigationPage):
 
         def done(_: object, error: BaseException | None) -> None:
             self.sending = False
+            self._update()
             if error:
-                self._update()
                 self.toast(format.describe(error))
                 return
-            items = [item for item in self.topic.items if item.key != item_key]
-            self.topic = replace(self.topic, items=items, updated_at=max(item.date for item in items))
-            self.list.remove_all()
-            self.entries = []
-            self._show_items()
-            self._update()
+            # The window reads the topic again, as the core now has it, and
+            # passes it to `show_topic`.
             self.item_deleted(self.topic)
 
         self.worker.run(self.desk.delete_item(self.topic.id, item_key), done)
+
+    def show_topic(self, topic: TopicView) -> None:
+        """Shows the topic as the core now has it, such as after one of its
+        items is deleted: its title can change with its items."""
+        self.topic = topic
+        self.set_title(topic.title)
+        self.window_title.set_title(topic.title)
+        if self.showing == "items":
+            self.list.remove_all()
+            self.entries = []
+            self._show_items()
+        self._update()
 
     def _confirm(self, what: str, then: Callable[[], None]) -> None:
         deletion = services.deletion(self.topic.service, what)
@@ -228,8 +233,8 @@ class TopicPage(Adw.NavigationPage):
     def _update(self) -> None:
         self.spinner.set_spinning(self.loading or self.sending)
         self.spinner.set_visible(self.loading or self.sending)
-        if self.delete_button:
-            self.delete_button.set_sensitive(not self.sending)
+        self.delete_button.set_visible(self.topic.deletable)
+        self.delete_button.set_sensitive(not self.sending)
         for button in self.item_buttons.values():
             button.set_sensitive(not self.sending)
         if self.send_button:
