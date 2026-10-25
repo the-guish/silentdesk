@@ -281,10 +281,26 @@ private final class CannedServer: @unchecked Sendable {
         Thread { [self] in self.serve() }.start()
     }
 
+    /// The request line of each request, in order.
     var requests: [String] {
         lock.lock()
         defer { lock.unlock() }
-        return received
+        return received.map { $0.split(whereSeparator: \.isNewline).first.map(String.init) ?? "" }
+    }
+
+    /// The headers of each request, names in lowercase.
+    var headers: [[String: String]] {
+        lock.lock()
+        defer { lock.unlock() }
+        return received.map { text in
+            var fields: [String: String] = [:]
+            for line in text.split(whereSeparator: \.isNewline).dropFirst() {
+                let parts = line.split(separator: ":", maxSplits: 1)
+                guard parts.count == 2 else { continue }
+                fields[parts[0].lowercased()] = parts[1].trimmingCharacters(in: .whitespaces)
+            }
+            return fields
+        }
     }
 
     func stop() {
@@ -307,9 +323,8 @@ private final class CannedServer: @unchecked Sendable {
             var buffer = [UInt8](repeating: 0, count: 8192)
             let count = recv(client, &buffer, buffer.count, 0)
             if count > 0 {
-                let line = String(decoding: buffer[0..<count], as: UTF8.self).split(whereSeparator: \.isNewline).first.map(String.init) ?? ""
                 lock.lock()
-                received.append(line)
+                received.append(String(decoding: buffer[0..<count], as: UTF8.self))
                 lock.unlock()
             }
             #if canImport(Glibc)
@@ -332,6 +347,19 @@ private final class CannedServer: @unchecked Sendable {
     #expect(response.status == 200)
     #expect(String(decoding: response.body, as: UTF8.self) == "ok")
     #expect(final.requests == ["GET /final HTTP/1.1"])
+}
+
+@Test func theHttpClientDropsAuthorizationOnACrossOriginRedirect() async throws {
+    let final = try CannedServer(response: "HTTP/1.1 200 OK\r\nContent-Length: 2\r\nConnection: close\r\n\r\nok")
+    defer { final.stop() }
+    let first = try CannedServer(response: "HTTP/1.1 302 Found\r\nLocation: http://127.0.0.1:\(final.port)/final\r\nContent-Length: 0\r\nConnection: close\r\n\r\n")
+    defer { first.stop() }
+    let http = URLSessionHttp(allowLoopbackHTTP: true)
+    let response = try await http.request("GET", "http://127.0.0.1:\(first.port)/start", headers: ["Authorization": "Bearer secret"])
+    #expect(response.status == 200)
+    #expect(first.headers.first?["authorization"] == "Bearer secret")
+    // Another port is another origin, as a browser or httpx sees it.
+    #expect(final.headers.first?["authorization"] == nil, "the token stays with the origin it was sent to")
 }
 
 @Test func theHttpClientRefusesARedirectAwayFromHttps() async throws {
