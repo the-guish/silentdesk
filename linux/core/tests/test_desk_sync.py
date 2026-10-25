@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import Mapping, Sequence
+from dataclasses import replace
 from itertools import count
 
 import pytest
@@ -17,6 +18,7 @@ from silentdesk.contract import (
     Connector,
     Direction,
     Item,
+    RemoteError,
     ServiceStatus,
     SyncFailed,
     SyncResult,
@@ -37,6 +39,10 @@ class FakeConnector(Connector):
         self.results = results
         self.log = log
         self.connected = connected
+        # The topics as the service has them, for deleting.
+        self.known: dict[str, Topic] = {}
+        # Item keys whose deletion the service refuses.
+        self.refused: set[str] = set()
 
     @property
     def service(self) -> str:
@@ -50,6 +56,7 @@ class FakeConnector(Connector):
         result = self.results.pop(0)
         if isinstance(result, Exception):
             raise result
+        self.known.update({topic.key: topic for topic in result.topics})
         return result
 
     async def connect(self, params: Mapping[str, str]) -> ServiceStatus:
@@ -67,8 +74,18 @@ class FakeConnector(Connector):
     async def delete_topic(self, topic_key: str) -> None:
         self.log.append(f"delete {topic_key}")
 
-    async def delete_item(self, topic_key: str, item_key: str) -> None:
+    async def delete_item(self, topic_key: str, item_key: str) -> Topic | None:
+        if item_key in self.refused:
+            raise RemoteError(self._service, "Refused.")
         self.log.append(f"delete {topic_key}/{item_key}")
+        topic = self.known[topic_key]
+        items = [item for item in topic.items if item.key != item_key]
+        if not items:
+            del self.known[topic_key]
+            return None
+        # Titled from its first item, as Gmail titles a thread.
+        self.known[topic_key] = replace(topic, title=f"From {items[0].key}", items=items)
+        return self.known[topic_key]
 
 
 class MemoryTopicStore(TopicStore):
@@ -226,13 +243,33 @@ def test_a_topic_is_deletable_when_its_connector_says_so_or_all_its_items_are():
     assert deletable == {"A": True, "B": True, "C": False}
 
 
-def test_deleting_a_topic_goes_through_its_connector_and_drops_it():
-    service, store, log = synced(thread("t1", "A", email("1", NOW, deletable=True)))
+def test_a_topic_its_connector_can_delete_goes_at_once():
+    service, store, log = synced(thread("t1", "A", email("1", NOW), email("2", NOW), deletable=True))
 
     asyncio.run(service.delete("id-1"))
 
     assert log == ["delete t1"]
     assert store.records == []
+
+
+def test_a_topic_deletable_only_by_its_items_goes_item_by_item():
+    service, store, log = synced(thread("t1", "A", email("1", NOW, deletable=True), email("2", NOW, deletable=True)))
+
+    asyncio.run(service.delete("id-1"))
+
+    assert log == ["delete t1/1", "delete t1/2"]
+    assert store.records == []
+
+
+def test_an_item_that_fails_stops_the_deletion_and_the_deleted_ones_stay_deleted():
+    service, store, log = synced(thread("t1", "A", *(email(key, NOW, deletable=True) for key in ("1", "2", "3"))))
+    service.connectors["gmail"].refused = {"2"}
+
+    with pytest.raises(RemoteError):
+        asyncio.run(service.delete("id-1"))
+
+    assert log == ["delete t1/1"]
+    assert [item.key for item in store.records[0].items] == ["2", "3"]
 
 
 def test_a_topic_that_is_not_deletable_is_refused_before_its_connector():
@@ -245,16 +282,17 @@ def test_a_topic_that_is_not_deletable_is_refused_before_its_connector():
     assert len(store.records) == 1
 
 
-def test_deleting_an_item_keeps_the_others_and_dates_the_topic_by_them():
+def test_deleting_an_item_keeps_the_topic_as_its_connector_reports_it():
     service, store, log = synced(
-        thread("t1", "A", email("1", "2026-10-01T09:00:00Z", deletable=True), email("2", NOW, deletable=True))
+        thread("t1", "A", email("1", NOW, deletable=True), email("2", "2026-10-01T09:00:00Z", deletable=True))
     )
 
-    asyncio.run(service.delete_item("id-1", "2"))
+    asyncio.run(service.delete_item("id-1", "1"))
 
-    assert log == ["delete t1/2"]
+    assert log == ["delete t1/1"]
     [record] = store.records
-    assert [item.key for item in record.items] == ["1"]
+    assert (record.id, record.title) == ("id-1", "From 2")
+    assert [item.key for item in record.items] == ["2"]
     assert record.updated_at == "2026-10-01T09:00:00Z"
 
 

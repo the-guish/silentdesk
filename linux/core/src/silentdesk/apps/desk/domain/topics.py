@@ -20,6 +20,6 @@ class TopicRecord:
     # RFC 3339.
     created_at: str
     updated_at: str
-    # The whole topic can be deleted: its connector said so, or every item
-    # can be.
+    # What the connector said: it can delete the whole topic at once. See
+    # `core.topics.deletable` for whether the topic can be deleted at all.
     deletable: bool

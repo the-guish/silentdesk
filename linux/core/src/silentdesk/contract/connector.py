@@ -57,8 +57,9 @@ class Topic:
     title: str
     # One or more, oldest first.
     items: list[Item]
-    # The user can delete the whole topic now. A topic whose items are all
-    # deletable is deletable too, whatever this says: the desk sees to it.
+    # The service can delete the whole topic now, in one operation, such as
+    # trashing a Gmail thread. When this is false but every item is
+    # deletable, the desk deletes the topic item by item instead.
     deletable: bool
 
 
@@ -124,12 +125,15 @@ class Connector(ABC):
     @abstractmethod
     async def delete_topic(self, topic_key: str) -> None:
         """Deletes the topic with this key in its service, such as moving an
-        email thread to the trash. Called only for a deletable topic, which
-        includes one whose items are all deletable. Raises `Unsupported` if
-        the service cannot."""
+        email thread to the trash. The desk calls it only for a topic marked
+        deletable; `Unsupported` is a safety net for any other. Later syncs
+        must not send the topic again unless the service has it again."""
 
     @abstractmethod
-    async def delete_item(self, topic_key: str, item_key: str) -> None:
+    async def delete_item(self, topic_key: str, item_key: str) -> Topic | None:
         """Deletes one item of the topic in its service, such as moving one
-        email to the trash. Called only for a deletable item. Raises
-        `Unsupported` if the service cannot."""
+        email to the trash, and returns the topic as it is now, or None when
+        it is gone: its title or deletability may change with its items. The
+        desk calls it only for an item marked deletable; `Unsupported` is a
+        safety net for any other. Later syncs must not send the item again
+        unless the service has it again."""

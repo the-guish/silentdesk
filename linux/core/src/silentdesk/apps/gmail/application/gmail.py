@@ -2,7 +2,16 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 
-from ....contract import AuthError, Connector, Message, ServiceStatus, SyncResult, UnknownTopic, Unsupported
+from ....contract import (
+    AuthError,
+    Connector,
+    Message,
+    ServiceStatus,
+    SyncResult,
+    Topic,
+    UnknownTopic,
+    Unsupported,
+)
 from ..core import gmail
 from ..domain.state import GmailState
 from ..ports.authorization import Authorization
@@ -129,8 +138,11 @@ class Gmail(Connector):
         await self.api.trash_thread(access, topic_key)
         await self.state.remove_thread(topic_key)
 
-    async def delete_item(self, topic_key: str, item_key: str) -> None:
-        """Moves one message to the Gmail trash and forgets it."""
+    async def delete_item(self, topic_key: str, item_key: str) -> Topic | None:
+        """Moves one message to the Gmail trash and forgets it. The thread is
+        titled anew from the messages left, or gone with its last one."""
         access = await self._access_token()
         await self.api.trash_message(access, item_key)
         await self.state.remove_message(item_key)
+        messages = (await self.state.threads([topic_key])).get(topic_key)
+        return gmail.topic(topic_key, messages) if messages else None
