@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "history.json",
+  "title": "silentdesk history",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "required": [
+      "key",
+      "direction",
+      "author",
+      "text",
+      "date"
+    ],
+    "additionalProperties": false,
+    "properties": {
+      "key": {
+        "type": "string",
+        "minLength": 1
+      },
+      "direction": {
+        "enum": [
+          "inbound",
+          "outbound",
+          null
+        ]
+      },
+      "author": {
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      "text": {
+        "type": "string"
+      },
+      "date": {
+        "type": "string",
+        "minLength": 1
+      }
+    }
+  }
+}

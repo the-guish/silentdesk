@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Mapping
 
-from ....contract import AuthError, Connector, ServiceStatus, SyncResult, Unsupported
+from ....contract import AuthError, Connector, Message, ServiceStatus, SyncResult, Unsupported
 from ..core import github
 from ..domain.github import Endpoint, GitHubAccount
 from ..ports.credentials import Credentials
@@ -79,6 +79,9 @@ class GitHub(Connector):
 
     async def reply(self, topic_key: str, body: str) -> None:
         raise Unsupported(self.service, "SilentDesk cannot reply to a pull request.")
+
+    async def history(self, topic_key: str) -> list[Message]:
+        raise Unsupported(self.service, "GitHub has no conversation to show.")
 
     async def delete_topic(self, topic_key: str) -> None:
         raise Unsupported(self.service, "SilentDesk cannot delete a pull request.")
