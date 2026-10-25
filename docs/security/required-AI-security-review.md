@@ -81,7 +81,7 @@ Changing these rules is a repository setting. The repository owner makes it.
 ## Limits
 
 - Drafts and pull requests from forks get no Claude review. Forks get no secrets.
-- The Claude review posts as the Claude GitHub app. The app acts only from workflows identical to the ones on `main`. A pull request that changes a workflow or a prompt posts as `github-actions[bot]` instead.
+- The Claude review posts as the Claude GitHub app. The app acts only from workflows identical to the ones on `main`. A pull request that changes a workflow, a prompt or a Claude instruction file such as `CLAUDE.md` posts as `github-actions[bot]` instead.
 - The AI reviews add to the tests and to a person's review. They replace neither.
 
 ## Files
