@@ -9,7 +9,7 @@ Both cores keep local data in one SQLite database file, with the same schema, so
 
 ## Encryption at rest: SQLCipher
 
-Core principle 1 ([legacy/docs/specs/core.md](../legacy/docs/specs/core.md)) requires all local data to be encrypted at rest. The database is a [SQLCipher](https://www.zetetic.net/sqlcipher/) file: the whole file is encrypted, indexes included, and queries work as in plain SQLite.
+Core principle 1 ([spec/core.md](core.md)) requires all local data to be encrypted at rest. The database is a [SQLCipher](https://www.zetetic.net/sqlcipher/) file: the whole file is encrypted, indexes included, and queries work as in plain SQLite.
 
 | Core | Library |
 |------|---------|
