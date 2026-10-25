@@ -135,6 +135,7 @@ def test_the_window_syncs_on_start_and_shows_the_topics(worker):
 
     run_until(lambda: win.topics.total == 2 and not win.refreshing)
 
+    assert win.props.maximized
     assert desk.syncs == 1
     assert [t.title for t in win.topics.shown_topics()] == ["Lunch?", "Invoice for October"]
     assert win.stack.get_visible_child_name() == "list"
