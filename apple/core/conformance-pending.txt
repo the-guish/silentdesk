@@ -11,9 +11,4 @@ tasks-sync-grant-revoked
 gmail-connect-sync-threads
 gmail-reply-and-delete
 gmail-sync-new-messages-only
-slack-connect-scope-not-granted
-slack-connect-sync-conversations
-slack-is-read-only
-slack-sync-token-revoked
-slack-history
 gmail-delete-one-message
