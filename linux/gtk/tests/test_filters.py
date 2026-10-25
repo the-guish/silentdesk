@@ -89,3 +89,17 @@ def test_a_filter_names_its_first_value_and_counts_the_rest(chosen, expected):
 )
 def test_the_bar_makes_the_cores_query(chosen, expected):
     assert filters.query("inv", {key: frozenset(values) for key, values in chosen.items()}) == expected
+
+
+@pytest.mark.parametrize(
+    ("typed", "expected"),
+    [("  Gamma ", "Gamma"), ("", None), ("   ", None), ("acme", None), ("ALL", None), ("default", None)],
+)
+def test_the_picker_offers_a_new_project_only_for_a_free_name(typed, expected):
+    assert filters.new_project_name(typed, [Project("p1", "Acme")]) == expected
+
+
+def test_a_topic_without_a_project_is_in_default():
+    projects = [Project("p1", "Acme")]
+    assert filters.project_name(projects, "p1") == "Acme"
+    assert filters.project_name(projects, None) == "Default"
