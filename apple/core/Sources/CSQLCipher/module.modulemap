@@ -1,0 +1,6 @@
+// The distribution's SQLCipher, for the Linux build: apt install libsqlcipher-dev.
+module CSQLCipher [system] {
+    header "shim.h"
+    link "sqlcipher"
+    export *
+}
