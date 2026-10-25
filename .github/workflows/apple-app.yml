@@ -39,6 +39,29 @@ jobs:
       # The SwiftUI app, which only builds on macOS.
       - name: Build
         run: swift build --package-path apple/app
+      # Temporary: shows where the app module's compile puts its outputs.
+      - name: Diagnose the build
+        if: failure()
+        working-directory: apple/app
+        run: |
+          head -c 3000 .build/arm64-apple-macosx/debug/SilentDesk.build/output-file-map.json; echo
+          cat .build/arm64-apple-macosx/debug/SilentDesk.build/sources
+          ls -la . Sources/SilentDesk .build/arm64-apple-macosx/debug/SilentDesk.build
+          find . -name 'QueueView*' -not -path './Sources/*'
+      - name: Unit tests
+        run: swift test --package-path apple/app
+
+  macos:
+    name: Apple app (macOS)
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - run: swift --version
+      # The SwiftUI app, which only builds on macOS.
+      - name: Build
+        run: swift build --package-path apple/app
       # Temporary: re-runs the app module's compile verbatim, to see its output.
       - name: Diagnose the build
         if: failure()
