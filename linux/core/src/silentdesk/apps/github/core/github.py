@@ -73,5 +73,9 @@ def topic(pull: PullRequest) -> Topic:
         author=pull.author or None,
         url=pull.url,
         date=pull.updated,
+        # SilentDesk only reads GitHub.
+        deletable=False,
     )
-    return Topic(key=str(pull.pr_id), title=pull.title.strip() or f"{pull.repo}#{pull.number}", items=[item])
+    return Topic(
+        key=str(pull.pr_id), title=pull.title.strip() or f"{pull.repo}#{pull.number}", items=[item], deletable=False
+    )

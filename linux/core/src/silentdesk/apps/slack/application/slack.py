@@ -146,3 +146,6 @@ class Slack(Connector):
 
     async def delete_topic(self, topic_key: str) -> None:
         raise Unsupported(self.service, "SilentDesk has read-only access to Slack.")
+
+    async def delete_item(self, topic_key: str, item_key: str) -> None:
+        raise Unsupported(self.service, "SilentDesk has read-only access to Slack.")

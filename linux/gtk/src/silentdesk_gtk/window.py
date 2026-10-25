@@ -140,7 +140,9 @@ class MainWindow(Adw.ApplicationWindow):
         self.worker.run(self.desk.sync(), done)
 
     def open_topic(self, topic: TopicView) -> TopicPage:
-        page = TopicPage(topic, self.desk, self.worker, self.now, self.toast, self._replied, self._deleted)
+        page = TopicPage(
+            topic, self.desk, self.worker, self.now, self.toast, self._replied, self._deleted, self._item_deleted
+        )
         self.navigation.push(page)
         return page
 
@@ -174,7 +176,11 @@ class MainWindow(Adw.ApplicationWindow):
 
     def _deleted(self, topic: TopicView) -> None:
         self.navigation.pop_to_tag("queue")
-        self.toast(services.DELETIONS[topic.service].done)
+        self.toast(services.deletion(topic.service, "topic").done)
+        self.load()
+
+    def _item_deleted(self, topic: TopicView) -> None:
+        self.toast(services.deletion(topic.service, "item").done)
         self.load()
 
     def _tick(self) -> bool:

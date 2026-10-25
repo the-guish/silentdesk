@@ -21,7 +21,9 @@ from silentdesk.contract import (
     SyncFailed,
     SyncResult,
     Topic,
+    UnknownItem,
     UnknownService,
+    Unsupported,
 )
 
 NOW = "2026-10-24T12:00:00Z"
@@ -63,7 +65,10 @@ class FakeConnector(Connector):
         raise NotImplementedError
 
     async def delete_topic(self, topic_key: str) -> None:
-        raise NotImplementedError
+        self.log.append(f"delete {topic_key}")
+
+    async def delete_item(self, topic_key: str, item_key: str) -> None:
+        self.log.append(f"delete {topic_key}/{item_key}")
 
 
 class MemoryTopicStore(TopicStore):
@@ -84,12 +89,12 @@ class MemoryTopicStore(TopicStore):
         self.synced = when
 
 
-def email(key: str, date: str) -> Item:
-    return Item(key=key, direction=Direction.INBOUND, author="Ana", url=None, date=date)
+def email(key: str, date: str, deletable: bool = False) -> Item:
+    return Item(key=key, direction=Direction.INBOUND, author="Ana", url=None, date=date, deletable=deletable)
 
 
-def thread(key: str, title: str, *items: Item) -> Topic:
-    return Topic(key=key, title=title, items=list(items))
+def thread(key: str, title: str, *items: Item, deletable: bool = False) -> Topic:
+    return Topic(key=key, title=title, items=list(items), deletable=deletable)
 
 
 def desk(*connectors: Connector) -> tuple[DeskService, MemoryTopicStore]:
@@ -199,3 +204,74 @@ def test_syncing_an_unknown_service_is_an_error():
     service, _ = desk()
     with pytest.raises(UnknownService, match="Unknown service 'zulip'"):
         asyncio.run(service.sync("zulip"))
+
+
+def synced(*found: Topic) -> tuple[DeskService, MemoryTopicStore, list[str]]:
+    log: list[str] = []
+    service, store = desk(FakeConnector("gmail", [SyncResult(list(found), [], complete=True)], log))
+    asyncio.run(service.sync("gmail"))
+    log.clear()
+    return service, store, log
+
+
+def test_a_topic_is_deletable_when_its_connector_says_so_or_all_its_items_are():
+    service, _, _ = synced(
+        thread("said", "A", email("1", NOW), deletable=True),
+        thread("all", "B", email("2", NOW, deletable=True), email("3", NOW, deletable=True)),
+        thread("some", "C", email("4", NOW, deletable=True), email("5", NOW)),
+    )
+
+    deletable = {view.title: view.deletable for view in asyncio.run(service.topics())}
+
+    assert deletable == {"A": True, "B": True, "C": False}
+
+
+def test_deleting_a_topic_goes_through_its_connector_and_drops_it():
+    service, store, log = synced(thread("t1", "A", email("1", NOW, deletable=True)))
+
+    asyncio.run(service.delete("id-1"))
+
+    assert log == ["delete t1"]
+    assert store.records == []
+
+
+def test_a_topic_that_is_not_deletable_is_refused_before_its_connector():
+    service, store, log = synced(thread("t1", "A", email("1", NOW, deletable=True), email("2", NOW)))
+
+    with pytest.raises(Unsupported):
+        asyncio.run(service.delete("id-1"))
+
+    assert log == []
+    assert len(store.records) == 1
+
+
+def test_deleting_an_item_keeps_the_others_and_dates_the_topic_by_them():
+    service, store, log = synced(
+        thread("t1", "A", email("1", "2026-10-01T09:00:00Z", deletable=True), email("2", NOW, deletable=True))
+    )
+
+    asyncio.run(service.delete_item("id-1", "2"))
+
+    assert log == ["delete t1/2"]
+    [record] = store.records
+    assert [item.key for item in record.items] == ["1"]
+    assert record.updated_at == "2026-10-01T09:00:00Z"
+
+
+def test_deleting_the_last_item_drops_the_topic():
+    service, store, _ = synced(thread("t1", "A", email("1", NOW, deletable=True)))
+
+    asyncio.run(service.delete_item("id-1", "1"))
+
+    assert store.records == []
+
+
+def test_an_item_that_is_not_deletable_or_not_there_is_refused():
+    service, _, log = synced(thread("t1", "A", email("1", NOW), deletable=True))
+
+    with pytest.raises(Unsupported):
+        asyncio.run(service.delete_item("id-1", "1"))
+    with pytest.raises(UnknownItem):
+        asyncio.run(service.delete_item("id-1", "nope"))
+
+    assert log == []

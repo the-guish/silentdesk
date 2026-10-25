@@ -42,6 +42,9 @@ class Item:
     url: str | None
     # RFC 3339.
     date: str
+    # The user can delete it in its service now, as the connector judges it
+    # at sync time. The service has the last word: its refusal is an error.
+    deletable: bool
 
 
 @dataclass(frozen=True)
@@ -54,6 +57,9 @@ class Topic:
     title: str
     # One or more, oldest first.
     items: list[Item]
+    # The user can delete the whole topic now. A topic whose items are all
+    # deletable is deletable too, whatever this says: the desk sees to it.
+    deletable: bool
 
 
 @dataclass(frozen=True)
@@ -118,4 +124,12 @@ class Connector(ABC):
     @abstractmethod
     async def delete_topic(self, topic_key: str) -> None:
         """Deletes the topic with this key in its service, such as moving an
-        email thread to the trash. Raises `Unsupported` if the service cannot."""
+        email thread to the trash. Called only for a deletable topic, which
+        includes one whose items are all deletable. Raises `Unsupported` if
+        the service cannot."""
+
+    @abstractmethod
+    async def delete_item(self, topic_key: str, item_key: str) -> None:
+        """Deletes one item of the topic in its service, such as moving one
+        email to the trash. Called only for a deletable item. Raises
+        `Unsupported` if the service cannot."""

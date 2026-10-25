@@ -35,3 +35,4 @@ slack-is-read-only
 slack-sync-token-revoked
 history-unsupported
 slack-history
+gmail-delete-one-message

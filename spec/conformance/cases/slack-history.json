@@ -178,10 +178,12 @@
               "url": {
                 "$any": "string"
               },
-              "date": "2025-10-24T10:00:00Z"
+              "date": "2025-10-24T10:00:00Z",
+              "deletable": false
             }
           ],
-          "updatedAt": "2025-10-24T10:00:00Z"
+          "updatedAt": "2025-10-24T10:00:00Z",
+          "deletable": false
         }
       ],
       "capture": {
