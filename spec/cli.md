@@ -92,16 +92,17 @@ Takes no arguments. Lists every service SilentDesk can connect, sorted by `servi
 [
   {"service": "github", "configured": true, "connected": false, "account": null},
   {"service": "gmail", "configured": true, "connected": false, "account": null},
+  {"service": "jira", "configured": true, "connected": false, "account": null},
   {"service": "tasks", "configured": true, "connected": false, "account": null}
 ]
 ```
 
 | Field | Type | Notes |
 |-------|------|-------|
-| `service` | string | The service's name: `github`, `gmail` or `tasks` so far. |
-| `configured` | boolean | The core has what it needs to sign in: for Google services, a client ID. GitHub needs nothing: the user brings a token. |
-| `connected` | boolean | A sign-in is stored: for Google services, a refresh token in the keyring; for GitHub, a token and its account. |
-| `account` | string \| null | The connected account, such as an email address, or `login · host` for GitHub. `null` when not connected. |
+| `service` | string | The service's name: `github`, `gmail`, `jira` or `tasks` so far. |
+| `configured` | boolean | The core has what it needs to sign in: for Google services, a client ID. GitHub and Jira need nothing: the user brings a token. |
+| `connected` | boolean | A sign-in is stored: for Google services, a refresh token in the keyring; for GitHub and Jira, a token and its account. |
+| `account` | string \| null | The connected account, such as an email address, or `login · host` for GitHub and `name · site` for Jira. `null` when not connected. |
 
 ### `topics`
 
@@ -141,6 +142,7 @@ Connects one service. Reads the service's fields as one JSON object of strings o
 | Service | Fields |
 |---------|--------|
 | `github` | `token`: a personal access token, required. `server`: a GitHub Enterprise Server host, such as `github.acme.com`; empty or missing for github.com. |
+| `jira` | `site`: the Jira site, such as `acme.atlassian.net` or a Data Center address, required. `token`: an API token (Cloud) or personal access token (Data Center), required. `email`: the account's email for Jira Cloud; empty or missing for Data Center. |
 
 ### `disconnect <service>`
 

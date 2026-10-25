@@ -1,0 +1,159 @@
+{
+  "description": "Jira Cloud connects with an email and API token, and a sync makes one topic per open issue",
+  "env": {
+    "SILENTDESK_TEST_KEYRING": "{home}/keyring.json",
+    "SILENTDESK_TEST_BASE_URL": "{server}",
+    "SILENTDESK_TEST_NOW": "2026-10-24T12:00:00Z"
+  },
+  "http": [
+    {
+      "path": "/jira/rest/api/3/myself",
+      "body": {
+        "accountId": "acc-ana",
+        "displayName": "Ana Ruiz"
+      }
+    },
+    {
+      "path": "/jira/rest/api/3/search/jql",
+      "body": {
+        "issues": [
+          {
+            "id": "10001",
+            "key": "PAY-412",
+            "fields": {
+              "summary": "Refund fails for EUR",
+              "status": {
+                "name": "In Progress"
+              },
+              "project": {
+                "key": "PAY"
+              },
+              "assignee": {
+                "accountId": "acc-ana",
+                "displayName": "Ana Ruiz"
+              },
+              "reporter": {
+                "accountId": "acc-bo",
+                "displayName": "Bo"
+              },
+              "updated": "2026-10-23T10:00:00.000+0200"
+            }
+          },
+          {
+            "id": "10002",
+            "key": "WEB-7",
+            "fields": {
+              "summary": "",
+              "status": {
+                "name": "In Progress"
+              },
+              "project": {
+                "key": "WEB"
+              },
+              "assignee": null,
+              "reporter": {
+                "accountId": "acc-bo",
+                "displayName": "Bo"
+              },
+              "updated": "2026-10-24T09:30:00.000+0000"
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "steps": [
+    {
+      "args": [
+        "connect",
+        "jira"
+      ],
+      "stdin": {
+        "site": "acme.atlassian.net",
+        "email": "ana@acme.com",
+        "token": "jira-token"
+      },
+      "exit": 0,
+      "schema": "status.json",
+      "stdout": {
+        "service": "jira",
+        "configured": true,
+        "connected": true,
+        "account": "Ana Ruiz · acme.atlassian.net"
+      }
+    },
+    {
+      "args": [
+        "sync",
+        "jira"
+      ],
+      "exit": 0,
+      "schema": "sync.json",
+      "stdout": {
+        "lastSynced": "2026-10-24T12:00:00Z"
+      }
+    },
+    {
+      "args": [
+        "topics"
+      ],
+      "exit": 0,
+      "schema": "topics.json",
+      "stdout": [
+        {
+          "id": {
+            "$any": "string"
+          },
+          "service": "jira",
+          "title": "WEB-7",
+          "items": [
+            {
+              "key": "WEB-7",
+              "direction": "outbound",
+              "author": "Bo",
+              "url": "https://acme.atlassian.net/browse/WEB-7",
+              "date": "2026-10-24T09:30:00Z"
+            }
+          ],
+          "updatedAt": "2026-10-24T09:30:00Z"
+        },
+        {
+          "id": {
+            "$any": "string"
+          },
+          "service": "jira",
+          "title": "Refund fails for EUR",
+          "items": [
+            {
+              "key": "PAY-412",
+              "direction": "inbound",
+              "author": "Bo",
+              "url": "https://acme.atlassian.net/browse/PAY-412",
+              "date": "2026-10-23T08:00:00Z"
+            }
+          ],
+          "updatedAt": "2026-10-23T08:00:00Z"
+        }
+      ]
+    }
+  ],
+  "requests": [
+    {
+      "path": "/jira/rest/api/3/myself",
+      "headers": {
+        "Authorization": "Basic YW5hQGFjbWUuY29tOmppcmEtdG9rZW4="
+      }
+    },
+    {
+      "path": "/jira/rest/api/3/search/jql",
+      "headers": {
+        "Authorization": "Basic YW5hQGFjbWUuY29tOmppcmEtdG9rZW4="
+      },
+      "query": {
+        "jql": "(assignee = currentUser() OR reporter = currentUser()) AND statusCategory != Done ORDER BY updated DESC",
+        "maxResults": "10",
+        "fields": "summary,status,assignee,reporter,updated,project"
+      }
+    }
+  ]
+}

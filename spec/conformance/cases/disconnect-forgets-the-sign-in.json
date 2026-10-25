@@ -43,6 +43,12 @@
           "account": null
         },
         {
+          "service": "jira",
+          "configured": true,
+          "connected": false,
+          "account": null
+        },
+        {
           "service": "tasks",
           "configured": false,
           "connected": false,
