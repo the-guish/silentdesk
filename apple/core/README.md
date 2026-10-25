@@ -2,7 +2,7 @@
 
 SilentDesk's core logic, in Swift, with the `silentdesk` command line from [spec/cli.md](../../spec/cli.md). The SwiftUI app in [`../app`](../app) will use it through the `SilentDeskCore` library only.
 
-It needs Swift 6 and nothing else: Xcode 16 or newer on macOS, or the toolchain from [swift.org/install](https://www.swift.org/install/) on Linux. It builds and runs on Linux too, so it can be developed without a Mac; CI builds it on both.
+It needs Swift 6: Xcode 16 or newer on macOS, or the toolchain from [swift.org/install](https://www.swift.org/install/) on Linux. SQLCipher comes from [Zetetic's Swift package](https://github.com/sqlcipher/SQLCipher.swift) on Apple platforms, and from the distribution on Linux (`apt install libsqlcipher-dev` on Ubuntu), so the core builds and runs there too and can be developed without a Mac; CI builds it on both.
 
 ```sh
 swift build                           # from this folder
@@ -12,18 +12,22 @@ swift test                            # unit tests
 
 | Path | What it is |
 |------|------------|
-| `Sources/SilentDeskCore/API.swift` | The public API: one function per command |
+| `Sources/CSQLCipher/` | The distribution's SQLCipher, as a system library, for the Linux build ([spec/storage.md](../../spec/storage.md)) |
+| `Sources/SilentDeskCore/API.swift` | The public API: one function per command, and the wiring of every app |
 | `Sources/SilentDeskCore/Contract/` | Protocols and data the apps expose to each other and to `API` |
-| `Sources/SilentDeskCore/Support/` | JSON, RFC 3339 dates and encodings on Foundation, and two async primitives |
-| `Sources/SilentDeskCore/Adapters/` | Adapters every app can be given; so far, settings from the environment |
+| `Sources/SilentDeskCore/Support/` | JSON, RFC 3339 dates, SHA-256, encodings and async primitives, all without dependencies |
+| `Sources/SilentDeskCore/Adapters/` | Adapters every app can be given: settings, the SQLCipher database, the keyring, HTTPS, OAuth sign-in, the browser |
+| `Sources/SilentDeskCore/Apps/Desk/` | The orchestration app: one queue of topics, and sync rounds over every connector |
+| `Sources/SilentDeskCore/Apps/Gmail/`, `GitHub/`, `GoogleTasks/`, `Jira/`, `Slack/` | The connectors |
 | `Sources/SilentDeskCLI/` | The command line: parses arguments and prints JSON |
 | `Sources/silentdesk/` | The program's entry point |
 | `Tests/` | Unit tests for what the conformance suite cannot see |
+| `Scripts/` | `sync-migrations.sh` embeds `spec/sql` into the core |
 | `conformance-pending.txt` | Conformance cases this core does not pass yet |
 
 ## Layout
 
-Everything lives in one module, laid out as the Python core is ([linux/core/README.md](../../linux/core/README.md)). Every app, under `Sources/SilentDeskCore/Apps/`, has the same six folders, and every folder may also use `Contract`:
+Everything lives in one module, laid out as the Python core is ([linux/core/README.md](../../linux/core/README.md)). Every app has the same six folders, and every folder may also use `Contract`:
 
 | Folder | Holds | May use |
 |--------|-------|---------|
@@ -35,5 +39,12 @@ Everything lives in one module, laid out as the Python core is ([linux/core/READ
 | `Wiring` | `create()`, which builds the application with its adapters; `API.swift` calls it | everything in the app |
 
 Apps never use each other, nor anything else in the core but `Contract` and `Support`: the shared services they need (settings, the database, the keyring, HTTPS, the browser) are protocols in `Contract`, which `Adapters/` implements and `API.swift` passes in. Only `API`, `Desk`, `LocalSettings`, the data types and the errors are public.
+
+## Platform services
+
+- **Secrets** live in the Keychain on Apple platforms, under the service `com.silentdesk.app`. On Linux the Python core, with Secret Service, is the one that ships; this core runs there with the test keyring only (`SILENTDESK_TEST_KEYRING`).
+- **The database** is `silentdesk.db` in `~/Library/Application Support/SilentDesk/` on macOS, or `$XDG_DATA_HOME/silentdesk/` where that is set, as on Linux.
+- **SQLCipher** is Zetetic's binary on Apple platforms, through the `SQLCipher` module, and the distribution's library on Linux, through `CSQLCipher`. The database is keyed with `PRAGMA key`, so the core needs only the standard SQLite API, which both expose, and one `#if canImport` picks the module.
+- **Sign-in** opens the default browser with `open` on macOS and `xdg-open` on Linux, and listens on the loopback interface for the redirect. The app will bring its own browser session.
 
 The conformance suite is in [`spec/`](../../spec).

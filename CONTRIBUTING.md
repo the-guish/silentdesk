@@ -20,7 +20,7 @@ The legacy Tauri app in [`legacy/`](legacy) keeps its own setup and checks; see 
 
 - [uv](https://docs.astral.sh/uv/) for the Python parts.
 - For the Linux app, the GTK packages listed in [linux/gtk/README.md](linux/gtk/README.md).
-- For the Swift core, Swift 6: Xcode 16 or newer on macOS, or [swift.org/install](https://www.swift.org/install/) on Linux.
+- For the Swift core, Swift 6: Xcode 16 or newer on macOS, or [swift.org/install](https://www.swift.org/install/) on Linux, with SQLCipher's development package (`libsqlcipher-dev` on Ubuntu).
 
 ## Branches
 
