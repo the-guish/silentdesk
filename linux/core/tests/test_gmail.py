@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import base64
+import gc
 import json
 
 import httpx
@@ -77,6 +78,12 @@ def test_the_adapter_retries_rate_limits_and_skips_drafts_and_vanished_messages(
         attempts[message_id] = attempts.get(message_id, 0) + 1
         if message_id == "busy" and attempts[message_id] < 3:
             return httpx.Response(429, json={"error": {"message": "Rate limit"}})
+        if message_id == "quota" and attempts[message_id] < 2:
+            quota = {
+                "message": "Quota exceeded for quota metric 'Queries'",
+                "errors": [{"reason": "rateLimitExceeded"}],
+            }
+            return httpx.Response(403, json={"error": quota})
         if message_id == "gone":
             return httpx.Response(404, json={"error": {"message": "Not Found"}})
         labels = ["DRAFT"] if message_id == "draft" else ["INBOX", "SENT"]
@@ -90,10 +97,45 @@ def test_the_adapter_retries_rate_limits_and_skips_drafts_and_vanished_messages(
         }
         return httpx.Response(200, json=body)
 
-    found = asyncio.run(http_api(handler).messages("token", ["busy", "gone", "draft", "bad/id"], lambda done: None))
+    ids = ["busy", "quota", "gone", "draft", "bad/id"]
+    found = asyncio.run(http_api(handler).messages("token", ids, lambda done: None))
 
-    assert found == [GmailMessage("busy", "t", Direction.OUTBOUND, "Bo <bo@x.com>", "Hi", "2025-10-24T10:00:00.5Z")]
-    assert attempts == {"busy": 3, "gone": 1, "draft": 1}
+    assert [m.message_id for m in found] == ["busy", "quota"]
+    assert found[0] == GmailMessage("busy", "t", Direction.OUTBOUND, "Bo <bo@x.com>", "Hi", "2025-10-24T10:00:00.5Z")
+    assert attempts == {"busy": 3, "quota": 2, "gone": 1, "draft": 1}
+
+
+def test_a_rate_limit_pauses_every_read_not_only_the_one_that_hit_it():
+    events: list[str] = []
+
+    async def record_wait(seconds: float) -> None:
+        events.append("wait")
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        message_id = request.url.path.rsplit("/", 1)[-1]
+        events.append(message_id)
+        if events.count(message_id) == 1 and message_id == "a":
+            return httpx.Response(429, json={"error": {"message": "Rate limit"}})
+        return httpx.Response(404, json={"error": {"message": "Not Found"}})
+
+    api = GmailHttpApi(HttpsClient(transport=httpx.MockTransport(handler)), "https://gmail.example", sleep=record_wait)
+    asyncio.run(api.messages("token", ["a", "b", "c"], lambda done: None))
+
+    assert events[0] == "a"
+    assert all(events[i - 1] == "wait" for i, event in enumerate(events) if i and event != "wait")
+
+
+def test_a_failed_read_leaves_no_exception_unretrieved():
+    async def read_all() -> list[dict]:
+        unretrieved: list[dict] = []
+        asyncio.get_running_loop().set_exception_handler(lambda loop, context: unretrieved.append(context))
+        api = http_api(lambda request: httpx.Response(400, json={"error": {"message": "Bad"}}))
+        with pytest.raises(RemoteError):
+            await api.messages("token", [f"m{n}" for n in range(30)], lambda done: None)
+        gc.collect()
+        return unretrieved
+
+    assert asyncio.run(read_all()) == []
 
 
 def test_history_that_gmail_no_longer_keeps_means_a_full_listing():
@@ -178,6 +220,18 @@ def test_a_full_sync_then_an_incremental_one(tmp_path):
     [thread] = second.topics
     assert (thread.key, [i.key for i in thread.items]) == ("t1", ["a", "c"])
     assert asyncio.run(state.load()).history_id == "101"
+
+
+def test_a_sign_in_kept_from_legacy_syncs_and_finds_its_account(tmp_path):
+    keyring = FileKeyring(tmp_path / "keyring.json")
+    keyring.set(KeyringCredentials.NAME, "refresh")
+    state = SqlcipherStateStore(SqlcipherDatabase(tmp_path / "silentdesk.db", keyring))
+    app = Gmail(
+        FakeApi([message("a", "t1", "2026-10-01T00:00:00Z")]), FakeAuthorization(), KeyringCredentials(keyring), state
+    )
+
+    assert [t.key for t in asyncio.run(app.sync()).topics] == ["t1"]
+    assert asyncio.run(app.status()).account == "me@x.com"
 
 
 def test_replying_answers_the_newest_message_of_a_synced_thread(tmp_path):
