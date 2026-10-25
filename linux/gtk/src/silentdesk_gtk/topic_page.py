@@ -7,7 +7,7 @@ from collections.abc import Callable
 from datetime import datetime
 
 from gi.repository import Adw, Gtk, Pango
-from silentdesk.contract import Desk, Direction, Item, Message, TopicView, Unsupported
+from silentdesk.contract import Desk, Item, Message, TopicView, Unsupported
 
 from . import format, services
 from .worker import CoreWorker
@@ -32,9 +32,9 @@ class TopicPage(Adw.NavigationPage):
         self.toast, self.replied, self.deleted, self.item_deleted = toast, replied, deleted, item_deleted
         self.loading = True
         self.sending = False
-        # What the list shows, as (heading, text) pairs: the items, until the
+        # What the list shows, as (who, when, text): the items, until the
         # conversation comes.
-        self.entries: list[tuple[str, str]] = []
+        self.entries: list[tuple[str, str, str]] = []
         self.showing = "items"
         # The delete button of each item that has one, by item key.
         self.item_buttons: dict[str, Gtk.Button] = {}
@@ -51,7 +51,19 @@ class TopicPage(Adw.NavigationPage):
         self.list = Gtk.ListBox(
             selection_mode=Gtk.SelectionMode.NONE, valign=Gtk.Align.START, css_classes=["boxed-list"]
         )
-        clamp = Adw.Clamp(child=self.list, maximum_size=760, margin_top=12, margin_bottom=12)
+        # Why the items have no text, for a service that keeps no conversation.
+        self.note = Gtk.Label(
+            label=f"SilentDesk keeps only who wrote each item and when. Open one in "
+            f"{format.service_name(topic.service)} to read it.",
+            xalign=0,
+            wrap=True,
+            margin_start=6,
+            css_classes=["dim-label", "caption"],
+        )
+        column = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12, valign=Gtk.Align.START)
+        column.append(self.list)
+        column.append(self.note)
+        clamp = Adw.Clamp(child=column, maximum_size=760, margin_top=12, margin_bottom=12)
         clamp.set_margin_start(12)
         clamp.set_margin_end(12)
         view = Adw.ToolbarView(content=Gtk.ScrolledWindow(child=clamp, vexpand=True))
@@ -167,32 +179,39 @@ class TopicPage(Adw.NavigationPage):
         # button does that.
         several = len(self.topic.items) > 1
         for item in self.topic.items:
-            heading = self._heading(item.author, item.direction, item.date)
-            self._add(heading, "", item.url, item if several and item.deletable else None)
+            who = item.author or format.service_name(self.topic.service)
+            when = format.item_line(item.direction, item.date, self.now())
+            self._add(who, when, "", item.url, item if several and item.deletable else None)
         self.showing = "items"
+        self.note.set_visible(True)
 
     def _show_messages(self, messages: list[Message]) -> None:
         self.list.remove_all()
         self.entries = []
         self.item_buttons = {}
         for message in messages:
-            self._add(self._heading(message.author, message.direction, message.date), message.text, None)
+            who = message.author or format.service_name(self.topic.service)
+            self._add(who, format.item_line(message.direction, message.date, self.now()), message.text, None)
         self.showing = "history"
+        self.note.set_visible(False)
 
-    def _heading(self, author: str | None, direction: Direction | None, date: str) -> str:
-        who = author or format.service_name(self.topic.service)
-        if direction == Direction.OUTBOUND:
-            who = f"{who} (you)"
-        return f"{who} · {format.short_date(date, self.now())}"
-
-    def _add(self, heading: str, text: str, url: str | None, deletable: Item | None = None) -> None:
-        self.entries.append((heading, text))
+    def _add(self, who: str, when: str, text: str, url: str | None, deletable: Item | None = None) -> None:
+        self.entries.append((who, when, text))
         row = Gtk.Box(spacing=12, margin_top=10, margin_bottom=10, margin_start=12, margin_end=12)
-        column = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4, hexpand=True)
-        column.append(Gtk.Label(label=heading, xalign=0, css_classes=["heading"]))
+        row.append(Adw.Avatar(size=36, text=who, show_initials=True, valign=Gtk.Align.START))
+        column = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2, hexpand=True)
+        column.append(Gtk.Label(label=who, xalign=0, ellipsize=Pango.EllipsizeMode.END, css_classes=["heading"]))
+        column.append(Gtk.Label(label=when, xalign=0, css_classes=["dim-label", "caption", "numeric"]))
         if text:
             column.append(
-                Gtk.Label(label=text, xalign=0, wrap=True, wrap_mode=Pango.WrapMode.WORD_CHAR, selectable=True)
+                Gtk.Label(
+                    label=text,
+                    xalign=0,
+                    wrap=True,
+                    wrap_mode=Pango.WrapMode.WORD_CHAR,
+                    selectable=True,
+                    margin_top=4,
+                )
             )
         row.append(column)
         if url:
@@ -215,20 +234,43 @@ class TopicPage(Adw.NavigationPage):
         self.list.append(row)
 
     def _reply_bar(self) -> Gtk.Widget:
-        self.reply_view = Gtk.TextView(wrap_mode=Gtk.WrapMode.WORD_CHAR, top_margin=8, bottom_margin=8)
-        self.reply_view.set_left_margin(8)
-        self.reply_view.set_right_margin(8)
+        """A rounded entry that grows with the reply, and a round Send button.
+        Ctrl+Enter sends; Enter starts a new line."""
+        self.reply_view = Gtk.TextView(
+            wrap_mode=Gtk.WrapMode.WORD_CHAR, top_margin=8, bottom_margin=8, accepts_tab=False
+        )
+        self.reply_view.set_left_margin(10)
+        self.reply_view.set_right_margin(10)
+        self.reply_view.update_property([Gtk.AccessibleProperty.PLACEHOLDER], ["Reply"])
         self.reply_view.get_buffer().connect("changed", lambda _: self._update())
+        send = Gtk.ShortcutController()
+        send.add_shortcut(
+            Gtk.Shortcut(
+                trigger=Gtk.ShortcutTrigger.parse_string("<Control>Return"),
+                action=Gtk.CallbackAction.new(lambda *_: self.send() or True),
+            )
+        )
+        self.reply_view.add_controller(send)
         scroller = Gtk.ScrolledWindow(
-            child=self.reply_view, hexpand=True, min_content_height=72, max_content_height=200, css_classes=["card"]
+            child=self.reply_view,
+            hexpand=True,
+            max_content_height=200,
+            hscrollbar_policy=Gtk.PolicyType.NEVER,
+            css_classes=["reply-entry"],
         )
         scroller.set_propagate_natural_height(True)
-        self.send_button = Gtk.Button(label="Send", valign=Gtk.Align.END, css_classes=["suggested-action"])
+        self.send_button = Gtk.Button(
+            icon_name="go-up-symbolic",
+            tooltip_text="Send (Ctrl+Enter)",
+            valign=Gtk.Align.END,
+            css_classes=["circular", "suggested-action"],
+        )
+        self.send_button.update_property([Gtk.AccessibleProperty.LABEL], ["Send"])
         self.send_button.connect("clicked", lambda _: self.send())
-        bar = Gtk.Box(spacing=8, margin_top=8, margin_bottom=8, margin_start=12, margin_end=12)
+        bar = Gtk.Box(spacing=8, margin_top=6, margin_bottom=6, margin_start=12, margin_end=12)
         bar.append(scroller)
         bar.append(self.send_button)
-        return bar
+        return Adw.Clamp(child=bar, maximum_size=760)
 
     def _update(self) -> None:
         self.spinner.set_spinning(self.loading or self.sending)

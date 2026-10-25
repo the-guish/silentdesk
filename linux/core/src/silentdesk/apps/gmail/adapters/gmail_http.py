@@ -191,21 +191,24 @@ class GmailHttpApi(GmailApi):
                 date,
             )
 
-        pace, pending, tasks, out, done = _Pace(READ_PACE), iter(ids), set(), [], 0
+        # Reads finish in any order; the messages come back in the order of `ids`.
+        pace, pending, tasks, found, done = _Pace(READ_PACE), iter(enumerate(ids)), {}, {}, 0
         try:
             while True:
-                while len(tasks) < MAX_IN_FLIGHT and (message_id := next(pending, None)) is not None:
+                while len(tasks) < MAX_IN_FLIGHT and (next_id := next(pending, None)) is not None:
                     await pace.tick()
-                    tasks.add(asyncio.create_task(read(message_id)))
+                    position, message_id = next_id
+                    tasks[asyncio.create_task(read(message_id))] = position
                 if not tasks:
-                    return out
-                finished, tasks = await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
+                    return [found[position] for position in sorted(found)]
+                finished, _ = await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
                 # Take every finished read's error, so none is left unretrieved.
                 if errors := [error for task in finished if (error := task.exception()) is not None]:
                     raise errors[0]
                 for task in finished:
+                    position = tasks.pop(task)
                     if (message := task.result()) is not None:
-                        out.append(message)
+                        found[position] = message
                     done += 1
                     progress(done)
         finally:

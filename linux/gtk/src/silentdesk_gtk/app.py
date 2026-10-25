@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import sys
 
-from gi.repository import Adw
+from gi.repository import Adw, Gio
 from silentdesk import api
 
 from .window import MainWindow
@@ -19,6 +19,10 @@ class Application(Adw.Application):
         self.worker: CoreWorker | None = None
         self.connect("activate", self._activate)
         self.connect("shutdown", self._shutdown)
+        quit_action = Gio.SimpleAction(name="quit")
+        quit_action.connect("activate", lambda *_: self.quit())
+        self.add_action(quit_action)
+        self.set_accels_for_action("app.quit", ["<Control>q"])
 
     def _activate(self, _: Adw.Application) -> None:
         window = self.get_active_window()
