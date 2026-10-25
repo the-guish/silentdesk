@@ -2,7 +2,7 @@
 
 SilentDesk's core logic, in Python, with the `silentdesk` command line from [spec/cli.md](../../spec/cli.md). The GTK app in [`../gtk`](../gtk) uses it through `silentdesk.api` only.
 
-It has no dependencies beyond the Python standard library yet. It needs Python 3.12 or newer, which is Ubuntu 24.04's.
+It needs Python 3.12 or newer, which is Ubuntu 24.04's. It depends on `keyring`, for the OS credential store, and `sqlcipher3-binary`, for the encrypted database ([spec/storage.md](../../spec/storage.md)); `src/silentdesk/sql` links to the shared migrations in `spec/sql/`.
 
 ```sh
 uv sync                         # from this folder

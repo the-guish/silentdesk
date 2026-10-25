@@ -66,7 +66,9 @@ def test_case_fails_when_stdout_is_not_json():
 def test_case_fails_when_stdout_breaks_the_schema():
     document = '{"error": {"kind": "other", "message": "Bad."}}'
     problems = conformance.run_case(case(document), STUB)
-    assert problems == ["does not match error.json at $.error.kind: 'other' is not one of ['usage', 'internal']"]
+    assert problems == [
+        "does not match error.json at $.error.kind: 'other' is not one of ['usage', 'storage', 'internal']"
+    ]
 
 
 def test_cases_run_in_a_throwaway_home():
@@ -93,6 +95,23 @@ def test_cases_set_their_own_environment(monkeypatch):
         show_env,
     )
     assert any("[null, " in problem and "silentdesk-conformance-" in problem for problem in problems)
+
+
+def test_cases_start_with_their_files(tmp_path):
+    (tmp_path / "any.json").write_text("{}")
+    show_files = [
+        sys.executable,
+        "-c",
+        "import json; print(json.dumps([open('a/b.json').read(), open('c.txt').read()]))",
+    ]
+    case = {
+        "args": [],
+        "exit": 0,
+        "schema": "any.json",
+        "files": {"a/b.json": {"k": 1}, "c.txt": "text"},
+        "stdout": ['{"k": 1}', "text"],
+    }
+    assert conformance.run_case(case, show_files, schemas=tmp_path) == []
 
 
 @pytest.fixture

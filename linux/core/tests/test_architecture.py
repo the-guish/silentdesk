@@ -4,7 +4,6 @@ abstract class has a concrete implementation. See silentdesk/apps/__init__.py.""
 from __future__ import annotations
 
 import ast
-import asyncio
 import importlib
 import inspect
 import sys
@@ -127,9 +126,7 @@ def test_adapters_and_applications_are_concrete():
             assert not inspect.isabstract(c), f"{c.__module__}.{c.__name__} leaves abstract methods unimplemented"
 
 
-def test_the_desk_is_wired_but_not_built_yet(tmp_path):
+def test_the_desk_is_wired_with_every_connector(tmp_path):
     desk = api.desk(LocalSettings(data_dir=tmp_path))
     assert isinstance(desk, contract.Desk)
     assert sorted(desk.connectors) == ["gmail", "tasks"]
-    with pytest.raises(NotImplementedError):
-        asyncio.run(desk.topics())

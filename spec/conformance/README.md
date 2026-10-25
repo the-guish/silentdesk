@@ -24,6 +24,7 @@ Each file in [`cases/`](cases) is one test. The runner starts a core's `silentde
 | `schema` | The file in [`../schema`](../schema) that stdout must match. |
 | `stdout` | The expected JSON document. |
 | `env` | Optional environment variables for the run. `{home}` in a value stands for the throwaway home folder. |
+| `files` | Optional files to create before the run, by path relative to the home folder: a string is written as text, anything else as JSON. |
 
 ## How stdout is compared
 

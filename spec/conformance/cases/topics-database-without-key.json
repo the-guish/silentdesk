@@ -1,0 +1,9 @@
+{
+  "description": "a database whose key is missing from the keyring is refused, not replaced",
+  "args": ["topics"],
+  "env": { "SILENTDESK_TEST_KEYRING": "{home}/keyring.json" },
+  "files": { ".local/share/silentdesk/silentdesk.db": "an existing database" },
+  "exit": 1,
+  "schema": "error.json",
+  "stdout": { "error": { "kind": "storage", "message": { "$any": "string" } } }
+}
