@@ -135,6 +135,7 @@ Takes no arguments. Lists every topic, newest first: by `updatedAt`, then by `id
     "items": [
       {"key": "18c2…", "direction": "inbound", "author": "Ana Ruiz", "url": null, "date": "2026-10-24T09:12:00Z", "deletable": true}
     ],
+    "projectId": null,
     "updatedAt": "2026-10-24T09:12:00Z",
     "deletable": true
   }
@@ -153,10 +154,13 @@ Takes no arguments. Lists every topic, newest first: by `updatedAt`, then by `id
 | `items[].url` | string \| null | Opens the item in its own system. |
 | `items[].date` | string | RFC 3339. |
 | `items[].deletable` | boolean | `delete <topic-id> <item-key>` can delete it. |
+| `projectId` | string \| null | The topic's project, or `null` for Default. |
 | `updatedAt` | string | The newest item's date. |
 | `deletable` | boolean | `delete <topic-id>` can delete the whole topic. |
 
 Each connector says which items the user can delete, and which topics it can delete at once, as of the last sync: Gmail, every message and thread; GitHub, Jira, Google Tasks and Slack, none, as SilentDesk only reads them. A topic whose items are all deletable is deletable too: deleting it deletes them one by one. The service has the last word: if it refuses, as Slack would for a message past the workspace's deletion window, the command fails with its error.
+
+A new topic starts in Default, with `projectId` null. A topic keeps its project across syncs while its service still lists it. A topic that `disconnect` drops loses its project. If it comes back, it starts in Default again.
 
 ### `connect <service>`
 
@@ -197,9 +201,34 @@ Replies in a topic, through its service: for Gmail, to the thread's newest messa
 
 Deletes a topic, or with an item key one of its items, in its service, then drops it. For Gmail, the thread or the message moves to the trash, which Gmail empties after 30 days. A topic its connector cannot delete at once is deleted item by item, oldest first; if one fails, the command fails and the items deleted before it stay deleted. After an item is deleted, the topic shows as its service reports it, so its title can change; deleting its last item drops it. Prints `{}` ([schema](schema/empty.json)). An unknown topic ID or item key is a usage error; a topic or item that is not `deletable` fails with `unsupported`.
 
+### `projects`
+
+Takes no arguments. Lists the user's projects, sorted by name, ignoring case ([schema](schema/projects.json)). Default is not in the list. It holds every topic without a project.
+
+```json
+[{"id": "9b1e…", "name": "Project-45"}, {"id": "3c7a…", "name": "Project-X"}]
+```
+
+### `project add <name>`
+
+Creates a project and prints it ([schema](schema/project.json)). The name is free text, without its leading and trailing spaces. A name is a usage error when it is empty or another project has it. `All` and `Default` are usage errors too, as the filter bar uses them ([filters.md](filters.md)). These checks ignore case.
+
+### `project rename <project-id> <name>`
+
+Renames a project and prints it ([schema](schema/project.json)). The name follows the rules of `project add`. An unknown project ID is a usage error.
+
+### `project delete <project-id>`
+
+Deletes a project. Its topics move back to Default. Prints `{}` ([schema](schema/empty.json)). An unknown project ID is a usage error.
+
+### `move <topic-id> <project-id>`
+
+Moves a topic to a project. The project ID `default` moves it back to Default. Prints `{}` ([schema](schema/empty.json)). An unknown topic or project ID is a usage error.
+
 ## Planned
 
 Not part of the contract yet:
 
 - **Options for repeatable runs**, arriving with storage and the first sync: a fixed clock, and a base URL per service so the suite can point the cores at a fake server.
+- **Rules that assign new topics to projects.** Until then, every new topic starts in Default.
 - **The legacy backend's methods** (`topics.list`, `<source>.sync`, `gmail.reply` and the rest), ported one by one as commands.
