@@ -1,5 +1,7 @@
 """The filter bar's state, without a display."""
 
+from datetime import date, datetime, timedelta, timezone
+
 import pytest
 from silentdesk.contract import Direction, Item, Project, ServiceStatus, TopicQuery, TopicView
 
@@ -103,3 +105,44 @@ def test_a_topic_without_a_project_is_in_default():
     projects = [Project("p1", "Acme")]
     assert filters.project_name(projects, "p1") == "Acme"
     assert filters.project_name(projects, None) == "Default"
+
+
+# Noon on Oct 24 in Buenos Aires, 15:00 UTC.
+NOW = datetime(2026, 10, 24, 12, 0, tzinfo=timezone(timedelta(hours=-3)))
+
+
+@pytest.mark.parametrize(
+    ("updated", "expected"),
+    [
+        (None, (None, None)),
+        (filters.Updated("within", 7, "days"), ("2026-10-17T15:00:00Z", None)),
+        (filters.Updated("within", 2, "weeks"), ("2026-10-10T15:00:00Z", None)),
+        (filters.Updated("over", 30, "days"), (None, "2026-09-24T15:00:00Z")),
+        (
+            filters.Updated("between", first=date(2026, 10, 1), last=date(2026, 10, 24)),
+            ("2026-10-01T03:00:00Z", "2026-10-25T03:00:00Z"),
+        ),
+        (filters.Updated("between", first=date(2026, 10, 1)), ("2026-10-01T03:00:00Z", None)),
+    ],
+)
+def test_the_updated_filter_becomes_times_in_utc_for_the_users_days(updated, expected):
+    assert filters.updated_range(updated, NOW) == expected
+
+
+@pytest.mark.parametrize(
+    ("updated", "expected"),
+    [
+        (None, "Updated: All"),
+        (filters.Updated("within", 7, "days"), "Updated: Last 7 days"),
+        (filters.Updated("within", 1, "weeks"), "Updated: Last 1 week"),
+        (filters.Updated("over", 2, "weeks"), "Updated: Over 2 weeks ago"),
+        (filters.Updated("between", first=date(2026, 10, 1), last=date(2026, 10, 24)), "Updated: Oct 1 – Oct 24"),
+    ],
+)
+def test_the_updated_filter_names_its_range(updated, expected):
+    assert filters.updated_label(updated) == expected
+
+
+def test_the_updated_range_goes_into_the_query():
+    query = filters.query("", {}, ("2026-10-17T15:00:00Z", None))
+    assert query == TopicQuery(updated_from="2026-10-17T15:00:00Z")
