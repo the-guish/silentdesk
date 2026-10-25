@@ -36,8 +36,25 @@ jobs:
         run: uv run --directory linux/core lint-imports
       - name: Unit tests
         run: uv run --directory linux/core pytest -q
+      # The CLI runs under coverage. Its report is the one SonarQube Cloud reads.
       - name: Conformance
-        run: uv run spec/runner/conformance.py --pending linux/core/conformance-pending.txt -- linux/core/.venv/bin/silentdesk
+        env:
+          COVERAGE_RCFILE: ${{ github.workspace }}/linux/core/pyproject.toml
+          COVERAGE_FILE: ${{ github.workspace }}/linux/core/.coverage
+        run: uv run spec/runner/conformance.py --pending linux/core/conformance-pending.txt -- linux/core/.venv/bin/coverage run -m silentdesk
+      # Paths in the report start at linux/, the SonarQube Cloud project's folder.
+      - name: Coverage report
+        working-directory: linux
+        env:
+          COVERAGE_RCFILE: ${{ github.workspace }}/linux/core/pyproject.toml
+          COVERAGE_FILE: ${{ github.workspace }}/linux/core/.coverage
+        run: |
+          core/.venv/bin/coverage combine
+          core/.venv/bin/coverage xml -o core/coverage.xml
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux-core-coverage
+          path: linux/core/coverage.xml
 
   linux-gtk:
     name: Linux app (GTK)
@@ -91,6 +108,75 @@ jobs:
         run: |
           echo "Results: $RESULTS"
           for r in $RESULTS; do [ "$r" = success ] || exit 1; done
+
+  # Which platforms changed, so each SonarQube Cloud project is scanned only when its folder changes.
+  # A change to this workflow scans both.
+  changes:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      linux: ${{ steps.filter.outputs.linux == 'true' || steps.filter.outputs.ci == 'true' }}
+      apple: ${{ steps.filter.outputs.apple == 'true' || steps.filter.outputs.ci == 'true' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
+        id: filter
+        with:
+          filters: |
+            ci:
+              - .github/workflows/ci.yml
+            linux:
+              - linux/**
+              # The conformance cases set the core's coverage.
+              - spec/**
+            apple:
+              - apple/**
+
+  # One SonarQube Cloud project per platform. Pull requests from forks get no secrets, so they skip the scans.
+  sonar-linux:
+    name: SonarQube Cloud (Linux)
+    needs: [changes, linux-core]
+    if: >-
+      needs.changes.outputs.linux == 'true' && (github.event_name == 'push' ||
+      github.event.pull_request.head.repo.full_name == github.repository)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # SonarQube Cloud reads the history to find new code.
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: linux-core-coverage
+          path: linux/core
+      - uses: SonarSource/sonarqube-scan-action@d209202bc7d53ff1cc128f7f907dac145c9d6ae9 # v8.3.0
+        with:
+          projectBaseDir: linux
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+  sonar-apple:
+    name: SonarQube Cloud (Apple)
+    needs: changes
+    if: >-
+      needs.changes.outputs.apple == 'true' && (github.event_name == 'push' ||
+      github.event.pull_request.head.repo.full_name == github.repository)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: SonarSource/sonarqube-scan-action@d209202bc7d53ff1cc128f7f907dac145c9d6ae9 # v8.3.0
+        with:
+          projectBaseDir: apple
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
   security-screening:
     name: Claude security screening
