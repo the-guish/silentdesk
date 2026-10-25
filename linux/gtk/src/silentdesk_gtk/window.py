@@ -15,6 +15,7 @@ from silentdesk.contract import Desk, Project, ServiceStatus, TopicQuery, TopicV
 
 from . import filters, format, services, style
 from .filter_bar import FilterBar
+from .projects import ProjectsDialog
 from .services_dialog import ServicesDialog
 from .topic_list import TopicList
 from .topic_page import TopicPage
@@ -92,6 +93,7 @@ def version() -> str:
 
 def main_menu() -> Gio.Menu:
     menu = Gio.Menu()
+    menu.append("Projects", "win.projects")
     menu.append("Services", "win.services")
     section = Gio.Menu()
     section.append("Keyboard Shortcuts", "win.show-help-overlay")
@@ -116,6 +118,7 @@ class MainWindow(Adw.ApplicationWindow):
         self.round_started: float | None = None
         self.last_synced: str | None = None
         self.last_error: str | None = None
+        self.last_toast: str | None = None
         # What the queue shows, and how many loads and matches were asked
         # for. Each shows its result only if no later one was asked for.
         self.query = TopicQuery()
@@ -190,11 +193,13 @@ class MainWindow(Adw.ApplicationWindow):
         self.toasts = Adw.ToastOverlay(child=self.navigation)
         self.set_content(self.toasts)
         self.services_dialog: ServicesDialog | None = None
+        self.projects_dialog: ProjectsDialog | None = None
         self.about_dialog: Adw.AboutDialog | None = None
 
         for name, callback in [
             ("search", self._start_search),
             ("refresh", self.refresh),
+            ("projects", self.show_projects),
             ("services", self.show_services),
             ("about", self.show_about),
         ]:
@@ -277,10 +282,23 @@ class MainWindow(Adw.ApplicationWindow):
 
     def open_topic(self, topic: TopicView) -> TopicPage:
         page = TopicPage(
-            topic, self.desk, self.worker, self.now, self.toast, self._replied, self._deleted, self._item_deleted
+            topic,
+            self.desk,
+            self.worker,
+            self.now,
+            self.toast,
+            self._replied,
+            self._deleted,
+            self._item_deleted,
+            self.load,
         )
         self.navigation.push(page)
         return page
+
+    def show_projects(self) -> ProjectsDialog:
+        self.projects_dialog = ProjectsDialog(self.desk, self.worker, self.load)
+        self.projects_dialog.present(self)
+        return self.projects_dialog
 
     def show_services(self) -> ServicesDialog:
         self.services_dialog = ServicesDialog(self.desk, self.worker, self._service_changed)
@@ -309,6 +327,7 @@ class MainWindow(Adw.ApplicationWindow):
         self.search_bar.set_key_capture_widget(self if on_queue else None)
 
     def toast(self, message: str) -> None:
+        self.last_toast = message
         self.toasts.add_toast(Adw.Toast(title=message, timeout=4))
 
     def sync_service(self, service: str) -> None:

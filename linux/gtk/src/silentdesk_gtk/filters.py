@@ -94,3 +94,16 @@ def query(text: str, chosen: Mapping[str, frozenset[str]]) -> TopicQuery:
         # Yes and No together let every topic through, as All does.
         deletable=None if len(deletable) != 1 else "yes" in deletable,
     )
+
+
+def project_name(projects: Iterable[Project], project_id: str | None) -> str:
+    """A topic's project as the user reads it: Default for None."""
+    return next((project.name for project in projects if project.id == project_id), "Default")
+
+
+def new_project_name(typed: str, projects: Iterable[Project]) -> str | None:
+    """The project the picker offers to create from what the user typed, or
+    None when no project could take that name."""
+    name = typed.strip()
+    taken = {"all", "default", *(project.name.casefold() for project in projects)}
+    return name if name and name.casefold() not in taken else None
