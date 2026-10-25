@@ -120,6 +120,7 @@ class MainWindow(Adw.ApplicationWindow):
             topics, self.last_synced = result
             self.topics.set_topics(topics)
             self._show()
+            self._show_open_topic(topics)
 
         self.worker.run(read(), done)
 
@@ -182,6 +183,18 @@ class MainWindow(Adw.ApplicationWindow):
     def _item_deleted(self, topic: TopicView) -> None:
         self.toast(services.deletion(topic.service, "item").done)
         self.load()
+
+    def _show_open_topic(self, topics: list[TopicView]) -> None:
+        """Brings the open topic screen up to date, or closes it when its
+        topic is gone."""
+        page = self.navigation.get_visible_page()
+        if not isinstance(page, TopicPage):
+            return
+        current = next((topic for topic in topics if topic.id == page.topic.id), None)
+        if current is None:
+            self.navigation.pop_to_tag("queue")
+        else:
+            page.show_topic(current)
 
     def _tick(self) -> bool:
         self.refresh()

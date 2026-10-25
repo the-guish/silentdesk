@@ -158,7 +158,7 @@ Takes no arguments. Lists every topic, newest first: by `updatedAt`, then by `id
 | `updatedAt` | string | The newest item's date. |
 | `deletable` | boolean | `delete <topic-id>` can delete the whole topic. |
 
-Each connector says which topics and items the user can delete, as of the last sync: Gmail, every thread and message; GitHub, Jira, Google Tasks and Slack, none, as SilentDesk only reads them. A topic whose items are all deletable is deletable too. The service has the last word: if it refuses, as Slack would for a message past the workspace's deletion window, the command fails with its error.
+Each connector says which items the user can delete, and which topics it can delete at once, as of the last sync: Gmail, every message and thread; GitHub, Jira, Google Tasks and Slack, none, as SilentDesk only reads them. A topic whose items are all deletable is deletable too: deleting it deletes them one by one. The service has the last word: if it refuses, as Slack would for a message past the workspace's deletion window, the command fails with its error.
 
 ### `connect <service>`
 
@@ -197,7 +197,7 @@ Replies in a topic, through its service: for Gmail, to the thread's newest messa
 
 ### `delete <topic-id> [item-key]`
 
-Deletes a topic, or with an item key one of its items, in its service, then drops it. For Gmail, the thread or the message moves to the trash, which Gmail empties after 30 days. Deleting a topic's last item drops the topic. Prints `{}` ([schema](schema/empty.json)). An unknown topic ID or item key is a usage error; a topic or item that is not `deletable` fails with `unsupported`.
+Deletes a topic, or with an item key one of its items, in its service, then drops it. For Gmail, the thread or the message moves to the trash, which Gmail empties after 30 days. A topic its connector cannot delete at once is deleted item by item, oldest first; if one fails, the command fails and the items deleted before it stay deleted. After an item is deleted, the topic shows as its service reports it, so its title can change; deleting its last item drops it. Prints `{}` ([schema](schema/empty.json)). An unknown topic ID or item key is a usage error; a topic or item that is not `deletable` fails with `unsupported`.
 
 ## Planned
 

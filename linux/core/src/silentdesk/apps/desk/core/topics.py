@@ -3,9 +3,8 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Sequence
-from dataclasses import replace
 
-from ....contract import Item, SyncResult, Topic
+from ....contract import SyncResult, Topic
 from ..domain.topics import TopicRecord
 
 
@@ -22,11 +21,13 @@ def apply(
         removed = set(result.removed)
         kept = {key: record for key, record in old.items() if key not in removed}
     for topic in result.topics:
-        kept[topic.key] = _record(topic, service, old.get(topic.key), now, new_id)
+        kept[topic.key] = record(topic, service, old.get(topic.key), now, new_id)
     return list(kept.values())
 
 
-def _record(topic: Topic, service: str, old: TopicRecord | None, now: str, new_id: Callable[[], str]) -> TopicRecord:
+def record(topic: Topic, service: str, old: TopicRecord | None, now: str, new_id: Callable[[], str]) -> TopicRecord:
+    """The record for a topic as its connector reports it, keeping the old
+    record's ID and creation time."""
     return TopicRecord(
         id=old.id if old else new_id(),
         service=service,
@@ -34,29 +35,22 @@ def _record(topic: Topic, service: str, old: TopicRecord | None, now: str, new_i
         title=topic.title,
         items=list(topic.items),
         created_at=old.created_at if old else now,
-        updated_at=_newest(topic.items, now),
-        deletable=deletable(topic),
+        # RFC 3339 times in UTC sort as text.
+        updated_at=max((item.date for item in topic.items), default=now),
+        deletable=topic.deletable,
     )
 
 
-def _newest(items: Sequence[Item], default: str) -> str:
-    # RFC 3339 times in UTC sort as text.
-    return max((item.date for item in items), default=default)
+def deletable(record: TopicRecord) -> bool:
+    """A topic can be deleted when its connector can delete it at once, or
+    when every one of its items can be deleted."""
+    return record.deletable or by_items(record)
 
 
-def deletable(topic: Topic) -> bool:
-    """A topic can be deleted when its connector says so, or when every one
-    of its items can be."""
-    return topic.deletable or (bool(topic.items) and all(item.deletable for item in topic.items))
-
-
-def without_item(record: TopicRecord, item_key: str) -> TopicRecord | None:
-    """The record once one item is deleted, or None when none is left. It
-    stays deletable: the items left are deletable whenever all were."""
-    items = [item for item in record.items if item.key != item_key]
-    if not items:
-        return None
-    return replace(record, items=items, updated_at=_newest(items, record.updated_at))
+def by_items(record: TopicRecord) -> bool:
+    """The topic can be deleted only item by item: every item can be, and
+    its connector cannot delete it at once."""
+    return not record.deletable and bool(record.items) and all(item.deletable for item in record.items)
 
 
 def newest_first(records: Sequence[TopicRecord]) -> list[TopicRecord]:
