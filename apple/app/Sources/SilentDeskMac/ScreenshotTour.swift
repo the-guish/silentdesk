@@ -34,6 +34,8 @@ struct ScreenshotTour {
             save("3-items-reply-\(suffix)", main)
 
             queue.selection = nil
+            app.focusSearch()
+            log("search field focused: \(main?.firstResponder.map { String(describing: type(of: $0)) } ?? "none")")
             queue.query = "certificates"
             await settle()
             save("4-search-\(suffix)", main)
