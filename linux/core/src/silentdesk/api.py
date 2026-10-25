@@ -20,6 +20,7 @@ from .apps.github import wiring as github_wiring
 from .apps.gmail import wiring as gmail_wiring
 from .apps.google_tasks import wiring as google_tasks_wiring
 from .apps.jira import wiring as jira_wiring
+from .apps.slack import wiring as slack_wiring
 from .contract import Desk
 
 CONTRACT = 1
@@ -50,5 +51,6 @@ def desk(settings: LocalSettings | None = None) -> Desk:
         github_wiring.create(settings, database, keyring, http),
         google_tasks_wiring.create(settings, database, keyring, http, oauth),
         jira_wiring.create(settings, database, keyring, http),
+        slack_wiring.create(settings, database, keyring, http, oauth),
     ]
     return desk_wiring.create(connectors, settings, database)

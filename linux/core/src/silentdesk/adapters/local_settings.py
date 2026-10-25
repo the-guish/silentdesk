@@ -17,6 +17,8 @@ class LocalSettings(Settings):
         base_urls: Mapping[str, str] | None = None,
         google_client_id: str | None = None,
         google_client_secret: str | None = None,
+        slack_client_id: str | None = None,
+        slack_redirect_port: int = 47615,
         test_keyring: Path | None = None,
         test_base_url: str | None = None,
         test_browser: bool = False,
@@ -27,6 +29,8 @@ class LocalSettings(Settings):
         self._base_urls = dict(base_urls or {})
         self._google_client_id = google_client_id
         self._google_client_secret = google_client_secret
+        self._slack_client_id = slack_client_id
+        self._slack_redirect_port = slack_redirect_port
         # For tests only, see spec/cli.md: a file that replaces the OS
         # credential store, and a fake server that replaces every service.
         self.test_keyring = test_keyring
@@ -50,6 +54,8 @@ class LocalSettings(Settings):
             now=variable("SILENTDESK_TEST_NOW"),
             google_client_id=variable("SILENTDESK_GOOGLE_CLIENT_ID"),
             google_client_secret=variable("SILENTDESK_GOOGLE_CLIENT_SECRET"),
+            slack_client_id=variable("SILENTDESK_SLACK_CLIENT_ID"),
+            slack_redirect_port=_port(variable("SILENTDESK_SLACK_REDIRECT_PORT")),
             test_keyring=Path(test_keyring) if test_keyring else None,
             test_base_url=variable("SILENTDESK_TEST_BASE_URL"),
             test_browser=variable("SILENTDESK_TEST_BROWSER") == "follow",
@@ -75,3 +81,16 @@ class LocalSettings(Settings):
     @property
     def google_client_secret(self) -> str | None:
         return self._google_client_secret
+
+    @property
+    def slack_client_id(self) -> str | None:
+        return self._slack_client_id
+
+    @property
+    def slack_redirect_port(self) -> int:
+        return self._slack_redirect_port
+
+
+def _port(text: str | None) -> int:
+    """A port number; Slack's default when unset or not a valid port."""
+    return int(text) if text and text.isdigit() and 0 < int(text) <= 0xFFFF else 47615

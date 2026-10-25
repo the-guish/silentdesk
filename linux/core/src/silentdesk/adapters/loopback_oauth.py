@@ -137,7 +137,7 @@ class LoopbackOAuth(OAuth):
                 "client_id": client.client_id,
                 "redirect_uri": loopback.redirect_uri,
                 "response_type": "code",
-                "scope": " ".join(scopes),
+                client.scope_param: client.scope_separator.join(scopes),
                 "code_challenge": challenge,
                 "code_challenge_method": "S256",
                 "state": loopback.state,
