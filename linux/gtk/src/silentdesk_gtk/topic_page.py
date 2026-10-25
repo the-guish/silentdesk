@@ -1,5 +1,5 @@
 """The topic screen: a topic's items, or its conversation when the service
-has one, with Reply and Delete where its connector offers them."""
+has one, its project, and Reply and Delete where its connector offers them."""
 
 from __future__ import annotations
 
@@ -10,6 +10,7 @@ from gi.repository import Adw, Gtk, Pango
 from silentdesk.contract import Desk, Item, Message, TopicView, Unsupported
 
 from . import format, services
+from .projects import ProjectPicker
 from .worker import CoreWorker
 
 
@@ -24,9 +25,11 @@ class TopicPage(Adw.NavigationPage):
         replied: Callable[[TopicView], None],
         deleted: Callable[[TopicView], None],
         item_deleted: Callable[[TopicView], None],
+        moved: Callable[[], None],
     ) -> None:
-        """`deleted` runs once the topic is deleted, and `item_deleted` once
-        one of its items is, with the topic as it is left."""
+        """`deleted` runs once the topic is deleted, `item_deleted` once one
+        of its items is, with the topic as it is left, and `moved` once it
+        moves to another project."""
         super().__init__(title=topic.title)
         self.topic, self.desk, self.worker, self.now = topic, desk, worker, now
         self.toast, self.replied, self.deleted, self.item_deleted = toast, replied, deleted, item_deleted
@@ -41,6 +44,9 @@ class TopicPage(Adw.NavigationPage):
 
         self.window_title = Adw.WindowTitle(title=topic.title, subtitle=format.service_name(topic.service))
         header = Adw.HeaderBar(title_widget=self.window_title)
+        self.project = ProjectPicker(desk, worker, toast, moved)
+        self.project.show_topic(topic)
+        header.pack_start(self.project.button)
         self.spinner = Gtk.Spinner(spinning=True)
         header.pack_end(self.spinner)
         # Shown while the topic is deletable, which can change as it does.
@@ -140,6 +146,7 @@ class TopicPage(Adw.NavigationPage):
         """Shows the topic as the core now has it, such as after one of its
         items is deleted: its title can change with its items."""
         self.topic = topic
+        self.project.show_topic(topic)
         self.set_title(topic.title)
         self.window_title.set_title(topic.title)
         if self.showing == "items":

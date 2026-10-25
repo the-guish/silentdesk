@@ -14,6 +14,7 @@ from silentdesk.contract import (
     Direction,
     Item,
     Message,
+    Project,
     ServiceStatus,
     SyncFailed,
     TopicQuery,
@@ -55,6 +56,7 @@ class FakeDesk(Desk):
         }
         self.calls: list[tuple] = []
         self.queries: list[TopicQuery | None] = []
+        self.project_list: list[Project] = []
 
     async def topics(self, query=None):
         # Enough of a query for the window; the core's own tests cover the rest.
@@ -72,21 +74,28 @@ class FakeDesk(Desk):
     async def last_synced(self):
         return self.synced
 
-    # The window has no projects yet.
     async def projects(self):
-        return []
+        return sorted(self.project_list, key=lambda p: p.name.casefold())
 
     async def add_project(self, name):
-        raise NotImplementedError
+        self.calls.append(("add_project", name))
+        project = Project(f"p{len(self.project_list) + 1}", name.strip())
+        self.project_list.append(project)
+        return project
 
     async def rename_project(self, project_id, name):
-        raise NotImplementedError
+        self.calls.append(("rename_project", project_id, name))
+        self.project_list = [Project(p.id, name) if p.id == project_id else p for p in self.project_list]
+        return Project(project_id, name)
 
     async def delete_project(self, project_id):
-        raise NotImplementedError
+        self.calls.append(("delete_project", project_id))
+        self.project_list = [p for p in self.project_list if p.id != project_id]
+        self.shown = [replace(t, project_id=None) if t.project_id == project_id else t for t in self.shown]
 
     async def move(self, topic_id, project_id):
-        raise NotImplementedError
+        self.calls.append(("move", topic_id, project_id))
+        self.shown = [replace(t, project_id=project_id) if t.id == topic_id else t for t in self.shown]
 
     async def sync(self, service=None):
         if service:
@@ -418,3 +427,42 @@ def test_a_service_that_disconnects_leaves_its_filter(worker):
 
     run_until(lambda: win.filter_bar.filters["services"].label == "Service: All")
     assert win.query == TopicQuery()
+
+
+def test_a_topic_moves_to_a_new_project_from_its_screen(worker):
+    desk = FakeDesk()
+    win = window(desk, worker)
+    run_until(lambda: win.topics.shown == 2 and not win.refreshing)
+    page = win.open_topic(win.topics.at(1))
+    picker = page.project
+    run_until(lambda: picker.label == "Project: Default")
+
+    picker.search.set_text(" Acme ")
+    run_until(lambda: picker.list.get_row_at_index(0).text == 'New Project "Acme"')
+    assert picker.list.get_row_at_index(1) is None
+    picker.search.emit("activate")
+
+    run_until(lambda: picker.label == "Project: Acme")
+    assert desk.calls[-2:] == [("add_project", "Acme"), ("move", "1", "p1")]
+    assert win.last_toast == "Moved to Acme"
+    # The bar offers the new project once the window reloads.
+    run_until(lambda: Choice("p1", "Acme") in win.filter_bar.filters["projects"].choices)
+
+
+def test_the_projects_dialog_renames_and_deletes_projects(worker):
+    desk = FakeDesk()
+    desk.project_list = [Project("p1", "Acme")]
+    desk.shown[0] = replace(desk.shown[0], project_id="p1")
+    win = window(desk, worker)
+    run_until(lambda: win.topics.shown == 2 and not win.refreshing)
+    dialog = win.show_projects()
+    run_until(lambda: len(dialog.rows) == 1)
+
+    dialog.rename("p1", "Beta")
+    run_until(lambda: dialog.rows and dialog.rows[0].get_text() == "Beta")
+    run_until(lambda: win.filter_bar.filters["projects"].choices[-1] == Choice("p1", "Beta"))
+
+    dialog.delete("p1")
+    run_until(lambda: not dialog.rows)
+    assert desk.shown[-1].project_id is None
+    run_until(lambda: win.filter_bar.filters["projects"].choices == [Choice("default", "Default")])
