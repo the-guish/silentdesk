@@ -10,6 +10,8 @@ import Darwin
 
 final class LoopbackListener: @unchecked Sendable {
     private static let maxRequestBytes = 8 * 1024
+    /// How long a connected client may take to send its request.
+    private static let readTimeoutMilliseconds: Int32 = 5_000
     private static let notFound = "HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
 
     let service: String
@@ -20,7 +22,12 @@ final class LoopbackListener: @unchecked Sendable {
 
     private let outcome = Outcome<String>()
     private let lock = NSLock()
+    private var started = false
     private var stopped = false
+    /// `stop()` writes to it, and the serving thread wakes at once.
+    private var wakeWriter: Int32 = -1
+    /// Signalled once the serving thread has closed its sockets.
+    private let finished = DispatchSemaphore(value: 0)
 
     init(service: String, path: String, state: String) {
         self.service = service
@@ -62,11 +69,24 @@ final class LoopbackListener: @unchecked Sendable {
             pointer.withMemoryRebound(to: sockaddr.self, capacity: 1) { getsockname(descriptor, $0, &actualSize) }
         }
         let actualPort = Int(UInt16(bigEndian: actual.sin_port))
+
+        // The pipe `stop()` uses to wake the serving thread.
+        var ends: [Int32] = [0, 0]
+        guard pipe(&ends) == 0 else {
+            closeDescriptor(descriptor)
+            throw ConnectorError.network(service, "A pipe could not be opened.")
+        }
+        lock.lock()
+        wakeWriter = ends[1]
+        started = true
+        lock.unlock()
+
         // Any-port providers (Google) take the address; fixed-port ones
         // (Slack) must match the registered URL, written with localhost.
         redirectURI = port.map { "http://localhost:\($0)\(path)" } ?? "http://127.0.0.1:\(actualPort)"
 
-        let thread = Thread { [self] in self.serve(descriptor) }
+        let wakeReader = ends[0]
+        let thread = Thread { [self] in self.serve(descriptor, wake: wakeReader) }
         thread.start()
     }
 
@@ -77,11 +97,27 @@ final class LoopbackListener: @unchecked Sendable {
         }
     }
 
-    /// Stops serving. The thread closes the socket as it ends.
+    /// Stops serving and waits for the sockets to close, so the port is free
+    /// when this returns: a sign-in retried at once binds the same port.
     func stop() {
         lock.lock()
+        guard !stopped else {
+            lock.unlock()
+            return
+        }
         stopped = true
+        let writer = wakeWriter
+        let wasStarted = started
         lock.unlock()
+        guard wasStarted else { return }
+        var byte: UInt8 = 1
+        #if canImport(Glibc)
+        _ = Glibc.write(writer, &byte, 1)
+        #else
+        _ = Darwin.write(writer, &byte, 1)
+        #endif
+        closeDescriptor(writer)
+        _ = finished.wait(timeout: .now() + 2)
     }
 
     private var isStopped: Bool {
@@ -90,25 +126,30 @@ final class LoopbackListener: @unchecked Sendable {
         return stopped
     }
 
-    private func serve(_ descriptor: Int32) {
+    private func serve(_ descriptor: Int32, wake: Int32) {
+        defer {
+            closeDescriptor(descriptor)
+            closeDescriptor(wake)
+            finished.signal()
+        }
         while true {
-            var waiting = pollfd(fd: descriptor, events: Int16(POLLIN), revents: 0)
-            let ready = poll(&waiting, 1, 100)
-            if isStopped || (ready < 0 && errno != EINTR) {
+            var waiting = [
+                pollfd(fd: descriptor, events: Int16(POLLIN), revents: 0),
+                pollfd(fd: wake, events: Int16(POLLIN), revents: 0),
+            ]
+            let ready = poll(&waiting, 2, -1)
+            if waiting[1].revents != 0 || isStopped || (ready < 0 && errno != EINTR) {
                 break
             }
-            guard ready > 0 else { continue }
+            guard ready > 0, waiting[0].revents != 0 else { continue }
             let client = accept(descriptor, nil, nil)
             guard client >= 0 else { continue }
-            handle(client)
+            handle(client, wake: wake)
         }
-        closeDescriptor(descriptor)
     }
 
-    private func handle(_ client: Int32) {
-        var timeout = timeval()
-        timeout.tv_sec = 5
-        setsockopt(client, SOL_SOCKET, SO_RCVTIMEO, &timeout, socklen_t(MemoryLayout<timeval>.size))
+    private func handle(_ client: Int32, wake: Int32) {
+        defer { closeDescriptor(client) }
         #if canImport(Darwin)
         var enabled: Int32 = 1
         setsockopt(client, SOL_SOCKET, SO_NOSIGPIPE, &enabled, socklen_t(MemoryLayout<Int32>.size))
@@ -117,6 +158,19 @@ final class LoopbackListener: @unchecked Sendable {
         var request: [UInt8] = []
         var buffer = [UInt8](repeating: 0, count: 4096)
         while request.count < Self.maxRequestBytes, !request.endsHeaders {
+            // Waits for the client to send, for the read to time out, or for stop().
+            var waiting = [
+                pollfd(fd: client, events: Int16(POLLIN), revents: 0),
+                pollfd(fd: wake, events: Int16(POLLIN), revents: 0),
+            ]
+            let ready = poll(&waiting, 2, Self.readTimeoutMilliseconds)
+            if waiting[1].revents != 0 || isStopped {
+                return
+            }
+            if ready < 0 && errno == EINTR {
+                continue
+            }
+            guard ready > 0 else { break }
             let count = recv(client, &buffer, min(buffer.count, Self.maxRequestBytes - request.count), 0)
             guard count > 0 else { break }
             request.append(contentsOf: buffer[0..<count])
@@ -140,7 +194,6 @@ final class LoopbackListener: @unchecked Sendable {
             response = Self.notFound
         }
         write(response, to: client)
-        closeDescriptor(client)
         if let result {
             outcome.resolve(result.mapError { $0 as any Error })
         }
