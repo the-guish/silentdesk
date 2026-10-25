@@ -143,10 +143,12 @@
               "direction": "outbound",
               "author": "ana",
               "url": "https://github.com/acme/api/pull/9",
-              "date": "2026-10-24T08:00:00Z"
+              "date": "2026-10-24T08:00:00Z",
+              "deletable": false
             }
           ],
-          "updatedAt": "2026-10-24T08:00:00Z"
+          "updatedAt": "2026-10-24T08:00:00Z",
+          "deletable": false
         },
         {
           "id": {
@@ -160,10 +162,12 @@
               "direction": "inbound",
               "author": "bo",
               "url": "https://github.com/acme/web/pull/4",
-              "date": "2026-10-23T09:00:00Z"
+              "date": "2026-10-23T09:00:00Z",
+              "deletable": false
             }
           ],
-          "updatedAt": "2026-10-23T09:00:00Z"
+          "updatedAt": "2026-10-23T09:00:00Z",
+          "deletable": false
         },
         {
           "id": {
@@ -177,10 +181,12 @@
               "direction": "inbound",
               "author": "bo",
               "url": "https://github.com/acme/web/pull/5",
-              "date": "2026-10-22T09:00:00Z"
+              "date": "2026-10-22T09:00:00Z",
+              "deletable": false
             }
           ],
-          "updatedAt": "2026-10-22T09:00:00Z"
+          "updatedAt": "2026-10-22T09:00:00Z",
+          "deletable": false
         }
       ]
     }

@@ -33,3 +33,6 @@ class StateStore(ABC):
 
     @abstractmethod
     async def remove_thread(self, thread_id: str) -> None: ...
+
+    @abstractmethod
+    async def remove_message(self, message_id: str) -> None: ...

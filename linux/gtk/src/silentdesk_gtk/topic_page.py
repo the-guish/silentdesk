@@ -4,10 +4,11 @@ has one, with Reply and Delete where its connector offers them."""
 from __future__ import annotations
 
 from collections.abc import Callable
+from dataclasses import replace
 from datetime import datetime
 
 from gi.repository import Adw, Gtk, Pango
-from silentdesk.contract import Desk, Direction, Message, TopicView, Unsupported
+from silentdesk.contract import Desk, Direction, Item, Message, TopicView, Unsupported
 
 from . import format, services
 from .worker import CoreWorker
@@ -23,16 +24,21 @@ class TopicPage(Adw.NavigationPage):
         toast: Callable[[str], None],
         replied: Callable[[TopicView], None],
         deleted: Callable[[TopicView], None],
+        item_deleted: Callable[[TopicView], None],
     ) -> None:
+        """`deleted` runs once the topic is deleted, and `item_deleted` once
+        one of its items is, with the topic as it is left."""
         super().__init__(title=topic.title)
         self.topic, self.desk, self.worker, self.now = topic, desk, worker, now
-        self.toast, self.replied, self.deleted = toast, replied, deleted
+        self.toast, self.replied, self.deleted, self.item_deleted = toast, replied, deleted, item_deleted
         self.loading = True
         self.sending = False
         # What the list shows, as (heading, text) pairs: the items, until the
         # conversation comes.
         self.entries: list[tuple[str, str]] = []
         self.showing = "items"
+        # The delete button of each item that has one, by item key.
+        self.item_buttons: dict[str, Gtk.Button] = {}
 
         header = Adw.HeaderBar(
             title_widget=Adw.WindowTitle(title=topic.title, subtitle=format.service_name(topic.service))
@@ -40,7 +46,7 @@ class TopicPage(Adw.NavigationPage):
         self.spinner = Gtk.Spinner(spinning=True)
         header.pack_end(self.spinner)
         self.delete_button: Gtk.Button | None = None
-        if topic.service in services.DELETIONS:
+        if topic.deletable:
             self.delete_button = Gtk.Button(icon_name="user-trash-symbolic", tooltip_text="Delete")
             self.delete_button.connect("clicked", lambda _: self._confirm_delete())
             header.pack_end(self.delete_button)
@@ -102,14 +108,40 @@ class TopicPage(Adw.NavigationPage):
 
         self.worker.run(self.desk.delete(self.topic.id), done)
 
-    def _confirm_delete(self) -> None:
-        deletion = services.DELETIONS[self.topic.service]
+    def delete_item(self, item_key: str) -> None:
+        """Deletes one item in its service, without asking."""
+        if self.sending:
+            return
+        self.sending = True
+        self._update()
+
+        def done(_: object, error: BaseException | None) -> None:
+            self.sending = False
+            if error:
+                self._update()
+                self.toast(format.describe(error))
+                return
+            items = [item for item in self.topic.items if item.key != item_key]
+            self.topic = replace(self.topic, items=items, updated_at=max(item.date for item in items))
+            self.list.remove_all()
+            self.entries = []
+            self._show_items()
+            self._update()
+            self.item_deleted(self.topic)
+
+        self.worker.run(self.desk.delete_item(self.topic.id, item_key), done)
+
+    def _confirm(self, what: str, then: Callable[[], None]) -> None:
+        deletion = services.deletion(self.topic.service, what)
         dialog = Adw.AlertDialog(heading=deletion.heading, body=deletion.body)
         dialog.add_response("cancel", "Cancel")
         dialog.add_response("delete", "Delete")
         dialog.set_response_appearance("delete", Adw.ResponseAppearance.DESTRUCTIVE)
-        dialog.connect("response", lambda _, response: response == "delete" and self.delete())
+        dialog.connect("response", lambda _, response: response == "delete" and then())
         dialog.present(self)
+
+    def _confirm_delete(self) -> None:
+        self._confirm("topic", self.delete)
 
     def _load_history(self) -> None:
         def done(messages: list[Message] | None, error: BaseException | None) -> None:
@@ -125,14 +157,19 @@ class TopicPage(Adw.NavigationPage):
         self.worker.run(self.desk.history(self.topic.id), done)
 
     def _show_items(self) -> None:
+        self.item_buttons = {}
+        # With one item, deleting it is deleting the topic: the header's
+        # button does that.
+        several = len(self.topic.items) > 1
         for item in self.topic.items:
             heading = self._heading(item.author, item.direction, item.date)
-            self._add(heading, "", item.url)
+            self._add(heading, "", item.url, item if several and item.deletable else None)
         self.showing = "items"
 
     def _show_messages(self, messages: list[Message]) -> None:
         self.list.remove_all()
         self.entries = []
+        self.item_buttons = {}
         for message in messages:
             self._add(self._heading(message.author, message.direction, message.date), message.text, None)
         self.showing = "history"
@@ -143,7 +180,7 @@ class TopicPage(Adw.NavigationPage):
             who = f"{who} (you)"
         return f"{who} · {format.short_date(date, self.now())}"
 
-    def _add(self, heading: str, text: str, url: str | None) -> None:
+    def _add(self, heading: str, text: str, url: str | None, deletable: Item | None = None) -> None:
         self.entries.append((heading, text))
         row = Gtk.Box(spacing=12, margin_top=10, margin_bottom=10, margin_start=12, margin_end=12)
         column = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4, hexpand=True)
@@ -161,6 +198,14 @@ class TopicPage(Adw.NavigationPage):
                 css_classes=["flat"],
             )
             button.connect("clicked", lambda _: Gtk.UriLauncher(uri=url).launch(self.get_root(), None, None))
+            row.append(button)
+        if deletable:
+            key = deletable.key
+            button = Gtk.Button(
+                icon_name="user-trash-symbolic", tooltip_text="Delete", valign=Gtk.Align.CENTER, css_classes=["flat"]
+            )
+            button.connect("clicked", lambda _: self._confirm("item", lambda: self.delete_item(key)))
+            self.item_buttons[key] = button
             row.append(button)
         self.list.append(row)
 
@@ -185,6 +230,8 @@ class TopicPage(Adw.NavigationPage):
         self.spinner.set_visible(self.loading or self.sending)
         if self.delete_button:
             self.delete_button.set_sensitive(not self.sending)
+        for button in self.item_buttons.values():
+            button.set_sensitive(not self.sending)
         if self.send_button:
             buffer = self.reply_view.get_buffer()
             has_text = bool(buffer.get_text(buffer.get_start_iter(), buffer.get_end_iter(), False).strip())

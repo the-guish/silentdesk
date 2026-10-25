@@ -128,7 +128,7 @@ class FakeAuthorization(Authorization):
 
 class FakeApi(GmailApi):
     def __init__(self, inbox: list[GmailMessage], changes: tuple[list[str], str] | None = None):
-        self.inbox, self.changes, self.sent = inbox, changes, []
+        self.inbox, self.changes, self.sent, self.trashed = inbox, changes, [], []
 
     async def profile(self, token):
         return Profile("me@x.com", "100")
@@ -150,6 +150,9 @@ class FakeApi(GmailApi):
 
     async def trash_thread(self, token, thread_id):
         pass
+
+    async def trash_message(self, token, message_id):
+        self.trashed.append(message_id)
 
 
 def connector(tmp_path, api: FakeApi) -> tuple[Gmail, SqlcipherStateStore]:
@@ -193,6 +196,31 @@ def test_deleting_a_thread_forgets_its_messages(tmp_path):
     asyncio.run(app.sync())
     asyncio.run(app.delete_topic("t1"))
     assert asyncio.run(state.threads()) == {}
+
+
+def test_every_thread_and_message_is_deletable(tmp_path):
+    app, _ = connector(tmp_path, FakeApi([message("a", "t1", "2026-10-01T00:00:00Z")]))
+    [topic] = asyncio.run(app.sync()).topics
+    assert topic.deletable and all(item.deletable for item in topic.items)
+
+
+def test_deleting_one_message_trashes_it_and_forgets_only_it(tmp_path):
+    api = FakeApi([message("a", "t1", "2026-10-01T00:00:00Z"), message("b", "t1", "2026-10-02T00:00:00Z")])
+    app, state = connector(tmp_path, api)
+    asyncio.run(app.sync())
+
+    asyncio.run(app.delete_item("t1", "b"))
+
+    assert api.trashed == ["b"]
+    assert [m.message_id for m in asyncio.run(state.threads())["t1"]] == ["a"]
+
+
+def test_trashing_a_message_posts_to_its_trash_and_a_gone_one_counts_as_done():
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert (request.method, request.url.path) == ("POST", "/gmail/v1/users/me/messages/m1/trash")
+        return httpx.Response(404, json={"error": {"message": "Not Found"}})
+
+    asyncio.run(http_api(handler).trash_message("token", "m1"))
 
 
 def test_an_unknown_error_status_is_a_remote_error():

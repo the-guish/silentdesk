@@ -18,7 +18,15 @@ from gi.repository import Adw, Gio, GLib  # isort: skip
 
 
 def topic(id: str, title: str, author: str, date: str, service: str = "gmail") -> TopicView:
-    return TopicView(id, service, title, [Item(id, Direction.INBOUND, author, None, date)], date)
+    # Gmail's topics and items are deletable; the others' are not.
+    deletable = service == "gmail"
+    return TopicView(id, service, title, [Item(id, Direction.INBOUND, author, None, date, deletable)], date, deletable)
+
+
+def thread(id: str, *keys: str) -> TopicView:
+    """A Gmail thread with several messages."""
+    items = [Item(key, Direction.INBOUND, "Bo", None, f"2026-10-24T0{n}:00:00Z", True) for n, key in enumerate(keys)]
+    return TopicView(id, "gmail", "Thread", items, items[-1].date, True)
 
 
 class FakeDesk(Desk):
@@ -73,6 +81,9 @@ class FakeDesk(Desk):
 
     async def reply(self, topic_id, body):
         self.calls.append(("reply", topic_id, body))
+
+    async def delete_item(self, topic_id, item_key):
+        self.calls.append(("delete", topic_id, item_key))
 
     async def delete(self, topic_id):
         self.calls.append(("delete", topic_id))
@@ -241,3 +252,24 @@ def test_disconnecting_a_service_drops_its_topics(worker):
     run_until(lambda: win.topics.total == 0)
     assert desk.calls == [("disconnect", "gmail")]
     assert win.stack.get_visible_child_name() == "empty"
+
+
+def test_each_deletable_item_of_a_thread_can_be_deleted_on_its_own(worker):
+    desk = FakeDesk()
+    win = started(desk, worker)
+    page = win.open_topic(thread("t", "m1", "m2"))
+    assert sorted(page.item_buttons) == ["m1", "m2"]
+
+    page.delete_item("m2")
+
+    run_until(lambda: desk.calls == [("delete", "t", "m2")] and len(page.entries) == 1)
+    assert [item.key for item in page.topic.items] == ["m1"]
+    # One item left: the header's button deletes it, with the topic.
+    assert page.item_buttons == {}
+    assert win.navigation.get_visible_page() is page
+
+
+def test_a_topic_that_is_not_deletable_offers_no_delete(worker):
+    win = started(FakeDesk(), worker)
+    page = win.open_topic(topic("9", "PR", "Cy", "2026-10-24T10:00:00Z", service="github"))
+    assert page.delete_button is None and page.item_buttons == {}

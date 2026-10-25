@@ -252,24 +252,28 @@
               "direction": "inbound",
               "author": "Bo Lind",
               "url": "https://mail.google.com/mail/#all/t1",
-              "date": "2025-10-24T10:00:00Z"
+              "date": "2025-10-24T10:00:00Z",
+              "deletable": true
             },
             {
               "key": "m2",
               "direction": "inbound",
               "author": "Bo Lind",
               "url": "https://mail.google.com/mail/#all/t1",
-              "date": "2025-10-24T11:00:00Z"
+              "date": "2025-10-24T11:00:00Z",
+              "deletable": true
             },
             {
               "key": "m4",
               "direction": "inbound",
               "author": "Bo Lind",
               "url": "https://mail.google.com/mail/#all/t1",
-              "date": "2025-10-24T14:00:00Z"
+              "date": "2025-10-24T14:00:00Z",
+              "deletable": true
             }
           ],
-          "updatedAt": "2025-10-24T14:00:00Z"
+          "updatedAt": "2025-10-24T14:00:00Z",
+          "deletable": true
         },
         {
           "id": {
@@ -283,10 +287,12 @@
               "direction": "outbound",
               "author": "cy@example.com",
               "url": "https://mail.google.com/mail/#all/t2",
-              "date": "2025-10-24T13:00:00Z"
+              "date": "2025-10-24T13:00:00Z",
+              "deletable": true
             }
           ],
-          "updatedAt": "2025-10-24T13:00:00Z"
+          "updatedAt": "2025-10-24T13:00:00Z",
+          "deletable": true
         }
       ]
     }

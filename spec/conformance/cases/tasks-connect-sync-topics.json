@@ -117,10 +117,12 @@
               "direction": null,
               "author": null,
               "url": "https://tasks.google.com/",
-              "date": "2026-10-23T08:00:00.000Z"
+              "date": "2026-10-23T08:00:00.000Z",
+              "deletable": false
             }
           ],
-          "updatedAt": "2026-10-23T08:00:00.000Z"
+          "updatedAt": "2026-10-23T08:00:00.000Z",
+          "deletable": false
         },
         {
           "id": {
@@ -134,10 +136,12 @@
               "direction": null,
               "author": null,
               "url": "https://tasks.google.com/task/t1",
-              "date": "2026-10-20T08:00:00.000Z"
+              "date": "2026-10-20T08:00:00.000Z",
+              "deletable": false
             }
           ],
-          "updatedAt": "2026-10-20T08:00:00.000Z"
+          "updatedAt": "2026-10-20T08:00:00.000Z",
+          "deletable": false
         }
       ]
     }

@@ -20,3 +20,6 @@ class TopicRecord:
     # RFC 3339.
     created_at: str
     updated_at: str
+    # The whole topic can be deleted: its connector said so, or every item
+    # can be.
+    deletable: bool

@@ -113,6 +113,7 @@ def topics(messages: Iterable[DirectMessage]) -> list[Topic]:
     out = []
     for channel_id, found in conversations.items():
         found.sort(key=lambda message: ts_value(message.ts))
-        items = [Item(m.ts, m.direction, m.author or None, m.permalink or None, m.date) for m in found]
-        out.append(Topic(key=channel_id, title=found[-1].preview or "(empty message)", items=items))
+        # Read-only: SilentDesk has no scope to delete a Slack message.
+        items = [Item(m.ts, m.direction, m.author or None, m.permalink or None, m.date, False) for m in found]
+        out.append(Topic(channel_id, found[-1].preview or "(empty message)", items, deletable=False))
     return out

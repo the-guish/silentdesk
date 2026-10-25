@@ -221,3 +221,13 @@ class GmailHttpApi(GmailApi):
             # A thread that no longer exists counts as trashed.
             if error.status != 404:
                 raise
+
+    async def trash_message(self, token: str, message_id: str) -> None:
+        if not is_gmail_id(message_id):
+            raise RemoteError(SERVICE, "That message is not a Gmail message.", 404)
+        try:
+            await self._call("POST", f"messages/{message_id}/trash", token)
+        except RemoteError as error:
+            # A message that no longer exists counts as trashed.
+            if error.status != 404:
+                raise
