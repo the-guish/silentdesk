@@ -104,7 +104,9 @@ jobs:
             Skip style, performance, tests and denial of service.
 
             Post each finding as an inline comment on its line, with its severity, the exploit and a fix.
+            Start each inline comment with "**Claude Code Security Review**" on its own line.
             Then post one summary comment with `gh pr comment`, saying "No security issues found" when there are none.
+            The summary starts with the heading "## Claude Code Security Review".
           claude_args: |
             --model claude-opus-5-5
             --allowedTools "Read,Grep,Glob,mcp__github_inline_comment__create_inline_comment,Bash(gh pr diff:*),Bash(gh pr view:*),Bash(gh pr comment:*)"
