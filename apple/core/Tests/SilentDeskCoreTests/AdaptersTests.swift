@@ -3,6 +3,11 @@
 import Foundation
 @testable import SilentDeskCore
 import Testing
+#if canImport(Glibc)
+import Glibc
+#elseif canImport(Darwin)
+import Darwin
+#endif
 
 private func temporaryFolder() throws -> String {
     let folder = FileManager.default.temporaryDirectory.appendingPathComponent("silentdesk-tests-\(UUID().uuidString)").path
@@ -156,6 +161,52 @@ private func hex(_ data: Data) -> String {
     #expect(try await listener.code(timeout: .seconds(5)) == "c1")
     let late = try await http.request("GET", listener.redirectURI + "?code=c2&state=s1")
     #expect(late.status == 404, "the outcome is delivered once")
+}
+
+@Test func theLoopbackListenerFreesItsPortWhenStopped() async throws {
+    let first = LoopbackListener(service: "slack", path: "/slack/callback", state: "s")
+    try first.start(port: nil)
+    let port = Int(try #require(URLComponents(string: first.redirectURI)?.port))
+    // A client that connects and sends nothing would hold the handler until
+    // its read times out; the pause lets the listener accept it first.
+    let idle = connectToLoopback(port: port)
+    defer { closeSocket(idle) }
+    try await Task.sleep(for: .milliseconds(50))
+    let began = ContinuousClock.now
+    first.stop()
+    #expect(ContinuousClock.now - began < .seconds(1), "stop returns as soon as the sockets are closed")
+    // The port is free at once, as a sign-in retried right away needs.
+    let second = LoopbackListener(service: "slack", path: "/slack/callback", state: "s")
+    try second.start(port: port)
+    second.stop()
+    first.stop()
+    LoopbackListener(service: "slack", path: "/", state: "s").stop()
+}
+
+private func connectToLoopback(port: Int) -> Int32 {
+    #if canImport(Glibc)
+    let descriptor = socket(AF_INET, Int32(SOCK_STREAM.rawValue), 0)
+    #else
+    let descriptor = socket(AF_INET, SOCK_STREAM, 0)
+    #endif
+    var address = sockaddr_in()
+    address.sin_family = sa_family_t(AF_INET)
+    address.sin_port = UInt16(port).bigEndian
+    address.sin_addr = in_addr(s_addr: in_addr_t(0x7F00_0001).bigEndian)
+    _ = withUnsafePointer(to: &address) { pointer in
+        pointer.withMemoryRebound(to: sockaddr.self, capacity: 1) {
+            connect(descriptor, $0, socklen_t(MemoryLayout<sockaddr_in>.size))
+        }
+    }
+    return descriptor
+}
+
+private func closeSocket(_ descriptor: Int32) {
+    #if canImport(Glibc)
+    _ = Glibc.close(descriptor)
+    #else
+    _ = Darwin.close(descriptor)
+    #endif
 }
 
 @Test func theLoopbackListenerRefusesABusyPort() throws {
