@@ -50,34 +50,6 @@ jobs:
           find . -name 'QueueView*' -not -path './Sources/*'
       - name: Unit tests
         run: swift test --package-path apple/app
-
-  macos:
-    name: Apple app (macOS)
-    runs-on: macos-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          persist-credentials: false
-      - run: swift --version
-      # The SwiftUI app, which only builds on macOS.
-      - name: Build
-        run: swift build --package-path apple/app
-      # Temporary: re-runs the app module's compile verbatim, to see its output.
-      - name: Diagnose the build
-        if: failure()
-        working-directory: apple/app
-        run: |
-          swift build -v > "$RUNNER_TEMP/build.log" 2>&1 || true
-          grep -n -E 'swift-frontend|swiftc' "$RUNNER_TEMP/build.log" | grep -- '-module-name SilentDesk ' | cut -c1-600
-          cmd=$(grep -E -- '-module-name SilentDesk ' "$RUNNER_TEMP/build.log" | grep -v -- '-emit-module-path' | head -1 || true)
-          [ -z "$cmd" ] && cmd=$(grep -E -- '-module-name SilentDesk ' "$RUNNER_TEMP/build.log" | head -1)
-          echo "--- running: ${cmd:0:400}"
-          set +e
-          eval "$cmd"
-          echo "exit $?"
-          tail -40 "$RUNNER_TEMP/build.log"
-      - name: Unit tests
-        run: swift test --package-path apple/app
       - name: Build SilentDesk.app
         env:
           BUILD_NUMBER: ${{ github.run_number }}
