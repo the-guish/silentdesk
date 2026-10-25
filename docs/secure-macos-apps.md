@@ -2,87 +2,110 @@
 
 Status: reference · Last updated: 2026-10-25
 
-How the open-source apps in [apple-store-reference-apps.md](apple-store-reference-apps.md) protect sensitive data, checked in each app's source. The bar is SilentDesk's own, from [spec/storage.md](../spec/storage.md): the database is a SQLCipher file, and secrets live in the OS credential store.
+How the apps in [apple-store-reference-apps.md](apple-store-reference-apps.md) that handle secrets or sensitive data protect them, read in their source. The bar is SilentDesk's own, from [spec/storage.md](../spec/storage.md): the database is a SQLCipher file, and secrets live in the OS credential store. No app meets both. Telegram alone encrypts its database. WireGuard, MeetingBar and Sequel Ace show the credential store done well. FSNotes, Rocket.Chat and Starcat show where partial protection breaks.
 
-**How they were checked.**
-- 23 of the 55 repositories were cloned at their default branch on 2026-10-25: every app whose entry mentions a database, the Keychain, CloudKit, credentials or clipboard capture. Their code was searched for SQLCipher, Keychain calls (`SecItem*` and wrappers), CryptoKit, CommonCrypto, RNCryptor, Electron `safeStorage`, file protection and the pasteboard concealment types.
-- Telegram keeps its storage code in [TelegramMessenger/Telegram-iOS](https://github.com/TelegramMessenger/Telegram-iOS), pulled into the macOS app as a submodule. That repository was checked too.
-- The other 32 apps store preferences and files and hold no secrets; they were judged from the reference list alone. Krita and LibreOffice were not cloned: they keep no user secrets.
+**How they were read.** Each repository was cloned at its default branch on 2026-10-25 and searched for SQLCipher, Keychain calls, CryptoKit, CommonCrypto, RNCryptor, Electron `safeStorage`, file protection and the pasteboard concealment types. Telegram's storage code lives in [TelegramMessenger/Telegram-iOS](https://github.com/TelegramMessenger/Telegram-iOS) and reaches the macOS app as a submodule. Paths below are inside each app's repository.
 
-## Summary
+## At a glance
 
-| Protection | Apps |
-|---|---|
-| Encrypted database | 1: Telegram |
-| Secrets in the Keychain, data in plain files | 5: WireGuard, MeetingBar, Sequel Ace, Pi Stats, Plug |
-| Partial: some secrets protected, others in plain text | 3: FSNotes, Rocket.Chat, Starcat |
-| No encryption, but password-manager content is skipped | 3: Clipbara, Pesty, Flycut |
-| Keychain used for something other than user secrets | 4: Nightwatch, Podlive, Seahorse Studio, UTM |
-| Nothing protected, or nothing sensitive stored | 39 |
+| App | Data at rest | Secrets | Take from it |
+|---|---|---|---|
+| Telegram | SQLCipher, raw key | Key file at the account root, wrapped by the passcode when one is set | Database setup |
+| WireGuard | Nothing outside the Keychain | Keychain, this device only, with an access list | Keychain attributes |
+| MeetingBar | Preferences | Keychain, one item for the OAuth state | The smallest workable wrapper |
+| Sequel Ace | Query history in plain SQLite | Keychain, through one wrapper | Changing Keychain APIs without losing items |
+| FSNotes | Notes encrypted one by one, on request | Master password in the Keychain; Git and SFTP credentials in UserDefaults | Per-file encryption, and its gaps |
+| Rocket.Chat | Session tokens in localStorage | Outlook credentials through `safeStorage`, plain text when it is unavailable | The cost of a silent fallback |
+| Starcat | Plain SQLite | AES-GCM file under a key derived from the machine | What to avoid |
+| Clipbara, Pesty, Flycut | Plain store with CloudKit sync | None | Skipping concealed pasteboard items |
+| Pi Stats, Plug | Preferences | One API token in the Keychain | Nothing new |
 
-No app meets SilentDesk's bar. Telegram is the only one with an encrypted database, and it does not keep the key in the credential store. WireGuard and MeetingBar show the Keychain side done well.
+## Telegram
 
-## Worth copying
+Repo: [TelegramMessenger/Telegram-macOS](https://github.com/TelegramMessenger/Telegram-macOS). Storage: `submodules/Postbox/Sources/SqliteValueBox.swift` in Telegram-iOS, with SQLCipher built from `submodules/sqlcipher`.
 
-### Telegram: the database
-- Repos: [TelegramMessenger/Telegram-macOS](https://github.com/TelegramMessenger/Telegram-macOS); storage in Telegram-iOS, `submodules/Postbox/Sources/SqliteValueBox.swift`, with SQLCipher in `submodules/sqlcipher`
-- The Postbox database is opened with a raw key, `PRAGMA key="x'…'"`, and `PRAGMA cipher_plaintext_header_size=32`, which leaves the file's SQLite header readable.
-- The key comes from `AppEncryptionParameters` at the account root path. When the user sets a passcode, the key is wrapped with it (`applyPasscode` in `packages/PasscodeUI/Sources/PasscodeUI/PasscodeLockController.swift`). The class that stores the unwrapped key is in a dependency that was not fetched, so its protection without a passcode is unverified.
-- For SilentDesk: the closest model. The raw-key approach is the spec's; the spec keeps the key in the credential store instead.
+**Database.**
+- The database is opened with a raw key, `PRAGMA key="x'<hex>'"`, so no passphrase derivation runs on open. This is the approach in SilentDesk's spec.
+- Before the key, `PRAGMA cipher_plaintext_header_size=32` and `cipher_default_plaintext_header_size=32` leave the first 32 bytes of the file in plain text. SQLCipher documents this for WAL-mode databases in shared containers, where the system has to recognise the file as SQLite. The header reveals that it is a SQLite file and its page size, nothing from the tables.
+- When the file cannot be opened and `removeDatabaseOnError` is set, `recreateEncryptedDatabase` deletes the file set, including `-wal`, `-shm` and `-open-failures`, and creates an empty database with the same key. Telegram can afford this because the server holds the data. SilentDesk's spec does the opposite and refuses to open, because personal notes exist only locally.
 
-### WireGuard: Keychain attributes
-- Repo: [WireGuard/wireguard-apple](https://github.com/WireGuard/wireguard-apple), `Sources/Shared/Keychain.swift`
-- Tunnel configurations, private keys included, are generic-password items. On macOS they get `kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly`, `kSecAttrSynchronizable` false, and an access list (`SecAccessCreate`) that admits only the app and its network extension. The VPN configuration keeps a persistent reference to the item, not the value.
-- For SilentDesk: the attributes to set on every entry under `com.silentdesk.app`.
+**Key.**
+- `Telegram-Mac/app/AppDelegate.swift` builds `ValueBoxEncryptionParameters(forceEncryptionIfNoSet: true, key: …)`, so a database that was created without encryption is encrypted on the next open.
+- The key comes from `AppEncryptionParameters(path:)`, kept at the account root. When the user sets a passcode, `applyPasscode` wraps the key with it and the account manager asks for the passcode before the database opens (`PostboxAccessChallengeData.plaintextPassword` in `Telegram-Mac/account/AccountManagerSetup.swift`; the entry flow is in `packages/PasscodeUI/Sources/PasscodeUI/PasscodeLockController.swift`). The class that stores the key was not fetched, so its protection without a passcode is unverified.
 
-### MeetingBar: OAuth tokens
-- Repo: [leits/MeetingBar](https://github.com/leits/MeetingBar), `MeetingBar/Utilities/Keychain.swift` and `MeetingBar/Calendar/Providers/Google/GoogleCalendarEventStore.swift`
-- The Google `OIDAuthState` is archived with secure coding into one Keychain item, through a small wrapper that saves, loads and deletes.
-- For SilentDesk: a template for the Gmail and Google Tasks refresh tokens.
+**Secrets.** Postbox keeps a `KeychainTable` inside the encrypted database (`Postbox.swift`, `setKeychainEntry`), so the account's own keys are rows, not Keychain items. SilentDesk's spec keeps secrets out of the database on purpose; Telegram shows the other choice.
 
-### Sequel Ace: many kinds of credential
-- Repo: [Sequel-Ace/Sequel-Ace](https://github.com/Sequel-Ace/Sequel-Ace), `Source/Other/Keychain/SAKeychain.swift`
-- MySQL passwords, SSH passwords and key passphrases, Vault OIDC tokens and AWS IAM credentials all go through one `SecItem*` wrapper. Query history, which can carry data, is plain SQLite through FMDB (`Source/Controllers/SubviewControllers/SPQueryController.m`).
-- For SilentDesk: good for secrets. The history is the kind of data principle 1 forbids in plain text.
+## WireGuard
 
-### Pi Stats and Plug: one token each
-- [Bunn/PiStats](https://github.com/Bunn/PiStats) keeps the Pi-hole API token in the Keychain (`Shared/KeyChainPasswordItem.swift`). [wulkano/Plug](https://github.com/wulkano/Plug) keeps the Hype Machine token through SSKeychain (`Plug/Authentication.swift`). Neither stores anything else sensitive.
+Repo: [WireGuard/wireguard-apple](https://github.com/WireGuard/wireguard-apple), `Sources/Shared/Keychain.swift`.
 
-## Partial
+- The whole tunnel configuration, private key included, is the value of one generic-password item. `kSecAttrService` is the bundle identifier with the `.network-extension` suffix removed, so the app and its extension address the same items. `kSecAttrAccount` is the tunnel name plus a UUID, `kSecAttrLabel` is "WireGuard Tunnel: name" and `kSecAttrDescription` is "wg-quick(8) config", which is what the user sees in Keychain Access.
+- On macOS the item gets `kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly`, `kSecAttrSynchronizable` false, and an access list from `SecAccessCreate` with two trusted applications, the app and `WireGuardNetworkExtension.appex`. Any other process that reads the item triggers a prompt. On iOS the item is in the app group with `kSecAttrAccessibleAfterFirstUnlock`.
+- The item is added with `kSecReturnPersistentRef`, and the persistent reference is what the VPN configuration stores (`passwordReference` in `Sources/Shared/Model/NETunnelProviderProtocol+Extension.swift`). The configuration holds no secret. Replacing a tunnel adds the new item first and deletes the old reference after, `deleteReferences(except:)` sweeps orphans, and `verifyReference` checks that a stored reference still resolves.
 
-### FSNotes
-- Repo: [glushchenko/fsnotes](https://github.com/glushchenko/fsnotes)
-- Notes can be encrypted one by one with RNCryptor's password format into `.etp` files (`FSNotesCore/Business/Note.swift`). The master password is a Keychain item (`FSNotesCore/KeychainPasswordItem.swift`).
-- Git and SFTP passwords, key passphrases and private keys are UserDefaults values in plain text: `gitPassword`, `gitPassphrase`, `gitPrivateKeyData`, `sftpPassword` and `sftpPassphrase` in `FSNotesCore/UserDefaultsManagement.swift`.
+For SilentDesk: the attribute set to use on every entry under `com.silentdesk.app`, and the pattern of storing a reference wherever another file has to point at a secret.
 
-### Rocket.Chat
-- Repo: [RocketChat/Rocket.Chat.Electron](https://github.com/RocketChat/Rocket.Chat.Electron), `src/outlookCalendar/ipc.ts`
-- Outlook login and password are encrypted with Electron `safeStorage`, which uses the Keychain on macOS. When `isEncryptionAvailable()` is false they are stored in plain text, with a warning in the log.
-- Server session tokens (`Meteor.loginToken`) live in the web view's localStorage, unencrypted on disk.
+## MeetingBar
 
-### Starcat
-- Repo: [starcat-app/Starcat](https://github.com/starcat-app/Starcat)
-- The README and the reference list say Keychain. Since 2026-06-01 (`Starcat/Core/Keychain/KeychainManager.swift`), GitHub tokens and AI API keys live in `credentials.json` next to the database, encrypted with AES-GCM. The key is derived with HKDF from the hardware UUID and a fixed salt in the source (`Starcat/Shared/Utilities/CryptoManager.swift`), so any local process can derive it. The move was made to stop Keychain password prompts under ad-hoc signing with the App Sandbox.
-- The GRDB database is plain SQLite (`Starcat/Core/Database/DatabaseManager.swift`). The SQLCipher mention in the reference list is a GitHub URL in a test fixture (`StarcatTests/AgentProductRuntimeTests.swift`).
-- The Keychain still holds the MCP server's TLS identity (`Starcat/Features/MCP/StarcatMCPTLSIdentityStore.swift`).
-- For SilentDesk: a warning. A key derived from machine identity is obfuscation, not encryption. The prompt problem it worked around is real in development builds and worth testing early.
+Repo: [leits/MeetingBar](https://github.com/leits/MeetingBar), `MeetingBar/Utilities/Keychain.swift` and `MeetingBar/Calendar/Providers/Google/GoogleCalendarEventStore.swift`.
 
-## Clipboard managers: skip, rather than encrypt
+- The wrapper is about 60 lines: a generic-password item named by `kSecAttrService`, `kSecAttrAccessibleAfterFirstUnlock`, `kSecReturnData` with a match limit of one. Save deletes any existing item and adds, so there is no update path to get wrong. It sets nothing else, so the item gets the default access list, the creating app.
+- What goes in is the AppAuth `OIDAuthState`, with the access token, the refresh token and their expiry, archived by `NSKeyedArchiver` with secure coding required and restored with `unarchivedObject(ofClass:)`. Sign-out deletes the item. Archive failures are logged with privacy level `.private`.
 
-[mobrava/Clipbara](https://github.com/mobrava/Clipbara), [momenbasel/pesty](https://github.com/momenbasel/pesty) and [TermiT/flycut](https://github.com/TermiT/flycut) store their history unencrypted: SwiftData, files and preferences, each with CloudKit sync. All three ignore pasteboard items marked `org.nspasteboard.ConcealedType`, `TransientType` or `AutoGeneratedType`, and Flycut also `PasswordPboardType` and 1Password's own type, so password managers' content is never stored. Clipbara writes one snapshot with `completeFileProtectionUntilFirstUserAuthentication`, which only matters on iOS. Relevant to SilentDesk only if it ever reads the clipboard.
+For SilentDesk: one item per entry in the spec's table, and this is the minimum that does it correctly.
 
-## Keychain, but not for user secrets
+## Sequel Ace
 
-The reference list counts 13 Keychain apps. In four of them the item is not a user secret:
-- Nightwatch: Keychain only in a release script (`scripts/review-status.swift`). The app stores no secrets.
-- Podlive: Keychain only inside the vendored Parse SDK (`App/Carthage/Checkouts`), which keeps its own session token there.
-- Seahorse Studio: the item is a purchase flag (`Seashore/source/application/SeaSupport.m`, service `purchases`).
-- UTM: the item is the UTM Remote TLS identity (`Remote/UTMRemoteKeyManager.swift`). The SPICE server password is a field of the VM configuration (`Configuration/UTMQemuConfigurationQEMU.swift`).
+Repo: [Sequel-Ace/Sequel-Ace](https://github.com/Sequel-Ace/Sequel-Ace), `Source/Other/Keychain/SAKeychain.swift`.
 
-## Nothing protected
+- The class is the `SecItem*` replacement for the legacy `SecKeychain*` code. It deliberately never passes `kSecUseDataProtectionKeychain`, so it keeps operating on the file-based login keychain where every item from earlier versions already is, and nothing migrates. Its header comment lists the behaviours it pins: add is a silent no-op when the item exists, update recovers from a missing source and from an occupied destination, `SecItemUpdate` keeps the existing access list so legacy items keep working, and delete and update first pin the single matched item through its persistent reference, because an attribute query would hit every match across the keychain search list.
+- What goes in: MySQL passwords, SSH passwords and key passphrases (`Source/Other/SSHTunnel/`), Vault OIDC tokens (`Source/Other/Vault/VaultOIDCHandler.swift`) and AWS IAM credentials (`Source/Other/AWS/AWSIAMAuthManager.swift`). Saved connections carry a keychain id, `kcid`, not the password.
+- Not protected: query history in SQLite through FMDB (`Source/Controllers/SubviewControllers/SPQueryController.m`). Queries carry literals, so this is data of the kind principle 1 forbids in plain text.
 
-- Medis keeps Redis connection favorites in localStorage (`src/renderer/storage/Favorites.js`), passwords and SSH key passphrases included.
-- KubeContext writes kubeconfig files in plain text (`KubeContext/Utils.swift`), as kubectl does.
-- tmpNote, Kiwix, OpenHabitTracker and Notenik use plain Core Data, SQLite or files and hold no secrets.
-- Krita and LibreOffice were not checked; they keep no user secrets.
-- The remaining apps store preferences and files and hold nothing sensitive.
+For SilentDesk: a worked example of changing Keychain code without losing items, which matters once the Swift core has shipped entries and the access API or signing changes. The rule to pin one item by persistent reference before deleting or updating is worth copying as is.
+
+## FSNotes
+
+Repo: [glushchenko/fsnotes](https://github.com/glushchenko/fsnotes), `FSNotesCore/Business/Note.swift`, `FSNotesCore/KeychainPasswordItem.swift`, `FSNotesCore/UserDefaultsManagement.swift`.
+
+- A note is encrypted on request: `writeEncrypted` zips the note's TextBundle into a TextPack and encrypts it with `RNCryptor.encrypt(data:withPassword:)` into one `.etp` file. RNCryptor's password mode is its v3 format: a key derived with PBKDF2, AES-256 in CBC mode and an HMAC over the result.
+- The password is the note's own, or the master password read from a Keychain item with service `KeychainConfiguration.serviceName` and account "Master Password".
+- `unLock` decrypts into a temporary directory and keeps the plaintext TextBundle there while the note is open, and keeps the password on the note object. Plain text therefore exists on disk during editing.
+- Git and SFTP credentials are plain UserDefaults values: `gitPassword`, `gitPassphrase`, `gitPrivateKeyData`, `sftpPassword` and `sftpPassphrase`.
+
+For SilentDesk: a working master-secret-in-Keychain plus file-encryption pattern, if the apps ever keep files outside the database, and two reasons the spec rejected per-item encryption: plaintext temporaries and the gaps that appear when each credential kind is handled on its own.
+
+## Rocket.Chat
+
+Repo: [RocketChat/Rocket.Chat.Electron](https://github.com/RocketChat/Rocket.Chat.Electron), `src/outlookCalendar/ipc.ts`.
+
+- The Outlook login and password are encrypted with Electron `safeStorage.encryptString`, encoded as base64 and stored with the server record in the app's persisted state. On macOS `safeStorage` keeps its key in the Keychain, so the result is Keychain-backed without any `SecItem` code.
+- When `safeStorage.isEncryptionAvailable()` is false, the credentials are stored in plain text with a warning in the log. On read, values that do not look like base64 are treated as legacy plain text and used as they are. Both branches are silent for the user.
+- The session tokens for each server, `Meteor.loginToken`, live in the web view's localStorage, which Chromium keeps on disk unencrypted.
+
+For SilentDesk: the fallback is what principle 1 forbids. A core that cannot reach the credential store should fail with error kind `storage`, not degrade.
+
+## Starcat
+
+Repo: [starcat-app/Starcat](https://github.com/starcat-app/Starcat).
+
+- The README and the reference list say Keychain. The header of `Starcat/Core/Keychain/KeychainManager.swift` says that since 2026-06-01 the class, which kept its name, writes a `credentials.json` next to the database instead. The reason given is that ad-hoc signed development builds under the App Sandbox kept triggering Keychain password prompts.
+- The file holds the GitHub token, a GitHub App credential, AI API keys per provider and service API keys, as one JSON object encrypted with AES-GCM (`Starcat/Shared/Utilities/CryptoManager.swift`). The key is derived with HKDF-SHA256 from the hardware UUID (`IOPlatformUUID`) and the fixed salt `Starcat-Crypto-Salt-2026` in the source, with the bundle identifier as key material if the UUID is unavailable. Any local process can read the UUID and the salt, so the file is protected against copying to another machine and against nothing else.
+- The file is written atomically, set to mode 0600 and excluded from backup. If decryption fails, the loader parses the file as plain JSON, a migration path that also accepts a plaintext file.
+- The GRDB database is plain SQLite (`Starcat/Core/Database/DatabaseManager.swift`). The SQLCipher mention in the code is a GitHub URL in a test fixture (`StarcatTests/AgentProductRuntimeTests.swift`).
+- The Keychain still holds the MCP server's TLS certificate and private key (`Starcat/Features/MCP/StarcatMCPTLSIdentityStore.swift`).
+
+For SilentDesk: a key derived from machine identity is obfuscation, not encryption; the spec's random key in the credential store is right. The prompt problem Starcat worked around is real: Keychain items are tied to the signing identity that created them, so the Swift core's signing and entitlements need settling before the first item is written.
+
+## Clipboard managers
+
+[mobrava/Clipbara](https://github.com/mobrava/Clipbara), [momenbasel/pesty](https://github.com/momenbasel/pesty) and [TermiT/flycut](https://github.com/TermiT/flycut) keep their history unencrypted, in SwiftData, in files and in preferences, each with CloudKit sync. Their protection is to never capture secrets in the first place.
+
+- `Clipbara/Services/ContentTypeClassifier.swift` returns nothing when the pasteboard carries `org.nspasteboard.TransientType`, `ConcealedType` or `AutoGeneratedType`, the types password managers set. Pesty does the same in `Sources/Pesty/Monitor/ClipboardMonitor.swift`. Flycut's list in `FlycutOperator.m` adds `PasswordPboardType` and 1Password's own type.
+- Clipbara writes one snapshot file with `completeFileProtectionUntilFirstUserAuthentication`, which has an effect only on iOS.
+
+For SilentDesk: relevant only if the apps ever read the clipboard. Then this filter is the minimum.
+
+## Pi Stats and Plug
+
+[Bunn/PiStats](https://github.com/Bunn/PiStats) keeps the Pi-hole API token in the Keychain through a copy of Apple's `KeychainPasswordItem` sample (`Shared/KeyChainPasswordItem.swift`). [wulkano/Plug](https://github.com/wulkano/Plug) keeps the Hype Machine token through the vendored SSKeychain (`Plug/Authentication.swift`). Neither stores anything else sensitive, and neither adds anything the apps above do not show.
