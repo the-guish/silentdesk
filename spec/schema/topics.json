@@ -1,0 +1,78 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "topics.json",
+  "title": "silentdesk topics",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "required": [
+      "id",
+      "service",
+      "title",
+      "items",
+      "updatedAt"
+    ],
+    "additionalProperties": false,
+    "properties": {
+      "id": {
+        "type": "string",
+        "minLength": 1
+      },
+      "service": {
+        "type": "string",
+        "minLength": 1
+      },
+      "title": {
+        "type": "string"
+      },
+      "items": {
+        "type": "array",
+        "minItems": 1,
+        "items": {
+          "type": "object",
+          "required": [
+            "key",
+            "direction",
+            "author",
+            "url",
+            "date"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "key": {
+              "type": "string",
+              "minLength": 1
+            },
+            "direction": {
+              "enum": [
+                "inbound",
+                "outbound",
+                null
+              ]
+            },
+            "author": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "url": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "date": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      },
+      "updatedAt": {
+        "type": "string",
+        "minLength": 1
+      }
+    }
+  }
+}

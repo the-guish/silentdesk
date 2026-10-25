@@ -13,7 +13,7 @@ def test_version_reports_the_installed_package():
 def test_usage_errors_list_the_commands():
     code, document = cli.run(["no-such-command"])
     assert code == cli.EXIT_USAGE
-    assert document["error"]["message"] == "Unknown command 'no-such-command'. Commands: services, version."
+    assert document["error"]["message"] == "Unknown command 'no-such-command'. Commands: services, topics, version."
 
 
 def test_unexpected_failures_are_internal_errors(monkeypatch):

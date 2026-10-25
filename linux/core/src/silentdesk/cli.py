@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import asyncio
 import dataclasses
+import enum
 import json
 import sys
 import traceback
@@ -12,6 +13,7 @@ from collections.abc import Callable, Sequence
 from typing import Any
 
 from . import api
+from .contract import StorageError
 
 EXIT_OK = 0
 EXIT_FAILED = 1
@@ -22,20 +24,46 @@ class UsageError(Exception):
     pass
 
 
-def _version(args: list[str]) -> Any:
+def _no_arguments(command: str, args: list[str]) -> None:
     if args:
-        raise UsageError("version takes no arguments.")
+        raise UsageError(f"{command} takes no arguments.")
+
+
+def _camel(name: str) -> str:
+    first, *rest = name.split("_")
+    return first + "".join(part.title() for part in rest)
+
+
+def plain(value: Any) -> Any:
+    """`value` as JSON-ready data: dataclasses become objects with camelCase
+    keys, as spec/cli.md requires, and enums their values."""
+    if dataclasses.is_dataclass(value) and not isinstance(value, type):
+        return {_camel(field.name): plain(getattr(value, field.name)) for field in dataclasses.fields(value)}
+    if isinstance(value, enum.Enum):
+        return value.value
+    if isinstance(value, list | tuple):
+        return [plain(item) for item in value]
+    return value
+
+
+def _version(args: list[str]) -> Any:
+    _no_arguments("version", args)
     return api.version()
 
 
 def _services(args: list[str]) -> Any:
-    if args:
-        raise UsageError("services takes no arguments.")
-    return [dataclasses.asdict(status) for status in asyncio.run(api.desk().services())]
+    _no_arguments("services", args)
+    return plain(asyncio.run(api.desk().services()))
+
+
+def _topics(args: list[str]) -> Any:
+    _no_arguments("topics", args)
+    return plain(asyncio.run(api.desk().topics()))
 
 
 COMMANDS: dict[str, Callable[[list[str]], Any]] = {
     "services": _services,
+    "topics": _topics,
     "version": _version,
 }
 
@@ -57,6 +85,8 @@ def run(argv: Sequence[str]) -> tuple[int, Any]:
         return EXIT_OK, handler(args)
     except UsageError as error:
         return EXIT_USAGE, _error("usage", str(error))
+    except StorageError as error:
+        return EXIT_FAILED, _error("storage", str(error))
     except Exception as error:  # noqa: BLE001 - every failure must still print a JSON document
         traceback.print_exc()
         return EXIT_FAILED, _error("internal", str(error) or type(error).__name__)

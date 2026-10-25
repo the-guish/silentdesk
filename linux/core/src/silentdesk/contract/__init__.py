@@ -6,7 +6,7 @@ abstract classes for behaviour, frozen dataclasses for the data they pass."""
 
 from .browser import Browser
 from .connector import Connector, Direction, Item, ServiceStatus, SyncResult, Topic, Unsupported
-from .database import Database
+from .database import Database, StorageError
 from .desk import Desk, TopicView
 from .http import Http, Response
 from .keyring import Keyring
@@ -24,6 +24,7 @@ __all__ = [
     "Response",
     "ServiceStatus",
     "Settings",
+    "StorageError",
     "SyncResult",
     "Topic",
     "TopicView",

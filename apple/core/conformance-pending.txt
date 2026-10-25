@@ -3,3 +3,6 @@
 services-configured
 services-empty-client-id
 services-unconfigured
+services-connected
+topics-database-without-key
+topics-empty
