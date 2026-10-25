@@ -2,44 +2,40 @@
 
 A quiet desktop task tracker for work. It pulls your email, chat messages, issues, pull requests and tasks into one queue of topics.
 
-SilentDesk is moving from one Tauri app to two native apps: Python with GTK4 on Linux, and Swift on macOS. Both share one contract, tested by one suite.
 
-## Layout
+We live in an era of massive information flows. 
 
-| Path | What it is | Status |
-|------|------------|--------|
-| [`spec/`](spec) | The contract both cores follow, and the conformance suite that tests them | Scaffold |
-| [`linux/core/`](linux/core) | Core logic and JSON command line, in Python | Scaffold |
-| [`linux/gtk/`](linux/gtk) | The Linux app: GTK4 and libadwaita, in Python, on `linux/core` | Scaffold |
-| [`apple/core/`](apple/core) | Core logic and JSON command line, in Swift | Scaffold |
-| [`apple/app/`](apple/app) | The macOS app, in SwiftUI, on `apple/core`; iOS may follow | Deferred |
-| [`docs/`](docs) | Notes for the native apps, such as [open-source apps on the Mac App Store](docs/apple-store-reference-apps.md) | Reference |
-| [`legacy/`](legacy) | The current Tauri app, unchanged. It works until the new apps replace it | Working |
 
-The product specs and core principles are still in [`legacy/docs/`](legacy/docs).
+The recent progress in AI and adoption of agents in organizations is putting unprecedented stress on our senior members, line managers, IT support and people coordinating work and information in general, with multiple tactical decisions per day.
 
-## Quick start
 
-You need [uv](https://docs.astral.sh/uv/). For the Swift core, you also need Swift 6 (Xcode 16 or newer on macOS; on Linux, see [swift.org/install](https://www.swift.org/install/)).
+That layer used to handle communication with a finite set of people, and now faces the same set of people plus the output, as documents, questions, pull requests, from dozens of agents in the organization.
 
-```sh
-# Python core
-uv sync --directory linux/core
-linux/core/.venv/bin/silentdesk version
 
-# Linux app: needs the system packages listed in linux/gtk/README.md
-linux/gtk/run.sh
+SilentDesk would have been a useful nice-to-have in any of the previous years. Now, having something like it is a must.
 
-# Swift core
-swift build --package-path apple/core
-apple/core/.build/debug/silentdesk version
 
-# Conformance suite, against either core
-uv run spec/runner/conformance.py -- linux/core/.venv/bin/silentdesk
-uv run spec/runner/conformance.py -- apple/core/.build/debug/silentdesk
-```
+The only mission of SilentDesk in this world is to protect people's focus time at work, allow them to control the rate and direction of context-switching, get a more productive day and still have a useful brain by the time they log off.
 
-To run the legacy app, see [`legacy/README.md`](legacy/README.md).
+
+## How it works
+
+While most of the work can be classified and prioritized in issue trackers like Jira, companies tend to have more than one product for communications, typically Slack or Microsoft Teams and email.
+
+
+A good portion of the daily energy goes into manually scanning the chat platforms and correlating all of them, detecting actions needed and communicating with the right person.
+
+
+The definitive answer is to put standardized processes and automated workflows in place, and I cannot stress enough the importance of that effort; that is the real answer to handle a bigger volume per head. If you are facing a lot of unstructured, untagged information, it is highly likely a sign that your organization needs to automate that information flow.
+
+
+But no matter the level of automation, there will always be a portion that needs manual triage and decisions, mostly for new, non-repetitive issues or discovery efforts.
+
+
+SilentDesk puts everything you need to know and potentially take action on into a single, minimalist, clean UI, prioritized and sorted ahead of time by your criteria.
+
+
+
 
 ## License
 
