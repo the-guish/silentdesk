@@ -5,14 +5,19 @@ The Linux app, in Python with GTK4 and libadwaita. It reaches the core in [`../c
 ## How it works
 
 - **The queue:** every topic, newest first, with its service, who wrote last and when. The search box filters it by title, service and people.
+- **The topic screen:** a topic's items, with a button to open each in its service. Where the service keeps a conversation (Slack), its recent messages are read live and shown instead, never stored. Gmail topics have a reply box and a Delete button that moves the thread to the trash, after asking.
+- **Services:** the Services dialog lists every service. GitHub and Jira connect with a form; Gmail, Google Tasks and Slack sign in through the browser. A service that connects syncs at once; one that disconnects drops its topics, after asking.
 - **Syncing:** at startup, every 2 minutes, and when the window comes back into focus if the last round started more than 30 seconds ago. **Refresh** starts a round at once. The footer says when topics last changed. Failures show as a toast, and the old topics stay.
-- **Threads:** GTK runs on the main thread. The core's calls run on one background thread with one asyncio loop (`worker.py`), and their results come back to the main thread through `GLib.idle_add`. One loop for every call keeps the core's per-service locks meaningful.
+- **Threads:** GTK runs on the main thread. The core's calls run on one background thread with one asyncio loop (`worker.py`), and their results come back to the main thread through `GLib.idle_add`, at default priority so they arrive while an animation runs. One loop for every call keeps the core's per-service locks meaningful.
 
 | File | What it is |
 |------|------------|
 | `src/silentdesk_gtk/app.py` | The application: one desk, one worker, one window |
-| `src/silentdesk_gtk/window.py` | The main window: queue, search, Refresh and automatic syncing |
+| `src/silentdesk_gtk/window.py` | The main window: queue, search, Refresh, automatic syncing, and navigation to the rest |
 | `src/silentdesk_gtk/topic_list.py` | The list view and its rows |
+| `src/silentdesk_gtk/topic_page.py` | The topic screen: items or conversation, reply and delete |
+| `src/silentdesk_gtk/services_dialog.py` | The Services dialog: connect forms and Disconnect |
+| `src/silentdesk_gtk/services.py` | What each service asks for, and offers; tested without a display |
 | `src/silentdesk_gtk/format.py` | How topics read: names, dates, search; tested without a display |
 | `src/silentdesk_gtk/worker.py` | The background thread for the core |
 
@@ -24,7 +29,7 @@ GTK, libadwaita and PyGObject come from the system, not from PyPI. On Debian or 
 sudo apt-get install gir1.2-adw-1 gir1.2-gtk-4.0 python3-gi
 ```
 
-It needs libadwaita 1.4 or newer (Ubuntu 24.04, Debian 13).
+It needs libadwaita 1.5 or newer (Ubuntu 24.04, Debian 13).
 
 ## Run
 
