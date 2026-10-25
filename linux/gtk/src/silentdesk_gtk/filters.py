@@ -6,6 +6,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
+from datetime import UTC, date, datetime, time, timedelta
 
 from silentdesk.contract import DEFAULT_PROJECT, Project, ServiceStatus, TopicQuery, TopicView
 
@@ -33,9 +34,10 @@ SERVICE = Field("services", "Service", always=True)
 PEOPLE = Field("people", "People", always=False)
 WAITING_ON = Field("waiting_on", "Waiting on", always=False)
 DELETABLE = Field("deletable", "Deletable", always=False)
+UPDATED = Field("updated", "Updated", always=False)
 
-# In the order the bar shows them, and the + button lists them.
-FIELDS = [PROJECT, SERVICE, PEOPLE, WAITING_ON, DELETABLE]
+# In the order the + button lists them; the bar shows them as added.
+FIELDS = [PROJECT, SERVICE, PEOPLE, WAITING_ON, UPDATED, DELETABLE]
 MORE = [field for field in FIELDS if not field.always]
 
 WAITING_ON_CHOICES = [Choice("me", "Me"), Choice("others", "Others")]
@@ -82,7 +84,55 @@ def label(title: str, chosen: frozenset[str], choices: Iterable[Choice]) -> str:
     return f"{title}: {names[0]}{more}"
 
 
-def query(text: str, chosen: Mapping[str, frozenset[str]]) -> TopicQuery:
+@dataclass(frozen=True)
+class Updated:
+    """The Updated filter's range, in one of the forms Jira offers."""
+
+    # "within": the last `amount` units. "over": more than `amount` units
+    # ago. "between": from `first` to `last`, both days included.
+    form: str
+    amount: int = 7
+    # "days" or "weeks".
+    unit: str = "days"
+    first: date | None = None
+    last: date | None = None
+
+
+def updated_range(updated: Updated | None, now: datetime) -> tuple[str | None, str | None]:
+    """The query's updatedFrom and updatedTo, in UTC, for days in `now`'s
+    time zone."""
+    if updated is None:
+        return None, None
+    if updated.form in ("within", "over"):
+        span = timedelta(**{updated.unit: updated.amount})
+        moment = _rfc3339(now - span)
+        return (moment, None) if updated.form == "within" else (None, moment)
+    start = _rfc3339(datetime.combine(updated.first, time(), now.tzinfo)) if updated.first else None
+    end = _rfc3339(datetime.combine(updated.last + timedelta(days=1), time(), now.tzinfo)) if updated.last else None
+    return start, end
+
+
+def updated_label(updated: Updated | None) -> str:
+    """Such as "Updated: Last 7 days", "Updated: Over 2 weeks ago" or
+    "Updated: Oct 1 – Oct 24"."""
+    if updated is None:
+        return "Updated: All"
+    unit = updated.unit if updated.amount != 1 else updated.unit.removesuffix("s")
+    if updated.form == "within":
+        return f"Updated: Last {updated.amount} {unit}"
+    if updated.form == "over":
+        return f"Updated: Over {updated.amount} {unit} ago"
+    days = [f"{day.strftime('%b')} {day.day}" if day else "…" for day in (updated.first, updated.last)]
+    return f"Updated: {days[0]} – {days[1]}"
+
+
+def _rfc3339(moment: datetime) -> str:
+    return moment.astimezone(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def query(
+    text: str, chosen: Mapping[str, frozenset[str]], updated: tuple[str | None, str | None] = (None, None)
+) -> TopicQuery:
     """The core's query for the search text and the bar's choices."""
     deletable = chosen.get(DELETABLE.key, frozenset())
     return TopicQuery(
@@ -91,6 +141,8 @@ def query(text: str, chosen: Mapping[str, frozenset[str]]) -> TopicQuery:
         services=chosen.get(SERVICE.key, frozenset()),
         people=chosen.get(PEOPLE.key, frozenset()),
         waiting_on=chosen.get(WAITING_ON.key, frozenset()),
+        updated_from=updated[0],
+        updated_to=updated[1],
         # Yes and No together let every topic through, as All does.
         deletable=None if len(deletable) != 1 else "yes" in deletable,
     )
