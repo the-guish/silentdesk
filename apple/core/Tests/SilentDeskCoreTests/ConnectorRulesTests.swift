@@ -97,6 +97,82 @@ private func pull(_ id: Int, _ reason: GitHubReason, updated: String, title: Str
         url: "", updated: "")))
 }
 
+// MARK: Gmail
+
+@Test func gmailSenderNames() {
+    #expect(GmailRules.senderName("Ana Ruiz <ana@example.com>") == "Ana Ruiz")
+    #expect(GmailRules.senderName("\"Ruiz, Ana\" <ana@example.com>") == "Ruiz, Ana")
+    #expect(GmailRules.senderName("<ana@example.com>") == "ana@example.com")
+    #expect(GmailRules.senderName("ana@example.com") == "ana@example.com")
+    #expect(GmailRules.senderName("") == "")
+}
+
+@Test func gmailRepliesAnswerTheSenderWithThreadingHeaders() throws {
+    let original = GmailOriginal(
+        direction: .inbound, sender: "Bo Lind <bo@acme.com>", to: "ana@example.com", replyTo: "", subject: "Invoice",
+        headerID: "<m1@mail.example>", references: "<m0@mail.example>")
+    let reply = GmailRules.reply(original, body: "Thanks,\nit's paid.")
+    let lines = reply.components(separatedBy: "\r\n")
+    #expect(lines[0] == "To: Bo Lind <bo@acme.com>")
+    #expect(lines[1] == "Subject: Re: Invoice")
+    #expect(lines[2] == "In-Reply-To: <m1@mail.example>")
+    #expect(lines[3] == "References: <m0@mail.example> <m1@mail.example>")
+    #expect(lines[4] == "MIME-Version: 1.0")
+    #expect(lines[5] == "Content-Type: text/plain; charset=UTF-8")
+    #expect(lines[6] == "Content-Transfer-Encoding: base64")
+    #expect(lines[7] == "")
+    let body = try #require(Data(base64Encoded: lines[8]))
+    #expect(String(decoding: body, as: UTF8.self) == "Thanks,\r\nit's paid.")
+    #expect(reply.hasSuffix("\r\n"))
+}
+
+@Test func gmailRepliesToSentMailGoToItsRecipientsAndEncodeSubjects() {
+    let original = GmailOriginal(
+        direction: .outbound, sender: "ana@example.com", to: "bo@acme.com, cy@acme.com", replyTo: "other@acme.com",
+        subject: "re: Déjà vu\r\nX-Injected: yes", headerID: "", references: "")
+    let reply = GmailRules.reply(original, body: "ok")
+    let lines = reply.components(separatedBy: "\r\n")
+    #expect(lines[0] == "To: bo@acme.com, cy@acme.com")
+    #expect(lines[1] == "Subject: =?UTF-8?B?\(Base64.encode(Data("re: Déjà vu X-Injected: yes".utf8)))?=")
+    #expect(!reply.contains("In-Reply-To"), "no Message-ID, no threading headers")
+    #expect(GmailRules.replySubject("") == "Re:")
+    #expect(GmailRules.replySubject("RE: x") == "RE: x")
+    #expect(GmailRules.recipient(GmailOriginal(
+        direction: .inbound, sender: "s", to: "t", replyTo: " r ", subject: "", headerID: "", references: "")) == " r ")
+}
+
+@Test func gmailLongBodiesWrapAt76Characters() {
+    let original = GmailOriginal(direction: .inbound, sender: "s", to: "t", replyTo: "", subject: "", headerID: "", references: "")
+    let reply = GmailRules.reply(original, body: String(repeating: "x", count: 200))
+    let encoded = reply.components(separatedBy: "\r\n\r\n")[1].components(separatedBy: "\r\n").filter { !$0.isEmpty }
+    #expect(encoded.count == 4)
+    #expect(encoded.dropLast().allSatisfy { $0.count == 76 })
+}
+
+@Test func gmailThreadsBecomeTopicsOldestFirst() {
+    let messages = [
+        GmailMessage(messageID: "m2", threadID: "t1", direction: .inbound, sender: "Bo <bo@x>", subject: "Re: Hi", date: "2025-10-24T11:00:00Z"),
+        GmailMessage(messageID: "m1", threadID: "t1", direction: .outbound, sender: "ana@x", subject: "  Hi ", date: "2025-10-24T10:00:00Z"),
+    ]
+    let topic = GmailRules.topic(threadID: "t1", messages: messages)
+    #expect(topic.title == "Hi")
+    #expect(topic.items.map(\.key) == ["m1", "m2"])
+    #expect(topic.items[0].author == "ana@x")
+    #expect(topic.items[1].author == "Bo")
+    #expect(topic.items[0].url == "https://mail.google.com/mail/#all/t1")
+    #expect(topic.deletable && topic.items.allSatisfy(\.deletable))
+    #expect(GmailRules.topic(threadID: "t", messages: [
+        GmailMessage(messageID: "m", threadID: "t", direction: .inbound, sender: "", subject: " ", date: "d")
+    ]).title == "(no subject)")
+    #expect(GmailRules.newIDs(known: ["a"], ["b", "a", "c", "b"]) == ["b", "c"])
+    #expect(GmailHTTPAPI.isGmailID("18c2abc"))
+    #expect(!GmailHTTPAPI.isGmailID("../x"))
+    #expect(!GmailHTTPAPI.isGmailID(""))
+    #expect(GmailHTTPAPI.date(.string("1761300000000")) == "2025-10-24T10:00:00Z")
+    #expect(GmailHTTPAPI.date(.string("soon")) == nil)
+    #expect(GmailHTTPAPI.date(nil) == nil)
+}
+
 // MARK: Slack
 
 @Test func slackMarkupBecomesPlainText() {
@@ -159,6 +235,7 @@ private func match(_ channel: String, _ ts: String, im: Bool = true, mpim: Bool 
 // MARK: Credentials
 
 @Test func credentialsHideTheirTokensWhenPrinted() {
+    #expect(!"\(GmailGrant(accessToken: "a-secret", refreshToken: "r-secret"))".contains("secret"))
     #expect(!"\(GoogleTasksGrant(accessToken: "a-secret", refreshToken: "r-secret"))".contains("secret"))
     #expect(!"\(SlackCredential(accessToken: "xoxp-secret", refreshToken: "xoxe-secret", expiresAt: 10))".contains("secret"))
     #expect(!"\(JiraCredential(email: "ana@acme.com", token: "jira-secret"))".contains("secret"))
