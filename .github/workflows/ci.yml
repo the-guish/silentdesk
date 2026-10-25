@@ -233,7 +233,8 @@ jobs:
       id-token: write
     env:
       DEPTH: ${{ needs.security-screening.outputs.touches_security == 'true' && 'Deep' || 'Standard' }}
-      MODEL: claude-opus-5-5
+      # The repository variable SECURITY_REVIEW_MODEL picks the model, in Settings → Secrets and variables → Actions.
+      MODEL: ${{ vars.SECURITY_REVIEW_MODEL || 'claude-opus-5-5' }}
       EFFORT: ${{ needs.security-screening.outputs.touches_security == 'true' && 'xhigh' || 'medium' }}
     steps:
       # The merge commit, so branches from before the prompt files still have them.
