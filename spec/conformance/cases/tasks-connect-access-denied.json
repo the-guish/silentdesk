@@ -1,0 +1,35 @@
+{
+  "description": "declining on Google's sign-in page is an auth error",
+  "env": {
+    "SILENTDESK_TEST_KEYRING": "{home}/keyring.json",
+    "SILENTDESK_TEST_BASE_URL": "{server}",
+    "SILENTDESK_TEST_BROWSER": "follow",
+    "SILENTDESK_TEST_NOW": "2026-10-24T12:00:00Z",
+    "SILENTDESK_GOOGLE_CLIENT_ID": "test-client.apps.googleusercontent.com"
+  },
+  "http": [
+    {
+      "path": "/google-accounts/o/oauth2/v2/auth",
+      "redirect": "{query.redirect_uri}?error=access_denied&state={query.state}"
+    }
+  ],
+  "args": [
+    "connect",
+    "tasks"
+  ],
+  "exit": 1,
+  "schema": "error.json",
+  "stdout": {
+    "error": {
+      "kind": "auth",
+      "message": {
+        "$any": "string"
+      }
+    }
+  },
+  "requests": [
+    {
+      "path": "/google-accounts/o/oauth2/v2/auth"
+    }
+  ]
+}

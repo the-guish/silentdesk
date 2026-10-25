@@ -142,8 +142,13 @@ class FakeServer:
                 reply = server.reply_for(request)
                 status = reply.get("status", 200) if reply else 404
                 content = reply.get("body") if reply else {"message": "No fake reply for this request."}
-                data = (content if isinstance(content, str) else json.dumps(content)).encode()
-                self.send_response(status)
+                data = (content if isinstance(content, str) else json.dumps(content or {})).encode()
+                self.send_response(302 if reply and "redirect" in reply else status)
+                if reply and "redirect" in reply:
+                    location = reply["redirect"]
+                    for name, value in request["query"].items():
+                        location = location.replace(f"{{query.{name}}}", value)
+                    self.send_header("Location", location)
                 self.send_header("Content-Type", "application/json")
                 self.send_header("Content-Length", str(len(data)))
                 self.end_headers()

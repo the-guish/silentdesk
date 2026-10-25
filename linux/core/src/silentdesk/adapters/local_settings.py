@@ -19,6 +19,7 @@ class LocalSettings(Settings):
         google_client_secret: str | None = None,
         test_keyring: Path | None = None,
         test_base_url: str | None = None,
+        test_browser: bool = False,
     ) -> None:
         self._data_dir = data_dir
         self._now = now
@@ -30,6 +31,9 @@ class LocalSettings(Settings):
         # credential store, and a fake server that replaces every service.
         self.test_keyring = test_keyring
         self.test_base_url = test_base_url.rstrip("/") if test_base_url else None
+        # Sign-in pages are fetched and their redirects followed, instead of
+        # opening a browser.
+        self.test_browser = test_browser
 
     @classmethod
     def from_environment(cls, environ: Mapping[str, str] = os.environ) -> LocalSettings:
@@ -48,6 +52,7 @@ class LocalSettings(Settings):
             google_client_secret=variable("SILENTDESK_GOOGLE_CLIENT_SECRET"),
             test_keyring=Path(test_keyring) if test_keyring else None,
             test_base_url=variable("SILENTDESK_TEST_BASE_URL"),
+            test_browser=variable("SILENTDESK_TEST_BROWSER") == "follow",
         )
 
     @property
