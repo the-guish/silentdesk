@@ -23,6 +23,7 @@ Each file in [`cases/`](cases) is one test. The runner starts a core's `silentde
 | `exit` | The expected exit code. |
 | `schema` | The file in [`../schema`](../schema) that stdout must match. |
 | `stdout` | The expected JSON document. |
+| `env` | Optional environment variables for the run. `{home}` in a value stands for the throwaway home folder. |
 
 ## How stdout is compared
 
@@ -34,6 +35,7 @@ Each file in [`cases/`](cases) is one test. The runner starts a core's `silentde
 ## How each case runs
 
 - In a fresh temporary directory, which is also `HOME` and the base of the `XDG_*` directories, so a core can never touch the user's real data.
+- Without any `SILENTDESK_*` variables from the runner's own environment: only the case's `env` sets them.
 - With a 30-second time limit.
 - Pass the core's built program, not `uv run` or `swift run`: with a throwaway `HOME`, those tools would start from an empty cache.
 

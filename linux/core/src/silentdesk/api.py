@@ -8,14 +8,16 @@ from __future__ import annotations
 from importlib.metadata import version as package_version
 from typing import Literal, TypedDict
 
+from .adapters.file_keyring import FileKeyring
 from .adapters.https_client import HttpsClient
+from .adapters.local_settings import LocalSettings
 from .adapters.secret_service_keyring import SecretServiceKeyring
 from .adapters.sqlcipher_database import SqlcipherDatabase
 from .adapters.system_browser import SystemBrowser
 from .apps.desk import wiring as desk_wiring
 from .apps.gmail import wiring as gmail_wiring
 from .apps.google_tasks import wiring as google_tasks_wiring
-from .contract import Desk, Settings
+from .contract import Desk
 
 CONTRACT = 1
 """The version of spec/cli.md this core implements."""
@@ -31,9 +33,11 @@ def version() -> Version:
     return {"contract": CONTRACT, "implementation": "python", "version": package_version("silentdesk")}
 
 
-def desk(settings: Settings) -> Desk:
-    """The desk with every connector app wired in. Building it does no I/O."""
-    keyring = SecretServiceKeyring()
+def desk(settings: LocalSettings | None = None) -> Desk:
+    """The desk with every connector app wired in, with settings from the
+    environment unless given. Building it does no I/O."""
+    settings = settings or LocalSettings.from_environment()
+    keyring = FileKeyring(settings.test_keyring) if settings.test_keyring else SecretServiceKeyring()
     database = SqlcipherDatabase(settings.data_dir / "silentdesk.db", keyring)
     http = HttpsClient()
     browser = SystemBrowser()

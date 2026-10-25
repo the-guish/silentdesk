@@ -17,6 +17,11 @@ class Grant:
 class Authorization(ABC):
     """Google's OAuth: sign-in through the browser, then token refresh."""
 
+    @property
+    @abstractmethod
+    def configured(self) -> bool:
+        """Whether there is a client ID to sign in with."""
+
     @abstractmethod
     async def sign_in(self, scopes: Sequence[str]) -> Grant:
         """Opens Google's sign-in page and waits for the user to finish."""

@@ -12,10 +12,10 @@ class KeyringCredentials(Credentials):
         self.keyring = keyring
 
     def refresh_token(self) -> str | None:
-        raise NotImplementedError
+        return self.keyring.get(self.NAME)
 
     def save_refresh_token(self, token: str) -> None:
-        raise NotImplementedError
+        self.keyring.set(self.NAME, token)
 
     def delete_refresh_token(self) -> None:
-        raise NotImplementedError
+        self.keyring.delete(self.NAME)

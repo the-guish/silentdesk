@@ -34,7 +34,7 @@ class DeskService(Desk):
         raise NotImplementedError
 
     async def services(self) -> list[ServiceStatus]:
-        raise NotImplementedError
+        return [await self.connectors[service].status() for service in sorted(self.connectors)]
 
     async def connect(self, service: str, params: Mapping[str, str]) -> ServiceStatus:
         raise NotImplementedError

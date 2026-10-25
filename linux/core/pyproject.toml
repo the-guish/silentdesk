@@ -6,7 +6,9 @@ license = "Apache-2.0"
 authors = [{ name = "The SilentDesk Authors" }]
 # 3.12 is Ubuntu 24.04's Python, which the GTK app runs on.
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+    "keyring>=25.7.0",
+]
 
 [project.scripts]
 silentdesk = "silentdesk.cli:main"

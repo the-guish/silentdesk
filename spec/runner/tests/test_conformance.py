@@ -75,6 +75,26 @@ def test_cases_run_in_a_throwaway_home():
     assert any("silentdesk-conformance-" in problem for problem in problems)
 
 
+def test_cases_set_their_own_environment(monkeypatch):
+    monkeypatch.setenv("SILENTDESK_LEAK", "from the runner")
+    show_env = [
+        sys.executable,
+        "-c",
+        "import json, os; print(json.dumps([os.environ.get('SILENTDESK_LEAK'), os.environ['SILENTDESK_FILE']]))",
+    ]
+    problems = conformance.run_case(
+        {
+            "args": [],
+            "exit": 0,
+            "schema": "error.json",
+            "env": {"SILENTDESK_FILE": "{home}/keyring.json"},
+            "stdout": "x",
+        },
+        show_env,
+    )
+    assert any("[null, " in problem and "silentdesk-conformance-" in problem for problem in problems)
+
+
 @pytest.fixture
 def cases_dir(tmp_path: Path) -> Path:
     (tmp_path / "passes.json").write_text(json.dumps(case(ERROR)))
