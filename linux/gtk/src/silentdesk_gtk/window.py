@@ -7,11 +7,12 @@ from __future__ import annotations
 import sys
 import time
 from collections.abc import Callable
+from dataclasses import replace
 from datetime import datetime
 
 from gi.repository import Adw, Gio, GLib, GObject, Gtk
 from silentdesk import api
-from silentdesk.contract import Desk, TopicView
+from silentdesk.contract import Desk, TopicQuery, TopicView
 
 from . import format, services, style
 from .services_dialog import ServicesDialog
@@ -115,6 +116,11 @@ class MainWindow(Adw.ApplicationWindow):
         self.round_started: float | None = None
         self.last_synced: str | None = None
         self.last_error: str | None = None
+        # What the queue shows, and how many loads and matches were asked
+        # for. Each shows its result only if no later one was asked for.
+        self.query = TopicQuery()
+        self.loads = 0
+        self.matches = 0
 
         self.topics = TopicList(now)
         self.refresh_button = Gtk.Button(icon_name="view-refresh-symbolic", tooltip_text="Refresh")
@@ -201,17 +207,30 @@ class MainWindow(Adw.ApplicationWindow):
         self.refresh()
 
     def load(self) -> None:
-        """Reads the topics and when they last changed, then shows them."""
+        """Reads every topic, those that match the query, and when topics
+        last changed, then shows them."""
+        self.loads += 1
+        load, match, query = self.loads, self.matches, self.query
 
-        async def read() -> tuple[list[TopicView], str | None]:
-            return await self.desk.topics(), await self.desk.last_synced()
+        async def read() -> tuple[list[TopicView], list[TopicView] | None, str | None]:
+            matching = await self.desk.topics(query) if query != TopicQuery() else None
+            return await self.desk.topics(), matching, await self.desk.last_synced()
 
-        def done(result: tuple[list[TopicView], str | None] | None, error: BaseException | None) -> None:
+        def done(
+            result: tuple[list[TopicView], list[TopicView] | None, str | None] | None, error: BaseException | None
+        ) -> None:
             if error:
                 self._fail(error)
                 return
-            topics, self.last_synced = result
+            if load != self.loads:
+                return
+            topics, matching, self.last_synced = result
             self.topics.set_topics(topics)
+            if match == self.matches:
+                self.topics.set_matching(matching)
+            else:
+                # The query changed while reading: match the new topics again.
+                self.match()
             self._show()
             self._show_open_topic(topics)
 
@@ -318,9 +337,26 @@ class MainWindow(Adw.ApplicationWindow):
         if self.is_active() and (self.round_started is None or self.clock() - self.round_started > SYNC_ON_FOCUS_AFTER):
             self.refresh()
 
-    def _search(self, query: str) -> None:
-        self.topics.set_query(query)
-        self._show()
+    def _search(self, text: str) -> None:
+        self.query = replace(self.query, text=text)
+        self.match()
+
+    def match(self) -> None:
+        """Asks the core which topics match the query, then shows only those."""
+        self.matches += 1
+        match, query = self.matches, self.query
+
+        async def read() -> list[TopicView] | None:
+            return await self.desk.topics(query) if query != TopicQuery() else None
+
+        def done(matching: list[TopicView] | None, error: BaseException | None) -> None:
+            if error:
+                self._fail(error)
+            elif match == self.matches:
+                self.topics.set_matching(matching)
+                self._show()
+
+        self.worker.run(read(), done)
 
     def _fail(self, error: BaseException) -> None:
         self.last_error = format.describe(error)
@@ -341,7 +377,7 @@ class MainWindow(Adw.ApplicationWindow):
         if self.topics.shown:
             page = "list"
         else:
-            page = "no-match" if self.topics.total and self.topics.query else "empty"
+            page = "no-match" if self.topics.total else "empty"
         self.stack.set_visible_child_name(page)
         self.refresh_button.set_sensitive(not self.refreshing)
         self.spinner.set_spinning(self.refreshing)

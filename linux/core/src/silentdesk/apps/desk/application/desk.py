@@ -10,14 +10,15 @@ from ....contract import (
     Message,
     ServiceStatus,
     SyncFailed,
+    TopicQuery,
     TopicView,
     UnknownItem,
     UnknownService,
     UnknownTopic,
     Unsupported,
 )
+from ..core import search, topics
 from ..core import sync as rounds
-from ..core import topics
 from ..domain.topics import TopicRecord
 from ..ports.clock import Clock
 from ..ports.topic_store import TopicStore
@@ -42,13 +43,16 @@ class DeskService(Desk):
         # One operation per service at a time: a second one waits.
         self.locks = {service: asyncio.Lock() for service in self.connectors}
 
-    async def topics(self) -> list[TopicView]:
-        return [
-            TopicView(
-                record.id, record.service, record.title, record.items, record.updated_at, topics.deletable(record)
-            )
-            for record in topics.newest_first(await self.store.topics())
-        ]
+    async def topics(self, query: TopicQuery | None = None) -> list[TopicView]:
+        query = query or TopicQuery()
+        views = []
+        for record in topics.newest_first(await self.store.topics()):
+            deletable = topics.deletable(record)
+            if search.matches(record, deletable, query):
+                views.append(
+                    TopicView(record.id, record.service, record.title, record.items, record.updated_at, deletable)
+                )
+        return views
 
     async def services(self) -> list[ServiceStatus]:
         return [await self.connectors[service].status() for service in sorted(self.connectors)]

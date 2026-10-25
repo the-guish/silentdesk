@@ -42,8 +42,10 @@ class FakeDesk(Desk):
         }
         self.calls: list[tuple] = []
 
-    async def topics(self):
-        return list(self.shown)
+    async def topics(self, query=None):
+        # Search only; the core's own tests cover the rest of a query.
+        words = query.text.lower().split() if query else []
+        return [t for t in self.shown if all(w in f"{t.title} {t.items[0].author}".lower() for w in words)]
 
     async def last_synced(self):
         return self.synced
@@ -133,7 +135,7 @@ def test_the_window_syncs_on_start_and_shows_the_topics(worker):
     desk = FakeDesk()
     win = window(desk, worker)
 
-    run_until(lambda: win.topics.total == 2 and not win.refreshing)
+    run_until(lambda: win.topics.shown == 2 and not win.refreshing)
 
     assert win.props.maximized
     assert desk.syncs == 1
@@ -144,7 +146,7 @@ def test_the_window_syncs_on_start_and_shows_the_topics(worker):
 
 def test_search_narrows_the_list(worker):
     win = window(FakeDesk(), worker)
-    run_until(lambda: win.topics.total == 2 and not win.refreshing)
+    run_until(lambda: win.topics.shown == 2 and not win.refreshing)
 
     win.search.set_text("cy")
     run_until(lambda: win.topics.shown == 1)
@@ -160,7 +162,7 @@ def test_a_failed_round_is_reported_and_the_old_topics_stay(worker):
     desk = FakeDesk(SyncFailed([("gmail", AuthError("gmail", "Expired."))]))
     win = window(desk, worker)
 
-    run_until(lambda: win.last_error is not None and not win.refreshing and win.topics.total == 1)
+    run_until(lambda: win.last_error is not None and not win.refreshing and win.topics.shown == 1)
     assert win.last_error == "Could not sync Gmail: Expired."
 
 
@@ -175,7 +177,7 @@ def test_refresh_does_not_start_a_second_round_while_one_runs(worker):
 
 def started(desk: FakeDesk, worker: CoreWorker) -> MainWindow:
     win = window(desk, worker)
-    run_until(lambda: win.topics.total == 2 and not win.refreshing)
+    run_until(lambda: win.topics.shown == 2 and not win.refreshing)
     return win
 
 
@@ -196,7 +198,7 @@ def test_a_slack_topic_shows_its_conversation_and_offers_no_reply(worker):
     desk = FakeDesk()
     desk.shown.append(topic("slack-1", "Bo", "Bo", "2026-10-24T10:00:00Z", service="slack"))
     win = window(desk, worker)
-    run_until(lambda: win.topics.total == 3 and not win.refreshing)
+    run_until(lambda: win.topics.shown == 3 and not win.refreshing)
 
     page = win.open_topic(next(t for t in win.topics.shown_topics() if t.service == "slack"))
     run_until(lambda: page.showing == "history")
@@ -233,7 +235,7 @@ def test_a_deleted_topic_leaves_the_queue(worker):
 
     page.delete()
 
-    run_until(lambda: win.topics.total == 1)
+    run_until(lambda: win.topics.shown == 1)
     assert desk.calls == [("delete", "1")]
     assert win.navigation.get_visible_page().get_tag() == "queue"
 
@@ -261,7 +263,7 @@ def test_disconnecting_a_service_drops_its_topics(worker):
 
     dialog.disconnect_service("gmail")
 
-    run_until(lambda: win.topics.total == 0)
+    run_until(lambda: win.topics.shown == 0)
     assert desk.calls == [("disconnect", "gmail")]
     assert win.stack.get_visible_child_name() == "empty"
 
@@ -270,7 +272,7 @@ def test_each_deletable_item_of_a_thread_can_be_deleted_on_its_own(worker):
     desk = FakeDesk()
     desk.shown.append(thread("t", "m1", "m2"))
     win = window(desk, worker)
-    run_until(lambda: win.topics.total == 3 and not win.refreshing)
+    run_until(lambda: win.topics.shown == 3 and not win.refreshing)
     page = win.open_topic(next(t for t in win.topics.shown_topics() if t.id == "t"))
     assert sorted(page.item_buttons) == ["m1", "m2"]
 
