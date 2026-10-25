@@ -202,4 +202,4 @@ Deletes a topic, or with an item key one of its items, in its service, then drop
 Not part of the contract yet:
 
 - **Options for repeatable runs**, arriving with storage and the first sync: a fixed clock, and a base URL per service so the suite can point the cores at a fake server.
-- **The legacy backend's methods** (`topics.list`, `<source>.sync`, `gmail.reply` and the rest, see [legacy/docs/specs/backend.md](../legacy/docs/specs/backend.md)), ported one by one as commands.
+- **The legacy backend's methods** (`topics.list`, `<source>.sync`, `gmail.reply` and the rest), ported one by one as commands.

@@ -1,0 +1,40 @@
+# Set up Gmail access
+
+SilentDesk connects to Gmail through an OAuth client that **your organization owns**. You create it once in Google Cloud, then give its ID to SilentDesk.
+
+## 1. Create the OAuth client
+
+In the [Google Cloud console](https://console.cloud.google.com/):
+
+1. **Create or pick a project.**
+2. **Enable the Gmail API.** Go to *APIs & Services → Library*, search for "Gmail API", and select **Enable**.
+3. **Configure the consent screen** under *Google Auth Platform* (shown as *OAuth consent screen* in older consoles):
+   - **Audience:**
+     - Choose **Internal** if you use Google Workspace. Only people in your organization can sign in, and Google does not need to review the app.
+     - Otherwise choose **External** and add your account under **Test users**. In testing mode, Google expires refresh tokens after 7 days, so you will need to connect again weekly.
+   - **Data access:** add two scopes:
+     - `https://www.googleapis.com/auth/gmail.modify`, to read emails and move them to the trash;
+     - `https://www.googleapis.com/auth/gmail.send`, to send replies.
+4. **Create the client.** Go to *Clients → Create client*, choose application type **Desktop app**, and name it "SilentDesk".
+5. **Copy the Client ID and Client secret.** For a desktop app, Google does not treat the secret as confidential.
+
+## 2. Give the client to SilentDesk
+
+For development, put them in `.env` at the repository root (git-ignored), then start the app with `linux/gtk/run.sh`:
+
+```sh
+cp .env.example .env
+# edit .env:
+#   SILENTDESK_GOOGLE_CLIENT_ID=1234-abc.apps.googleusercontent.com
+#   SILENTDESK_GOOGLE_CLIENT_SECRET=GOCSPX-...
+linux/gtk/run.sh
+```
+
+## 3. Connect
+
+Open **Topics** and select **Connect Gmail**. Your browser opens Google sign-in. When you approve, SilentDesk pulls the subject of every email in your Inbox. The first sync takes about 4 minutes for 10,000 emails.
+
+## Workspace admins
+
+- To allow the app for everyone, open the Admin console, go to *Security → Access and data control → API controls → App access control*, and mark the client ID as **Trusted**.
+- The `gmail.modify` scope is a restricted scope, and `gmail.send` is a sensitive scope. Internal apps are exempt from Google's verification. An External app published to production needs Google's verification and security assessment.
