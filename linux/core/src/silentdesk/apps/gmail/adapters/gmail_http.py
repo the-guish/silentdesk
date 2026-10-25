@@ -20,8 +20,11 @@ SERVICE = "gmail"
 # message costs 5: 50 a second. Staying at 40 leaves room for other calls.
 READ_PACE = 0.025
 MAX_IN_FLIGHT = 20
-# Waits after a rate-limit or server error: 1, 2, 4, 8 and 16 seconds.
-RETRIES = 5
+# Waits after a rate-limit or server error: 1, 2, 4, 8, 16 and 32 seconds,
+# over a minute in all, as Google counts quota per minute.
+RETRIES = 6
+# The reasons a 403 gives when a per-minute quota runs out.
+RATE_LIMITS = ("rateLimitExceeded", "userRateLimitExceeded")
 GMAIL_ID = re.compile(r"[A-Za-z0-9]+")
 
 
@@ -73,10 +76,15 @@ class GmailHttpApi(GmailApi):
         self.base = f"{base_url}/gmail/v1/users/me"
         # Waits between retries; tests pass one that does not wait.
         self.sleep = sleep
+        # After a rate-limit, every call waits until then, not only the one
+        # that hit it: the quota is per user.
+        self.paused_until = 0.0
 
     async def _call(self, method: str, path: str, token: str, **kwargs: Any) -> Any:
         """Sends the request, again after rate-limit and server errors."""
         for attempt in range(RETRIES + 1):
+            if (pause := self.paused_until - asyncio.get_running_loop().time()) > 0:
+                await self.sleep(pause)
             response = await self.http.request(
                 method, f"{self.base}/{path}", headers={"Authorization": f"Bearer {token}"}, **kwargs
             )
@@ -89,12 +97,21 @@ class GmailHttpApi(GmailApi):
                     raise NetworkError(SERVICE, "Gmail's answer could not be read.")
                 return body
             error = body.get("error") if isinstance(body, dict) else None
-            message = str(error.get("message", "")) if isinstance(error, dict) else ""
+            error = error if isinstance(error, dict) else None
+            message = str(error.get("message", "")) if error else ""
+            details = error.get("errors") if error else None
+            reasons = [e.get("reason") for e in details if isinstance(e, dict)] if isinstance(details, list) else []
             transient = response.status in (429, 500, 502, 503, 504) or (
-                response.status == 403 and "rate limit" in message.lower()
+                response.status == 403
+                and (
+                    any(reason in RATE_LIMITS for reason in reasons)
+                    or "rate limit" in message.lower()
+                    or "per minute" in message.lower()
+                )
             )
             if transient and attempt < RETRIES:
-                await self.sleep(1 << attempt)
+                resume = asyncio.get_running_loop().time() + (1 << attempt)
+                self.paused_until = max(self.paused_until, resume)
                 continue
             if response.status == 401:
                 raise AuthError(SERVICE, "Google rejected the access token.")
@@ -183,6 +200,9 @@ class GmailHttpApi(GmailApi):
                 if not tasks:
                     return out
                 finished, tasks = await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
+                # Take every finished read's error, so none is left unretrieved.
+                if errors := [error for task in finished if (error := task.exception()) is not None]:
+                    raise errors[0]
                 for task in finished:
                     if (message := task.result()) is not None:
                         out.append(message)
