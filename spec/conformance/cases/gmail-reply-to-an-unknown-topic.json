@@ -1,0 +1,63 @@
+{
+  "description": "replying needs a known topic and a non-empty reply",
+  "env": {
+    "SILENTDESK_TEST_KEYRING": "{home}/keyring.json",
+    "SILENTDESK_TEST_BASE_URL": "{server}",
+    "SILENTDESK_TEST_BROWSER": "follow",
+    "SILENTDESK_TEST_NOW": "2026-10-24T12:00:00Z",
+    "SILENTDESK_GOOGLE_CLIENT_ID": "test-client.apps.googleusercontent.com"
+  },
+  "steps": [
+    {
+      "args": [
+        "reply",
+        "no-such-topic"
+      ],
+      "stdin": "Thanks!",
+      "exit": 2,
+      "schema": "error.json",
+      "stdout": {
+        "error": {
+          "kind": "usage",
+          "message": {
+            "$any": "string"
+          }
+        }
+      }
+    },
+    {
+      "args": [
+        "reply",
+        "no-such-topic"
+      ],
+      "stdin": "  ",
+      "exit": 2,
+      "schema": "error.json",
+      "stdout": {
+        "error": {
+          "kind": "usage",
+          "message": {
+            "$any": "string"
+          }
+        }
+      }
+    },
+    {
+      "args": [
+        "delete",
+        "no-such-topic"
+      ],
+      "exit": 2,
+      "schema": "error.json",
+      "stdout": {
+        "error": {
+          "kind": "usage",
+          "message": {
+            "$any": "string"
+          }
+        }
+      }
+    }
+  ],
+  "requests": []
+}

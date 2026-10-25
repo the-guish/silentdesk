@@ -13,7 +13,7 @@ from collections.abc import Callable, Sequence
 from typing import Any
 
 from . import api
-from .contract import ConnectorError, StorageError, SyncFailed, UnknownService
+from .contract import ConnectorError, StorageError, SyncFailed, UnknownService, UnknownTopic
 
 EXIT_OK = 0
 EXIT_FAILED = 1
@@ -105,9 +105,28 @@ def _sync(args: list[str], stdin: Callable[[], str]) -> Any:
     return {"lastSynced": asyncio.run(sync())}
 
 
+def _reply(args: list[str], stdin: Callable[[], str]) -> Any:
+    if len(args) != 1:
+        raise UsageError("reply takes one topic ID; the reply comes on stdin.")
+    body = stdin()
+    if not body.strip():
+        raise UsageError("The reply is empty: write it on stdin.")
+    asyncio.run(api.desk().reply(args[0], body))
+    return {}
+
+
+def _delete(args: list[str], stdin: Callable[[], str]) -> Any:
+    if len(args) != 1:
+        raise UsageError("delete takes one topic ID.")
+    asyncio.run(api.desk().delete(args[0]))
+    return {}
+
+
 COMMANDS: dict[str, Command] = {
     "connect": _connect,
+    "delete": _delete,
     "disconnect": _disconnect,
+    "reply": _reply,
     "services": _services,
     "sync": _sync,
     "topics": _topics,
@@ -135,7 +154,7 @@ def run(argv: Sequence[str], stdin: Callable[[], str] = lambda: sys.stdin.read()
         if handler is None:
             raise UsageError(f"Unknown command {command!r}. Commands: {names}.")
         return EXIT_OK, handler(args, stdin)
-    except (UsageError, UnknownService) as error:
+    except (UsageError, UnknownService, UnknownTopic) as error:
         return EXIT_USAGE, _error("usage", str(error))
     except ConnectorError as error:
         return EXIT_FAILED, _error(error.kind, str(error))
