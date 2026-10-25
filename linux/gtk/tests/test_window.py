@@ -9,7 +9,20 @@ from datetime import UTC, datetime
 from functools import cache
 
 import pytest
-from silentdesk.contract import Desk, Direction, Item, Message, ServiceStatus, SyncFailed, TopicView, Unsupported
+from silentdesk.contract import (
+    Desk,
+    Direction,
+    Item,
+    Message,
+    ServiceStatus,
+    SyncFailed,
+    TopicQuery,
+    TopicView,
+    Unsupported,
+)
+
+from silentdesk_gtk import filters
+from silentdesk_gtk.filters import Choice
 
 # Through the app's package, which picks the GTK and libadwaita versions first.
 from silentdesk_gtk.window import MainWindow
@@ -41,11 +54,20 @@ class FakeDesk(Desk):
             "gmail": ServiceStatus("gmail", True, True, "ana@example.com"),
         }
         self.calls: list[tuple] = []
+        self.queries: list[TopicQuery | None] = []
 
     async def topics(self, query=None):
-        # Search only; the core's own tests cover the rest of a query.
-        words = query.text.lower().split() if query else []
-        return [t for t in self.shown if all(w in f"{t.title} {t.items[0].author}".lower() for w in words)]
+        # Enough of a query for the window; the core's own tests cover the rest.
+        self.queries.append(query)
+        query = query or TopicQuery()
+        words = query.text.lower().split()
+        return [
+            t
+            for t in self.shown
+            if all(w in f"{t.title} {t.items[0].author}".lower() for w in words)
+            and (not query.services or t.service in query.services)
+            and (not query.people or t.items[0].author in query.people)
+        ]
 
     async def last_synced(self):
         return self.synced
@@ -346,3 +368,53 @@ def test_the_services_action_opens_the_services_dialog(worker):
     win = started(FakeDesk(), worker)
     win.activate_action("win.services")
     assert win.services_dialog is not None
+
+
+def test_the_filter_bar_starts_on_all_and_offers_what_there_is(worker):
+    win = window(FakeDesk(), worker)
+    run_until(lambda: win.topics.shown == 2 and not win.refreshing)
+
+    bar = win.filter_bar
+    assert [f.label for f in bar.filters.values()] == ["Project: All", "Service: All"]
+    assert bar.filters["projects"].choices == [Choice("default", "Default")]
+    # GitHub is not connected.
+    assert bar.filters["services"].choices == [Choice("gmail", "Gmail")]
+    assert bar.offered["people"] == [Choice("Bo", "Bo"), Choice("Cy", "Cy")]
+
+
+def test_filters_and_search_narrow_the_list_together_until_cleared(worker):
+    desk = FakeDesk()
+    win = window(desk, worker)
+    run_until(lambda: win.topics.shown == 2 and not win.refreshing)
+
+    win.filter_bar.filters["services"].click("gmail")
+    people = win.filter_bar.add(filters.PEOPLE)
+    people.click("Bo")
+    run_until(lambda: win.topics.shown == 1)
+    assert win.topics.shown_topics()[0].title == "Invoice for October"
+    assert people.label == "People: Bo"
+    assert desk.queries[-1] == TopicQuery(services=frozenset({"gmail"}), people=frozenset({"Bo"}))
+
+    win.search.set_text("lunch")
+    run_until(lambda: win.stack.get_visible_child_name() == "no-match")
+    assert desk.queries[-1].text == "lunch"
+
+    win.clear_filters()
+    run_until(lambda: win.topics.shown == 1 and win.stack.get_visible_child_name() == "list")
+    assert win.topics.shown_topics()[0].title == "Lunch?"
+    assert list(win.filter_bar.filters) == ["projects", "services"]
+    assert desk.queries[-1] == TopicQuery(text="lunch")
+
+
+def test_a_service_that_disconnects_leaves_its_filter(worker):
+    desk = FakeDesk()
+    win = window(desk, worker)
+    run_until(lambda: win.topics.shown == 2 and not win.refreshing)
+    win.filter_bar.filters["services"].click("gmail")
+    run_until(lambda: desk.queries[-1] == TopicQuery(services=frozenset({"gmail"})))
+
+    desk.statuses["gmail"] = ServiceStatus("gmail", True, False, None)
+    win.load()
+
+    run_until(lambda: win.filter_bar.filters["services"].label == "Service: All")
+    assert win.query == TopicQuery()

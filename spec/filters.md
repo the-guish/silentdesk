@@ -39,7 +39,7 @@ Service is always in the bar. Its values are `All`, then every connected service
 
 ## More filters
 
-The `+` button at the right of the bar opens a list of the other fields, with a check box and a search entry, as Jira's **More** does. Checking a field adds its filter to the bar and opens it. Unchecking it removes the filter and its condition. A filter's own list also ends with **Remove Filter**.
+The `+` button at the right of the bar opens a list of the other fields, each with a check box, as Jira's **More** does. Checking a field adds its filter to the bar and opens it. Unchecking it removes the filter and its condition. A filter's own list also ends with **Remove Filter**.
 
 Each field is a field of the topic, or computed from its items. The query field in [cli.md](cli.md#topics) says how it matches.
 

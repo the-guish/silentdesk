@@ -7,14 +7,14 @@ from __future__ import annotations
 import sys
 import time
 from collections.abc import Callable
-from dataclasses import replace
 from datetime import datetime
 
 from gi.repository import Adw, Gio, GLib, GObject, Gtk
 from silentdesk import api
-from silentdesk.contract import Desk, TopicQuery, TopicView
+from silentdesk.contract import Desk, Project, ServiceStatus, TopicQuery, TopicView
 
-from . import format, services, style
+from . import filters, format, services, style
+from .filter_bar import FilterBar
 from .services_dialog import ServicesDialog
 from .topic_list import TopicList
 from .topic_page import TopicPage
@@ -119,6 +119,7 @@ class MainWindow(Adw.ApplicationWindow):
         # What the queue shows, and how many loads and matches were asked
         # for. Each shows its result only if no later one was asked for.
         self.query = TopicQuery()
+        self.search_text = ""
         self.loads = 0
         self.matches = 0
 
@@ -151,6 +152,8 @@ class MainWindow(Adw.ApplicationWindow):
             GObject.BindingFlags.BIDIRECTIONAL | GObject.BindingFlags.SYNC_CREATE,
         )
 
+        self.filter_bar = FilterBar(self._requery)
+
         self.stack = Gtk.Stack()
         self.stack.add_named(Gtk.ScrolledWindow(child=self.topics.view, vexpand=True), "list")
         connect_button = Gtk.Button(
@@ -166,13 +169,19 @@ class MainWindow(Adw.ApplicationWindow):
             ),
             "empty",
         )
+        clear_button = Gtk.Button(label="Clear Filters", halign=Gtk.Align.CENTER, css_classes=["pill"])
+        clear_button.connect("clicked", lambda _: self.clear_filters())
         self.stack.add_named(
-            Adw.StatusPage(icon_name="system-search-symbolic", title="No topics match your search"), "no-match"
+            Adw.StatusPage(
+                icon_name="system-search-symbolic", title="No topics match your search and filters", child=clear_button
+            ),
+            "no-match",
         )
 
         view = Adw.ToolbarView(content=self.stack)
         view.add_top_bar(header)
         view.add_top_bar(self.search_bar)
+        view.add_top_bar(self.filter_bar.box)
         self.topics.view.connect("activate", lambda _, position: self.open_topic(self.topics.at(position)))
         self.navigation = Adw.NavigationView()
         self.navigation.add(Adw.NavigationPage(child=view, title="SilentDesk", tag="queue"))
@@ -207,26 +216,40 @@ class MainWindow(Adw.ApplicationWindow):
         self.refresh()
 
     def load(self) -> None:
-        """Reads every topic, those that match the query, and when topics
-        last changed, then shows them."""
+        """Reads every topic, those that match the query, the values the
+        filters offer, and when topics last changed, then shows them."""
         self.loads += 1
         load, match, query = self.loads, self.matches, self.query
+        Read = tuple[list[TopicView], list[TopicView] | None, list[Project], list[ServiceStatus], str | None]
 
-        async def read() -> tuple[list[TopicView], list[TopicView] | None, str | None]:
+        async def read() -> Read:
             matching = await self.desk.topics(query) if query != TopicQuery() else None
-            return await self.desk.topics(), matching, await self.desk.last_synced()
+            return (
+                await self.desk.topics(),
+                matching,
+                await self.desk.projects(),
+                await self.desk.services(),
+                await self.desk.last_synced(),
+            )
 
-        def done(
-            result: tuple[list[TopicView], list[TopicView] | None, str | None] | None, error: BaseException | None
-        ) -> None:
+        def done(result: Read | None, error: BaseException | None) -> None:
             if error:
                 self._fail(error)
                 return
             if load != self.loads:
                 return
-            topics, matching, self.last_synced = result
+            topics, matching, projects, statuses, self.last_synced = result
             self.topics.set_topics(topics)
-            if match == self.matches:
+            # A value that is gone, such as a disconnected service, leaves
+            # its filter, which changes the query.
+            pruned = [
+                self.filter_bar.set_choices(filters.PROJECT, filters.project_choices(projects)),
+                self.filter_bar.set_choices(filters.SERVICE, filters.service_choices(statuses)),
+                self.filter_bar.set_choices(filters.PEOPLE, filters.people_choices(topics)),
+            ]
+            if any(pruned):
+                self._requery()
+            elif match == self.matches:
                 self.topics.set_matching(matching)
             else:
                 # The query changed while reading: match the new topics again.
@@ -338,8 +361,17 @@ class MainWindow(Adw.ApplicationWindow):
             self.refresh()
 
     def _search(self, text: str) -> None:
-        self.query = replace(self.query, text=text)
+        self.search_text = text
+        self._requery()
+
+    def _requery(self) -> None:
+        """Makes the query from the search and the filter bar, then matches."""
+        self.query = filters.query(self.search_text, self.filter_bar.chosen())
         self.match()
+
+    def clear_filters(self) -> None:
+        self.filter_bar.clear()
+        self._requery()
 
     def match(self) -> None:
         """Asks the core which topics match the query, then shows only those."""
