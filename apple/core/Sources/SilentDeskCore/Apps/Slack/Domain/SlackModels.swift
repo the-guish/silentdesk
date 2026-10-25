@@ -55,3 +55,9 @@ struct SlackDirectMessage: Sendable, Equatable {
     /// RFC 3339.
     let date: String
 }
+
+extension SlackCredential: CustomStringConvertible {
+    var description: String {
+        "SlackCredential(tokens hidden, refreshToken: \(refreshToken == nil ? "none" : "hidden"), expiresAt: \(expiresAt.map(String.init) ?? "never"))"
+    }
+}

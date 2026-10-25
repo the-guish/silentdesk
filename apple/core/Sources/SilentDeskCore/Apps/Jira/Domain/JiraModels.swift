@@ -51,3 +51,7 @@ struct JiraIssue: Sendable, Equatable {
     /// As Jira writes it, such as 2026-10-23T10:00:00.000+0200; nil when absent.
     let updated: String?
 }
+
+extension JiraCredential: CustomStringConvertible {
+    var description: String { "JiraCredential(email: \(email ?? "none"), token hidden)" }
+}

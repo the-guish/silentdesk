@@ -231,3 +231,12 @@ private func match(_ channel: String, _ ts: String, im: Bool = true, mpim: Bool 
     #expect(!SlackRules.needsRefresh(SlackCredential(accessToken: "a", refreshToken: nil, expiresAt: 1_000), now: 2_000))
     #expect(!SlackRules.needsRefresh(SlackCredential(accessToken: "a", refreshToken: "r", expiresAt: nil), now: 2_000))
 }
+
+// MARK: Credentials
+
+@Test func credentialsHideTheirTokensWhenPrinted() {
+    #expect(!"\(GmailGrant(accessToken: "a-secret", refreshToken: "r-secret"))".contains("secret"))
+    #expect(!"\(GoogleTasksGrant(accessToken: "a-secret", refreshToken: "r-secret"))".contains("secret"))
+    #expect(!"\(SlackCredential(accessToken: "xoxp-secret", refreshToken: "xoxe-secret", expiresAt: 10))".contains("secret"))
+    #expect(!"\(JiraCredential(email: "ana@acme.com", token: "jira-secret"))".contains("secret"))
+}

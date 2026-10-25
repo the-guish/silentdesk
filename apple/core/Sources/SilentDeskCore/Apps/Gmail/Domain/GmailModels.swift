@@ -44,3 +44,7 @@ struct GmailProfile: Sendable, Equatable {
     /// Changes after it can be listed.
     let historyID: String
 }
+
+extension GmailGrant: CustomStringConvertible {
+    var description: String { "GmailGrant(tokens hidden)" }
+}

@@ -31,3 +31,7 @@ struct GoogleTasksState: Sendable, Equatable {
     /// The connected account.
     let email: String
 }
+
+extension GoogleTasksGrant: CustomStringConvertible {
+    var description: String { "GoogleTasksGrant(tokens hidden)" }
+}
