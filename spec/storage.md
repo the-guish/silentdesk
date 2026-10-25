@@ -1,6 +1,6 @@
 # SilentDesk — Storage
 
-Status: decided, not built · Last updated: 2026-10-24
+Status: decided, not built · Last updated: 2026-10-25
 
 Both cores keep local data in one SQLite database file, with the same schema, so either core can open a database the other wrote. Migrations will live in `spec/sql/` as numbered `.sql` files, which both cores run in order. No table exists yet.
 
@@ -22,3 +22,15 @@ Core principle 1 ([legacy/docs/specs/core.md](../legacy/docs/specs/core.md)) req
 |--------|---------|
 | Encrypt values in plain SQLite | Table structure and row counts stay visible, and encrypted columns cannot be searched or sorted. |
 | Keep the legacy vault, one encrypted JSON document | Every write rewrites the whole document, and Apple's CryptoKit lacks its cipher (XChaCha20-Poly1305). |
+
+## Secrets
+
+Secrets are not in the database: they live in the OS credential store, under service `com.silentdesk.app`, one entry each. Both cores use these entry names:
+
+| Entry | Holds |
+|-------|-------|
+| `database-key` | The database's key |
+| `gmail-refresh-token` | Gmail's OAuth refresh token |
+| `google-tasks-refresh-token` | Google Tasks' OAuth refresh token |
+
+A service counts as connected when its entry is present. Tests can replace the credential store with a file; see [cli.md](cli.md#test-keyring).

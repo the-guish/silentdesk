@@ -3,6 +3,8 @@ command is a thin wrapper around the matching function in `api`."""
 
 from __future__ import annotations
 
+import asyncio
+import dataclasses
 import json
 import sys
 import traceback
@@ -26,7 +28,14 @@ def _version(args: list[str]) -> Any:
     return api.version()
 
 
+def _services(args: list[str]) -> Any:
+    if args:
+        raise UsageError("services takes no arguments.")
+    return [dataclasses.asdict(status) for status in asyncio.run(api.desk().services())]
+
+
 COMMANDS: dict[str, Callable[[list[str]], Any]] = {
+    "services": _services,
     "version": _version,
 }
 
