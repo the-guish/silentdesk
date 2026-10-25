@@ -1,8 +1,8 @@
 # Apple Store Reference Apps
 
-Status: reference · Last updated: 2026-10-24
+Status: reference · Last updated: 2026-10-25
 
-Open-source apps confirmed on the Mac App Store, as a reference for publishing SilentDesk there.
+Open-source apps confirmed on the Mac App Store, as a reference for publishing SilentDesk there. How the ones that handle secrets protect them is in [secure-macos-apps.md](secure-macos-apps.md).
 
 **How they were found.**
 - 48 come from the [open-source-mac-os-apps](https://github.com/serhii-londar/open-source-mac-os-apps) list, keeping those whose README links a Mac App Store listing.
@@ -13,7 +13,7 @@ Open-source apps confirmed on the Mac App Store, as a reference for publishing S
 
 **Languages** are bytes per language in the repository, the way GitHub counts them. A combination lists every language with at least 10% of the code, and smaller shares are in brackets. Vendored code, submodules and build scripts (Shell, Ruby, Perl) are not counted. Code fetched at build time is not counted either.
 
-**Database** comes from searching the code and the dependency manifests for storage APIs and libraries. An app counts as using a database when it embeds a database engine: SQLite, directly or through Core Data or SwiftData, or Firebird. "Files" means preferences (`UserDefaults`) and files the app writes itself.
+**Database** comes from searching the code and the dependency manifests for storage APIs and libraries, and **Keychain** from Keychain calls in the app's own code, checked on 2026-10-25 against each repository's default branch. An app counts as using a database when it embeds a database engine: SQLite, directly or through Core Data or SwiftData, or Firebird. "Files" means preferences (`UserDefaults`) and files the app writes itself.
 
 ## Summary
 
@@ -48,7 +48,8 @@ Open-source apps confirmed on the Mac App Store, as a reference for publishing S
 | Not stated | 1 (2%) |
 
 - **Python:** under 10% in every app. Krita is the only one where we know it ships, as its plugin runtime.
-- **Keychain:** 13 apps use it for secrets.
+- **Encryption at rest:** Telegram is the only app whose database is encrypted.
+- **Keychain:** 7 apps keep user secrets in it: WireGuard, MeetingBar, Sequel Ace, Pi Stats, Plug, FSNotes and Rocket.Chat, the last through Electron's `safeStorage`. Podlive does so through the Parse SDK. Starcat and UTM keep only a TLS identity there, Seahorse Studio a purchase flag, and Nightwatch's only Keychain code is a release script. Telegram's key handling was not read.
 
 ## Apps with a database
 
@@ -103,7 +104,7 @@ Open-source apps confirmed on the Mac App Store, as a reference for publishing S
 - What it does: live-streaming podcast player
 - License: MIT (README)
 - Languages: Objective-C
-- Database: Core Data (SQLite), plus calls to SQLite's C API; Keychain
+- Database: Core Data (SQLite), plus calls to SQLite's C API. Keychain only through the Parse SDK, which keeps its session token there
 
 ### Sequel Ace
 - Repo: [Sequel-Ace/Sequel-Ace](https://github.com/Sequel-Ace/Sequel-Ace)
@@ -119,7 +120,7 @@ Open-source apps confirmed on the Mac App Store, as a reference for publishing S
 - What it does: local-first manager for GitHub stars
 - License: MIT
 - Languages: JavaScript + Swift
-- Database: SQLite through GRDB (the code mentions SQLCipher); Keychain
+- Database: SQLite through GRDB, not encrypted. Since June 2026 the GitHub token and API keys are in an AES-GCM-encrypted file next to it, not in the Keychain; the Keychain holds only the MCP server's TLS identity. The SQLCipher mention in the code is a URL in a test fixture
 
 ### Telegram
 - Repo: [TelegramMessenger/Telegram-macOS](https://github.com/TelegramMessenger/Telegram-macOS)
@@ -128,7 +129,7 @@ Open-source apps confirmed on the Mac App Store, as a reference for publishing S
 - License: GPL-2.0
 - Languages: C + Swift (JavaScript 3%, C++ 3%)
 - Architecture: its Postbox storage layer runs on SQLite. The source link on macos.telegram.org (overtake/TelegramSwift) is no longer public
-- Database: SQLite encrypted with SQLCipher; Keychain
+- Database: SQLite encrypted with SQLCipher, in the Postbox code that comes from the Telegram-iOS submodule. No Keychain use was found in the macOS app's own sources; the class that keeps the database key was not read
 
 ### tmpNote
 - Repo: [buddax2/tmpNote](https://github.com/buddax2/tmpNote)
@@ -254,7 +255,7 @@ Open-source apps confirmed on the Mac App Store, as a reference for publishing S
 - License: MIT
 - Languages: JavaScript + Swift
 - Architecture: notes are plain Markdown files
-- Database: no, Markdown files; Keychain
+- Database: no, Markdown files, each one optionally encrypted; Keychain for the master password
 
 ### Gifski
 - Repo: [sindresorhus/Gifski](https://github.com/sindresorhus/Gifski)
@@ -363,7 +364,7 @@ Open-source apps confirmed on the Mac App Store, as a reference for publishing S
 - What it does: clear-sky alerts for amateur astronomers
 - License: MIT
 - Languages: C + Swift
-- Database: no, files; Keychain
+- Database: no, files. The only Keychain code is a release script, not the app
 
 ### Notenik
 - Repo: [hbowie/notenik-swift](https://github.com/hbowie/notenik-swift)
@@ -440,7 +441,7 @@ Open-source apps confirmed on the Mac App Store, as a reference for publishing S
 - License: MIT
 - Languages: TypeScript
 - Architecture: Electron
-- Database: no, browser localStorage and IndexedDB; Keychain
+- Database: no, browser localStorage and IndexedDB. Keychain through Electron's `safeStorage`, for Outlook credentials only
 
 ### Seahorse Studio
 - Repo: [robaho/seashore](https://github.com/robaho/seashore)
@@ -449,7 +450,7 @@ Open-source apps confirmed on the Mac App Store, as a reference for publishing S
 - License: GPL-2.0
 - Languages: C + Objective-C
 - Architecture: listed under a different name than the repo
-- Database: no, files; Keychain
+- Database: no, files. The Keychain item is a purchase flag
 
 ### Stockfish Chess
 - Repo: [daylen/stockfish-mac](https://github.com/daylen/stockfish-mac)
@@ -499,7 +500,7 @@ Open-source apps confirmed on the Mac App Store, as a reference for publishing S
 - License: Apache-2.0 (uses some GPL and LGPL components)
 - Languages: Objective-C + Swift
 - Architecture: a second listing, UTM SE, is the retro PC emulator
-- Database: no, files; Keychain
+- Database: no, files. The Keychain holds the UTM Remote TLS identity
 
 ### WiFi Lens Pro
 - Repo: [ShiinaLabs/wifi-lens](https://github.com/ShiinaLabs/wifi-lens)
