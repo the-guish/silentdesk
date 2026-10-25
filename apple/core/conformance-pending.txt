@@ -40,3 +40,5 @@ projects-empty
 projects-add-rename-delete
 projects-name-rules
 projects-move-topics
+topics-query
+topics-query-usage

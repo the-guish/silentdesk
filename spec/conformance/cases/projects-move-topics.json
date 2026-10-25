@@ -1,5 +1,5 @@
 {
-  "description": "a topic moves to a project and back to Default, keeps its project across syncs, and returns to Default when its project is deleted",
+  "description": "a topic moves to a project and back to Default, keeps its project across syncs, is found by its project, and returns to Default when its project is deleted",
   "env": {
     "SILENTDESK_TEST_KEYRING": "{home}/keyring.json",
     "SILENTDESK_TEST_BASE_URL": "{server}",
@@ -273,6 +273,81 @@
           },
           "deletable": false
         },
+        {
+          "id": {
+            "$any": "string"
+          },
+          "service": "github",
+          "title": "Add retries",
+          "items": {
+            "$any": "array"
+          },
+          "projectId": null,
+          "updatedAt": {
+            "$any": "string"
+          },
+          "deletable": false
+        },
+        {
+          "id": {
+            "$any": "string"
+          },
+          "service": "github",
+          "title": "Fix login",
+          "items": {
+            "$any": "array"
+          },
+          "projectId": null,
+          "updatedAt": {
+            "$any": "string"
+          },
+          "deletable": false
+        }
+      ]
+    },
+    {
+      "args": [
+        "topics"
+      ],
+      "stdin": {
+        "projects": [
+          "{capture.acme}"
+        ]
+      },
+      "exit": 0,
+      "schema": "topics.json",
+      "stdout": [
+        {
+          "id": {
+            "$any": "string"
+          },
+          "service": "github",
+          "title": "acme/api#9",
+          "items": {
+            "$any": "array"
+          },
+          "projectId": {
+            "$any": "string"
+          },
+          "updatedAt": {
+            "$any": "string"
+          },
+          "deletable": false
+        }
+      ]
+    },
+    {
+      "args": [
+        "topics"
+      ],
+      "stdin": {
+        "projects": [
+          "default"
+        ]
+      },
+      "exit": 0,
+      "schema": "topics.json",
+      "stdout": [
         {
           "id": {
             "$any": "string"

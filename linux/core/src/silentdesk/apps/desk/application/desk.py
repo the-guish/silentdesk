@@ -7,12 +7,15 @@ from collections.abc import Callable, Mapping, Sequence
 from ....contract import (
     Connector,
     Desk,
+    InvalidProjectName,
     Message,
+    Project,
     ServiceStatus,
     SyncFailed,
     TopicQuery,
     TopicView,
     UnknownItem,
+    UnknownProject,
     UnknownService,
     UnknownTopic,
     Unsupported,
@@ -45,14 +48,69 @@ class DeskService(Desk):
 
     async def topics(self, query: TopicQuery | None = None) -> list[TopicView]:
         query = query or TopicQuery()
+        search.check(query)
         views = []
         for record in topics.newest_first(await self.store.topics()):
             deletable = topics.deletable(record)
             if search.matches(record, deletable, query):
                 views.append(
-                    TopicView(record.id, record.service, record.title, record.items, record.updated_at, deletable)
+                    TopicView(
+                        record.id,
+                        record.service,
+                        record.title,
+                        record.items,
+                        record.updated_at,
+                        deletable,
+                        record.project_id,
+                    )
                 )
         return views
+
+    async def projects(self) -> list[Project]:
+        return sorted(await self.store.projects(), key=lambda project: (project.name.casefold(), project.id))
+
+    async def add_project(self, name: str) -> Project:
+        project = Project(self.new_id(), await self._project_name(name, None))
+        await self.store.save_project(project)
+        return project
+
+    async def rename_project(self, project_id: str, name: str) -> Project:
+        await self._project(project_id)
+        project = Project(project_id, await self._project_name(name, project_id))
+        await self.store.save_project(project)
+        return project
+
+    async def delete_project(self, project_id: str) -> None:
+        await self._project(project_id)
+        await self.store.delete_project(project_id)
+
+    async def move(self, topic_id: str, project_id: str | None) -> None:
+        if project_id is not None:
+            await self._project(project_id)
+        # Inside the service's lock, so a sync of the topic's service cannot
+        # write back its old project.
+        service = (await self._record(topic_id)).service
+        async with self.locks[service]:
+            await self._record(topic_id)
+            await self.store.move(topic_id, project_id)
+
+    async def _project(self, project_id: str) -> Project:
+        for project in await self.store.projects():
+            if project.id == project_id:
+                return project
+        raise UnknownProject(f"No project has the ID {project_id!r}.")
+
+    async def _project_name(self, name: str, project_id: str | None) -> str:
+        """`name` without its outer spaces, if no other project has it."""
+        name = name.strip()
+        if not name:
+            raise InvalidProjectName("A project needs a name.")
+        if name.casefold() in ("all", "default"):
+            raise InvalidProjectName(f"{name!r} is taken by the filter bar.")
+        for project in await self.store.projects():
+            if project.id != project_id and project.name.casefold() == name.casefold():
+                raise InvalidProjectName(f"Another project is named {project.name!r}.")
+        return name
 
     async def services(self) -> list[ServiceStatus]:
         return [await self.connectors[service].status() for service in sorted(self.connectors)]

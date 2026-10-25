@@ -124,7 +124,22 @@ Takes no arguments. Lists every service SilentDesk can connect, sorted by `servi
 
 ### `topics`
 
-Takes no arguments. Lists every topic, newest first: by `updatedAt`, then by `id`, both descending ([schema](schema/topics.json)). Creates the database on first use.
+Takes no arguments. Lists the topics that match a query, newest first: by `updatedAt`, then by `id`, both descending ([schema](schema/topics.json)). Creates the database on first use.
+
+The query is one JSON object on stdin, such as `{"text": "invoice", "services": ["gmail"]}`. Empty input lists every topic. Both apps search and filter through it ([filters.md](filters.md)).
+
+| Field | Type | A topic matches when |
+|-------|------|----------------------|
+| `text` | string | Each of its words is in the title, the service's name, an item's author or an item's key, ignoring case. The service names are `Gmail`, `GitHub`, `Jira`, `Slack` and `Google Tasks`. |
+| `projects` | array of strings | Its project is one of these project IDs. `default` stands for Default. |
+| `services` | array of strings | Its service is one of these, such as `gmail`. |
+| `people` | array of strings | One of these people wrote one of its items, by `author`. |
+| `waitingOn` | array of `me`, `others` | `others`: its newest item is outbound. `me`: its newest item is inbound or has no direction. |
+| `updatedFrom` | string | Its `updatedAt` is at or after this time, in RFC 3339. |
+| `updatedTo` | string | Its `updatedAt` is before this time, in RFC 3339. |
+| `deletable` | boolean | Its `deletable` has this value. |
+
+A topic is listed when it matches every field in the query. An array matches a topic with any of its values. A missing field, an empty string or an empty array matches every topic. A project ID or service name that does not exist matches nothing. An unknown field, a value of the wrong type or a time that is not RFC 3339 is a usage error.
 
 ```json
 [

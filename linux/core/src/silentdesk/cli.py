@@ -13,7 +13,19 @@ from collections.abc import Callable, Sequence
 from typing import Any
 
 from . import api
-from .contract import ConnectorError, StorageError, SyncFailed, UnknownItem, UnknownService, UnknownTopic
+from .contract import (
+    DEFAULT_PROJECT,
+    ConnectorError,
+    InvalidProjectName,
+    InvalidQuery,
+    StorageError,
+    SyncFailed,
+    TopicQuery,
+    UnknownItem,
+    UnknownProject,
+    UnknownService,
+    UnknownTopic,
+)
 
 EXIT_OK = 0
 EXIT_FAILED = 1
@@ -60,9 +72,83 @@ def _services(args: list[str], stdin: Callable[[], str]) -> Any:
     return plain(asyncio.run(api.desk().services()))
 
 
+# The topics query's array fields, and the values each allows (None: any).
+QUERY_SETS: dict[str, frozenset[str] | None] = {
+    "projects": None,
+    "services": None,
+    "people": None,
+    "waitingOn": frozenset({"me", "others"}),
+}
+
+
+def _query(text: str) -> TopicQuery:
+    """The topics query: one JSON object on stdin, or nothing for every topic."""
+    if not text.strip():
+        return TopicQuery()
+    try:
+        fields = json.loads(text)
+    except json.JSONDecodeError as error:
+        raise UsageError(f"The topics query on stdin is not JSON: {error}.") from error
+    if not isinstance(fields, dict):
+        raise UsageError("The topics query on stdin must be one JSON object.")
+    unknown = set(fields) - {*QUERY_SETS, "text", "updatedFrom", "updatedTo", "deletable"}
+    if unknown:
+        raise UsageError(f"Unknown query fields: {', '.join(sorted(unknown))}.")
+    sets: dict[str, frozenset[str]] = {}
+    for name, allowed in QUERY_SETS.items():
+        values = fields.get(name, [])
+        if not isinstance(values, list) or not all(isinstance(value, str) for value in values):
+            raise UsageError(f"The query field {name} must be an array of strings.")
+        if allowed is not None and not set(values) <= allowed:
+            raise UsageError(f"The query field {name} takes {', '.join(sorted(allowed))}.")
+        sets[name] = frozenset(values)
+    for name in ("text", "updatedFrom", "updatedTo"):
+        if not isinstance(fields.get(name, ""), str):
+            raise UsageError(f"The query field {name} must be a string.")
+    deletable = fields.get("deletable")
+    if deletable is not None and not isinstance(deletable, bool):
+        raise UsageError("The query field deletable must be true or false.")
+    return TopicQuery(
+        text=fields.get("text", ""),
+        projects=sets["projects"],
+        services=sets["services"],
+        people=sets["people"],
+        waiting_on=sets["waitingOn"],
+        updated_from=fields.get("updatedFrom") or None,
+        updated_to=fields.get("updatedTo") or None,
+        deletable=deletable,
+    )
+
+
 def _topics(args: list[str], stdin: Callable[[], str]) -> Any:
     _no_arguments("topics", args)
-    return plain(asyncio.run(api.desk().topics()))
+    return plain(asyncio.run(api.desk().topics(_query(stdin()))))
+
+
+def _projects(args: list[str], stdin: Callable[[], str]) -> Any:
+    _no_arguments("projects", args)
+    return plain(asyncio.run(api.desk().projects()))
+
+
+def _project(args: list[str], stdin: Callable[[], str]) -> Any:
+    usage = "project takes add <name>, rename <project-id> <name> or delete <project-id>."
+    match args:
+        case ["add", name]:
+            return plain(asyncio.run(api.desk().add_project(name)))
+        case ["rename", project_id, name]:
+            return plain(asyncio.run(api.desk().rename_project(project_id, name)))
+        case ["delete", project_id]:
+            asyncio.run(api.desk().delete_project(project_id))
+            return {}
+    raise UsageError(usage)
+
+
+def _move(args: list[str], stdin: Callable[[], str]) -> Any:
+    if len(args) != 2:
+        raise UsageError(f"move takes one topic ID and one project ID, or {DEFAULT_PROJECT}.")
+    topic_id, project_id = args
+    asyncio.run(api.desk().move(topic_id, None if project_id == DEFAULT_PROJECT else project_id))
+    return {}
 
 
 def _one_service(command: str, args: list[str]) -> str:
@@ -136,6 +222,9 @@ COMMANDS: dict[str, Command] = {
     "delete": _delete,
     "disconnect": _disconnect,
     "history": _history,
+    "move": _move,
+    "project": _project,
+    "projects": _projects,
     "reply": _reply,
     "services": _services,
     "sync": _sync,
@@ -164,7 +253,15 @@ def run(argv: Sequence[str], stdin: Callable[[], str] = lambda: sys.stdin.read()
         if handler is None:
             raise UsageError(f"Unknown command {command!r}. Commands: {names}.")
         return EXIT_OK, handler(args, stdin)
-    except (UsageError, UnknownService, UnknownTopic, UnknownItem) as error:
+    except (
+        UsageError,
+        UnknownService,
+        UnknownTopic,
+        UnknownItem,
+        UnknownProject,
+        InvalidProjectName,
+        InvalidQuery,
+    ) as error:
         return EXIT_USAGE, _error("usage", str(error))
     except ConnectorError as error:
         return EXIT_FAILED, _error(error.kind, str(error))
