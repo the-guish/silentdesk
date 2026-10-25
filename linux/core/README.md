@@ -17,7 +17,7 @@ uv run pytest -q                # unit tests
 | `src/silentdesk/contract/` | Abstract classes and data the apps expose to each other and to `api` |
 | `src/silentdesk/apps/gmail/` | The Gmail connector |
 | `src/silentdesk/apps/google_tasks/` | The Google Tasks connector |
-| `src/silentdesk/apps/desk/` | The orchestration app: one queue of topics, and sync rounds over every connector |
+| `src/silentdesk/apps/desk/` | The orchestration app: one queue of topics, its search and projects, and sync rounds over every connector |
 | `src/silentdesk/adapters/` | Adapters every app can be given: settings, the SQLCipher database, the keyring, HTTPS, the browser |
 | `tests/` | Unit tests, including the layout rules in `test_architecture.py` |
 | `conformance-pending.txt` | Conformance cases this core does not pass yet |

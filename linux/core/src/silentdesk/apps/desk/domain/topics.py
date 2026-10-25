@@ -23,3 +23,5 @@ class TopicRecord:
     # What the connector said: it can delete the whole topic at once. See
     # `core.topics.deletable` for whether the topic can be deleted at all.
     deletable: bool
+    # The user's project for the topic, or None for Default.
+    project_id: str | None = None

@@ -15,7 +15,7 @@ def test_usage_errors_list_the_commands():
     assert code == cli.EXIT_USAGE
     assert (
         document["error"]["message"]
-        == "Unknown command 'no-such-command'. Commands: connect, delete, disconnect, history, reply, services, sync, topics, version."
+        == "Unknown command 'no-such-command'. Commands: connect, delete, disconnect, history, move, project, projects, reply, services, sync, topics, version."
     )
 
 
