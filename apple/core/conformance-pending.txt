@@ -6,11 +6,7 @@ services-unconfigured
 services-connected
 disconnect-forgets-the-sign-in
 sync-not-connected
-tasks-connect-access-denied
-tasks-connect-not-configured
 tasks-connect-scope-not-granted
-tasks-connect-sync-topics
-tasks-disconnect-revokes
 tasks-sync-grant-revoked
 gmail-connect-sync-threads
 gmail-reply-and-delete
