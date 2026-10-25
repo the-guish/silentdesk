@@ -1,7 +1,5 @@
 # SilentDesk — Gmail Integration
 
-Status: v1 implemented · Last updated: 2026-10-23
-
 ## Goal (v1)
 
 Let the user connect their Gmail account securely, then pull the **subject of every email in their Inbox** as topics. One email maps to one topic; no grouping yet. From a topic, the user can reply to its email or move it to the trash.

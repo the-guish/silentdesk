@@ -1,7 +1,5 @@
 # SilentDesk — Backend
 
-Status: v1 implemented · Last updated: 2026-10-24
-
 SilentDesk runs as three parts:
 
 | Part | Language | Does |

@@ -1,7 +1,5 @@
 # SilentDesk — Core Principles
 
-Status: draft · Last updated: 2026-10-24
-
 These principles override everything else. A feature that conflicts with any of them is not built, or is redesigned until it no longer conflicts.
 
 ---

@@ -1,7 +1,5 @@
 # SilentDesk — Google Tasks Integration
 
-Status: v1 implemented · Last updated: 2026-10-24
-
 ## Goal (v1)
 
 Tasks are a topic kind like any other. They live in **Google Tasks**, not in SilentDesk (core principle 4), and appear in the single Topics list next to emails, Slack messages, Jira issues and pull requests. One task maps to one topic.
