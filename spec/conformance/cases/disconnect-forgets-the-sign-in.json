@@ -1,21 +1,53 @@
 {
   "description": "disconnecting forgets the stored sign-in",
-  "env": { "SILENTDESK_TEST_KEYRING": "{home}/keyring.json" },
-  "files": { "keyring.json": { "gmail-refresh-token": "test-refresh-token" } },
+  "env": {
+    "SILENTDESK_TEST_KEYRING": "{home}/keyring.json"
+  },
+  "files": {
+    "keyring.json": {
+      "gmail-refresh-token": "test-refresh-token"
+    }
+  },
   "steps": [
     {
-      "args": ["disconnect", "gmail"],
+      "args": [
+        "disconnect",
+        "gmail"
+      ],
       "exit": 0,
       "schema": "status.json",
-      "stdout": { "service": "gmail", "configured": false, "connected": false, "account": null }
+      "stdout": {
+        "service": "gmail",
+        "configured": false,
+        "connected": false,
+        "account": null
+      }
     },
     {
-      "args": ["services"],
+      "args": [
+        "services"
+      ],
       "exit": 0,
       "schema": "services.json",
       "stdout": [
-        { "service": "gmail", "configured": false, "connected": false, "account": null },
-        { "service": "tasks", "configured": false, "connected": false, "account": null }
+        {
+          "service": "github",
+          "configured": true,
+          "connected": false,
+          "account": null
+        },
+        {
+          "service": "gmail",
+          "configured": false,
+          "connected": false,
+          "account": null
+        },
+        {
+          "service": "tasks",
+          "configured": false,
+          "connected": false,
+          "account": null
+        }
       ]
     }
   ]
