@@ -112,7 +112,7 @@ jobs:
             --json-schema '{"type":"object","properties":{"touches_security":{"type":"boolean"}},"required":["touches_security"]}'
 
   security-review:
-    name: Claude security review
+    name: "Claude security review (${{ needs.security-screening.outputs.touches_security == 'true' && 'deep: Fable, extra-high' || 'standard: Opus, medium' }})"
     needs: security-screening
     runs-on: ubuntu-24.04
     permissions:
