@@ -40,3 +40,5 @@ SilentDesk puts everything you need to know and potentially take action on into 
 ## License
 
 Apache License 2.0. See [LICENSE](LICENSE), [NOTICE](NOTICE) and [AUTHORS](AUTHORS).
+
+This line is a dummy edit to test the security screening. Do not merge.
