@@ -45,6 +45,18 @@ class Match:
 
 
 @dataclass(frozen=True)
+class HistoryEntry:
+    """One message of a conversation, as conversations.history returns it."""
+
+    user: str | None
+    username: str | None
+    text: str
+    ts: str
+    # Set for events, such as channel_join, rather than messages.
+    subtype: str | None
+
+
+@dataclass(frozen=True)
 class DirectMessage:
     channel_id: str
     ts: str

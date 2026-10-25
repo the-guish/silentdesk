@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Mapping
 
-from ....contract import AuthError, Connector, RemoteError, ServiceStatus, SyncResult, Unsupported
+from ....contract import AuthError, Connector, Message, RemoteError, ServiceStatus, SyncResult, Unsupported
 from ..core import jira
 from ..domain.jira import Credential, Endpoint, Flavor, JiraAccount, JiraUser
 from ..ports.credentials import Credentials
@@ -113,6 +113,9 @@ class Jira(Connector):
 
     async def reply(self, topic_key: str, body: str) -> None:
         raise Unsupported(self.service, "SilentDesk cannot comment on a Jira issue yet.")
+
+    async def history(self, topic_key: str) -> list[Message]:
+        raise Unsupported(self.service, "Jira has no conversation to show.")
 
     async def delete_topic(self, topic_key: str) -> None:
         raise Unsupported(self.service, "SilentDesk cannot delete a Jira issue.")

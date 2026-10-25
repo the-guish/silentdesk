@@ -6,7 +6,7 @@ from abc import ABC, abstractmethod
 from collections.abc import Mapping
 from dataclasses import dataclass
 
-from .connector import Item, ServiceStatus
+from .connector import Item, Message, ServiceStatus
 
 
 @dataclass(frozen=True)
@@ -47,6 +47,10 @@ class Desk(ABC):
     @abstractmethod
     async def last_synced(self) -> str | None:
         """When topics last changed, in RFC 3339, or None before the first sync."""
+
+    @abstractmethod
+    async def history(self, topic_id: str) -> list[Message]:
+        """A topic's recent messages with their text, read live from its service."""
 
     @abstractmethod
     async def reply(self, topic_id: str, body: str) -> None:

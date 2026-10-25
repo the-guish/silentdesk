@@ -59,6 +59,9 @@ class FakeConnector(Connector):
     async def reply(self, topic_key: str, body: str) -> None:
         raise NotImplementedError
 
+    async def history(self, topic_key: str):
+        raise NotImplementedError
+
     async def delete_topic(self, topic_key: str) -> None:
         raise NotImplementedError
 

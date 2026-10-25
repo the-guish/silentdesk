@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 
-from ....contract import AuthError, Connector, ServiceStatus, SyncResult, UnknownTopic
+from ....contract import AuthError, Connector, Message, ServiceStatus, SyncResult, UnknownTopic, Unsupported
 from ..core import gmail
 from ..domain.state import GmailState
 from ..ports.authorization import Authorization
@@ -119,6 +119,9 @@ class Gmail(Connector):
         access = await self._access_token()
         original = await self.api.original(access, newest.message_id)
         await self.api.send(access, topic_key, gmail.reply(original, body))
+
+    async def history(self, topic_key: str) -> list[Message]:
+        raise Unsupported(self.service, "SilentDesk shows Gmail's headers only; it never reads a message's body.")
 
     async def delete_topic(self, topic_key: str) -> None:
         """Moves the thread to the Gmail trash and forgets its messages."""

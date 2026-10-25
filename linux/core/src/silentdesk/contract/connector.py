@@ -57,6 +57,19 @@ class Topic:
 
 
 @dataclass(frozen=True)
+class Message:
+    """One message of a topic with its text, read live for the topic screen.
+    Shown, never stored."""
+
+    key: str
+    direction: Direction | None
+    author: str | None
+    text: str
+    # RFC 3339.
+    date: str
+
+
+@dataclass(frozen=True)
 class SyncResult:
     """What one sync found. When `complete` is true, `topics` is everything
     the service has now, and any topic not in it is gone."""
@@ -96,6 +109,11 @@ class Connector(ABC):
     async def reply(self, topic_key: str, body: str) -> None:
         """Replies in the topic with this key, as the connected account.
         Raises `Unsupported` if the service has no replies."""
+
+    @abstractmethod
+    async def history(self, topic_key: str) -> list[Message]:
+        """The topic's recent messages with their text, oldest first, read
+        live from the service. Raises `Unsupported` if the service has none."""
 
     @abstractmethod
     async def delete_topic(self, topic_key: str) -> None:
