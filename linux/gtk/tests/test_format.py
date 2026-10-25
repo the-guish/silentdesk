@@ -45,3 +45,10 @@ def test_search_matches_every_word_in_title_service_and_people():
     assert format.matches(topic(), "GMAIL")
     assert not format.matches(topic(), "invoice cy")
     assert format.matches(topic(), "")
+
+
+def test_errors_read_as_one_line():
+    from silentdesk.contract import RemoteError
+
+    assert format.describe(RemoteError("jira", "Jira answered 503.")) == "Jira: Jira answered 503."
+    assert format.describe(ValueError("Bad.")) == "Bad."

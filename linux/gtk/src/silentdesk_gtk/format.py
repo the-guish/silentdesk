@@ -5,7 +5,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from silentdesk.contract import Direction, TopicView
+from silentdesk.contract import ConnectorError, Direction, SyncFailed, TopicView
 
 SERVICE_NAMES = {"gmail": "Gmail", "github": "GitHub", "jira": "Jira", "slack": "Slack", "tasks": "Google Tasks"}
 
@@ -78,3 +78,13 @@ def matches(topic: TopicView, query: str) -> bool:
     """Whether every word of the query is in the topic."""
     text = search_text(topic)
     return all(word in text for word in query.lower().split())
+
+
+def describe(error: BaseException) -> str:
+    """An error as one line for a toast."""
+    if isinstance(error, SyncFailed):
+        failed = ", ".join(service_name(service) for service, _ in error.failures)
+        return f"Could not sync {failed}."
+    if isinstance(error, ConnectorError) and error.service:
+        return f"{service_name(error.service)}: {error}"
+    return str(error) or type(error).__name__
