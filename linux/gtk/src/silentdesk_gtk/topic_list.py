@@ -1,4 +1,4 @@
-"""The queue: a list view of topics, filtered by the search."""
+"""The queue: a list view of every topic, showing those the core matched."""
 
 from __future__ import annotations
 
@@ -22,13 +22,15 @@ class TopicObject(GObject.Object):
 
 
 class TopicList:
-    """A Gtk.ListView over a filtered store. `query` decides what shows."""
+    """A Gtk.ListView over a store of every topic. It shows the topics in
+    `matching`, or all of them when it is None. Rebuilding the store costs
+    far more than filtering it, so a new search only changes `matching`."""
 
     def __init__(self, now: Callable[[], datetime]) -> None:
         self.now = now
-        self.query = ""
+        self.matching: set[str] | None = None
         self.store = Gio.ListStore(item_type=TopicObject)
-        self.filter = Gtk.CustomFilter.new(lambda item: format.matches(item.topic, self.query))
+        self.filter = Gtk.CustomFilter.new(lambda item: self.matching is None or item.topic.id in self.matching)
         self.filtered = Gtk.FilterListModel(model=self.store, filter=self.filter)
         factory = Gtk.SignalListItemFactory()
         factory.connect("setup", self._setup)
@@ -41,8 +43,9 @@ class TopicList:
     def set_topics(self, topics: list[TopicView]) -> None:
         self.store.splice(0, self.store.get_n_items(), [TopicObject(topic) for topic in topics])
 
-    def set_query(self, query: str) -> None:
-        self.query = query
+    def set_matching(self, topics: list[TopicView] | None) -> None:
+        """Shows only `topics`, or every topic when None."""
+        self.matching = None if topics is None else {topic.id for topic in topics}
         self.filter.changed(Gtk.FilterChange.DIFFERENT)
 
     @property

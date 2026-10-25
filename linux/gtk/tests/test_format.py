@@ -50,13 +50,6 @@ def test_items_say_whether_they_were_received_or_sent_and_when():
     assert format.item_line(None, "2025-12-31T09:00:00Z", local) == "Dec 31, 2025, 11:00"
 
 
-def test_search_matches_every_word_in_title_service_and_people():
-    assert format.matches(topic(), "invoice bo")
-    assert format.matches(topic(), "GMAIL")
-    assert not format.matches(topic(), "invoice cy")
-    assert format.matches(topic(), "")
-
-
 def test_errors_read_as_one_line():
     from silentdesk.contract import AuthError, RemoteError, SyncFailed
 

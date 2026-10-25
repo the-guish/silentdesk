@@ -26,10 +26,30 @@ class TopicView:
     deletable: bool
 
 
+@dataclass(frozen=True)
+class TopicQuery:
+    """Which topics to list. A topic matches when it has every word of
+    `text` and passes every filter. An empty set or None lets every topic
+    through; several values in one set match a topic with any of them."""
+
+    # Words, in any case, each found in the title, the service's name, an
+    # author or an item key.
+    text: str = ""
+    services: frozenset[str] = frozenset()
+    # Authors of any item.
+    people: frozenset[str] = frozenset()
+    # "others": the newest item is outbound. "me": any other topic.
+    waiting_on: frozenset[str] = frozenset()
+    # RFC 3339 bounds on `updated_at`: from included, to excluded.
+    updated_from: str | None = None
+    updated_to: str | None = None
+    deletable: bool | None = None
+
+
 class Desk(ABC):
     @abstractmethod
-    async def topics(self) -> list[TopicView]:
-        """Every topic, newest first."""
+    async def topics(self, query: TopicQuery | None = None) -> list[TopicView]:
+        """The topics that match `query`, or every topic, newest first."""
 
     @abstractmethod
     async def services(self) -> list[ServiceStatus]:

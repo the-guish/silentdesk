@@ -5,7 +5,7 @@ The Linux app, in Python with GTK4 and libadwaita. It reaches the core in [`../c
 ## How it works
 
 - **The window** opens maximized. Unmaximized, it is 960 by 640.
-- **The queue:** every topic, newest first, with an avatar of who wrote last, its service, and when. A topic whose newest item the user wrote reads "Waiting on others". Search opens with the search button, Ctrl+F, or by typing in the queue, and filters by title, service and people.
+- **The queue:** every topic, newest first, with an avatar of who wrote last, its service, and when. A topic whose newest item the user wrote reads "Waiting on others". Search opens with the search button, Ctrl+F, or by typing in the queue. The core decides which topics match, by title, service and people. The list keeps every topic and shows only those, as rebuilding it costs far more than filtering it.
 - **The topic screen:** a topic's items, each with who wrote it, whether it was received or sent, and when, and a button to open it in its service; a note says why there is no text. Where the service keeps a conversation (Slack), its recent messages are read live and shown instead, never stored. Gmail topics have a reply entry; Ctrl+Enter sends. A Delete button shows on topics their connector marks deletable, and on each deletable item of a topic with several, such as one Gmail message, which moves to the trash; each asks first.
 - **Menu and shortcuts:** the main menu holds Services, Keyboard Shortcuts and About. Ctrl+F searches, Ctrl+R or F5 refreshes, Ctrl+, opens Services, Ctrl+? lists the shortcuts, Escape goes back, Ctrl+Enter sends a reply, Ctrl+W closes the window and Ctrl+Q quits.
 - **Services:** the Services dialog lists every service. GitHub and Jira connect with a form; Gmail, Google Tasks and Slack sign in through the browser. A service that connects syncs at once; one that disconnects drops its topics, after asking.
@@ -20,7 +20,7 @@ The Linux app, in Python with GTK4 and libadwaita. It reaches the core in [`../c
 | `src/silentdesk_gtk/topic_page.py` | The topic screen: items or conversation, reply and delete |
 | `src/silentdesk_gtk/services_dialog.py` | The Services dialog: connect forms and Disconnect |
 | `src/silentdesk_gtk/services.py` | What each service asks for, and offers; tested without a display |
-| `src/silentdesk_gtk/format.py` | How topics read: names, dates, avatars, search; tested without a display |
+| `src/silentdesk_gtk/format.py` | How topics read: names, dates, avatars; tested without a display |
 | `src/silentdesk_gtk/style.py` | The few style rules beyond libadwaita's, for the reply entry |
 | `src/silentdesk_gtk/worker.py` | The background thread for the core |
 
