@@ -25,7 +25,10 @@ class CoreWorker:
 
     def run(self, coroutine: Coroutine[Any, Any, Any], done: Done) -> None:
         future = asyncio.run_coroutine_threadsafe(coroutine, self.loop)
-        future.add_done_callback(lambda finished: GLib.idle_add(self._deliver, finished, done))
+        # Above idle priority, so results arrive while an animation keeps GTK busy.
+        future.add_done_callback(
+            lambda finished: GLib.idle_add(self._deliver, finished, done, priority=GLib.PRIORITY_DEFAULT)
+        )
 
     @staticmethod
     def _deliver(future: Future[Any], done: Done) -> bool:

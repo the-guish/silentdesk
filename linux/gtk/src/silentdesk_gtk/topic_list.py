@@ -33,7 +33,9 @@ class TopicList:
         factory = Gtk.SignalListItemFactory()
         factory.connect("setup", self._setup)
         factory.connect("bind", self._bind)
-        self.view = Gtk.ListView(model=Gtk.NoSelection(model=self.filtered), factory=factory)
+        self.view = Gtk.ListView(
+            model=Gtk.NoSelection(model=self.filtered), factory=factory, single_click_activate=True
+        )
         self.view.add_css_class("navigation-sidebar")
 
     def set_topics(self, topics: list[TopicView]) -> None:
@@ -50,6 +52,10 @@ class TopicList:
     @property
     def shown(self) -> int:
         return self.filtered.get_n_items()
+
+    def at(self, position: int) -> TopicView:
+        """The topic shown at `position`."""
+        return self.filtered.get_item(position).topic
 
     def shown_topics(self) -> list[TopicView]:
         return [self.filtered.get_item(i).topic for i in range(self.shown)]
