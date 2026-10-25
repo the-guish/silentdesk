@@ -11,9 +11,10 @@ from typing import Literal, TypedDict
 from .adapters.file_keyring import FileKeyring
 from .adapters.https_client import HttpsClient
 from .adapters.local_settings import LocalSettings
+from .adapters.loopback_oauth import LoopbackOAuth
 from .adapters.secret_service_keyring import SecretServiceKeyring
 from .adapters.sqlcipher_database import SqlcipherDatabase
-from .adapters.system_browser import SystemBrowser
+from .adapters.system_browser import FollowingBrowser, SystemBrowser
 from .apps.desk import wiring as desk_wiring
 from .apps.github import wiring as github_wiring
 from .apps.gmail import wiring as gmail_wiring
@@ -42,11 +43,12 @@ def desk(settings: LocalSettings | None = None) -> Desk:
     keyring = FileKeyring(settings.test_keyring) if settings.test_keyring else SecretServiceKeyring()
     database = SqlcipherDatabase(settings.data_dir / "silentdesk.db", keyring)
     http = HttpsClient(allow_loopback_http=settings.test_base_url is not None)
-    browser = SystemBrowser()
+    browser = FollowingBrowser(http) if settings.test_browser else SystemBrowser()
+    oauth = LoopbackOAuth(http, browser)
     connectors = [
-        gmail_wiring.create(settings, database, keyring, http, browser),
+        gmail_wiring.create(settings, database, keyring, http, oauth),
         github_wiring.create(settings, database, keyring, http),
-        google_tasks_wiring.create(settings, database, keyring, http, browser),
+        google_tasks_wiring.create(settings, database, keyring, http, oauth),
         jira_wiring.create(settings, database, keyring, http),
     ]
     return desk_wiring.create(connectors, settings, database)

@@ -1,0 +1,185 @@
+{
+  "description": "Google Tasks signs in through the browser, and a sync makes one topic per open task",
+  "env": {
+    "SILENTDESK_TEST_KEYRING": "{home}/keyring.json",
+    "SILENTDESK_TEST_BASE_URL": "{server}",
+    "SILENTDESK_TEST_BROWSER": "follow",
+    "SILENTDESK_TEST_NOW": "2026-10-24T12:00:00Z",
+    "SILENTDESK_GOOGLE_CLIENT_ID": "test-client.apps.googleusercontent.com"
+  },
+  "http": [
+    {
+      "path": "/google-accounts/o/oauth2/v2/auth",
+      "redirect": "{query.redirect_uri}?code=auth-code&state={query.state}"
+    },
+    {
+      "method": "POST",
+      "path": "/google-oauth/token",
+      "body": {
+        "access_token": "access-1",
+        "expires_in": 3599,
+        "token_type": "Bearer",
+        "scope": "https://www.googleapis.com/auth/tasks.readonly openid email",
+        "refresh_token": "refresh-1"
+      }
+    },
+    {
+      "path": "/google-userinfo/v1/userinfo",
+      "body": {
+        "email": "ana@example.com"
+      }
+    },
+    {
+      "path": "/tasks/tasks/v1/users/@me/lists",
+      "body": {
+        "items": [
+          {
+            "id": "list-1",
+            "title": "My Tasks"
+          }
+        ]
+      }
+    },
+    {
+      "path": "/tasks/tasks/v1/lists/list-1/tasks",
+      "body": {
+        "items": [
+          {
+            "id": "t1",
+            "title": "Renew passport",
+            "status": "needsAction",
+            "updated": "2026-10-20T08:00:00.000Z",
+            "webViewLink": "https://tasks.google.com/task/t1"
+          },
+          {
+            "id": "t2",
+            "title": "Send invoice",
+            "status": "needsAction",
+            "updated": "2026-10-23T08:00:00.000Z",
+            "links": [
+              {
+                "type": "email"
+              }
+            ]
+          },
+          {
+            "id": "t3",
+            "title": "Done already",
+            "status": "completed",
+            "updated": "2026-10-24T08:00:00.000Z"
+          }
+        ]
+      }
+    }
+  ],
+  "steps": [
+    {
+      "args": [
+        "connect",
+        "tasks"
+      ],
+      "exit": 0,
+      "schema": "status.json",
+      "stdout": {
+        "service": "tasks",
+        "configured": true,
+        "connected": true,
+        "account": "ana@example.com"
+      }
+    },
+    {
+      "args": [
+        "sync",
+        "tasks"
+      ],
+      "exit": 0,
+      "schema": "sync.json",
+      "stdout": {
+        "lastSynced": "2026-10-24T12:00:00Z"
+      }
+    },
+    {
+      "args": [
+        "topics"
+      ],
+      "exit": 0,
+      "schema": "topics.json",
+      "stdout": [
+        {
+          "id": {
+            "$any": "string"
+          },
+          "service": "tasks",
+          "title": "Send invoice",
+          "items": [
+            {
+              "key": "t2",
+              "direction": null,
+              "author": null,
+              "url": "https://tasks.google.com/",
+              "date": "2026-10-23T08:00:00.000Z"
+            }
+          ],
+          "updatedAt": "2026-10-23T08:00:00.000Z"
+        },
+        {
+          "id": {
+            "$any": "string"
+          },
+          "service": "tasks",
+          "title": "Renew passport",
+          "items": [
+            {
+              "key": "t1",
+              "direction": null,
+              "author": null,
+              "url": "https://tasks.google.com/task/t1",
+              "date": "2026-10-20T08:00:00.000Z"
+            }
+          ],
+          "updatedAt": "2026-10-20T08:00:00.000Z"
+        }
+      ]
+    }
+  ],
+  "requests": [
+    {
+      "path": "/google-accounts/o/oauth2/v2/auth",
+      "query": {
+        "client_id": "test-client.apps.googleusercontent.com",
+        "response_type": "code",
+        "scope": "https://www.googleapis.com/auth/tasks.readonly openid email",
+        "code_challenge_method": "S256",
+        "access_type": "offline",
+        "prompt": "consent"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/google-oauth/token"
+    },
+    {
+      "path": "/google-userinfo/v1/userinfo",
+      "headers": {
+        "Authorization": "Bearer access-1"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/google-oauth/token"
+    },
+    {
+      "path": "/tasks/tasks/v1/users/@me/lists",
+      "headers": {
+        "Authorization": "Bearer access-1"
+      }
+    },
+    {
+      "path": "/tasks/tasks/v1/lists/list-1/tasks",
+      "query": {
+        "showCompleted": "false",
+        "showAssigned": "true"
+      }
+    }
+  ]
+}

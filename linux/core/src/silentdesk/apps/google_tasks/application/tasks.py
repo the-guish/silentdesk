@@ -2,7 +2,9 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 
-from ....contract import AuthError, Connector, ServiceStatus, SyncResult
+from ....contract import AuthError, Connector, ServiceStatus, SyncResult, Unsupported
+from ..core import tasks
+from ..domain.state import GoogleState
 from ..ports.authorization import Authorization
 from ..ports.credentials import Credentials
 from ..ports.state_store import StateStore
@@ -10,9 +12,9 @@ from ..ports.tasks_api import TasksApi
 
 
 class GoogleTasks(Connector):
-    """Every open task in Google Tasks, read-only: one topic per task, with one
-    item. Replying and deleting raise `Unsupported` until the app asks for
-    write access."""
+    """Every open task in Google Tasks, read-only: one topic per task, with
+    one item. Signs in with the Google client Gmail uses, but with its own
+    read-only grant and refresh token."""
 
     def __init__(
         self, api: TasksApi, authorization: Authorization, credentials: Credentials, state: StateStore
@@ -24,7 +26,7 @@ class GoogleTasks(Connector):
 
     @property
     def service(self) -> str:
-        return "tasks"
+        return tasks.SERVICE
 
     async def status(self) -> ServiceStatus:
         if self.credentials.refresh_token(self.service) is None:
@@ -35,22 +37,44 @@ class GoogleTasks(Connector):
         )
 
     async def connect(self, params: Mapping[str, str]) -> ServiceStatus:
-        raise NotImplementedError
+        """Signs in through the browser for read-only access, then keeps the
+        refresh token. A previous grant for another sign-in is revoked."""
+        grant = await self.authorization.sign_in(tasks.SCOPES, tasks.REQUIRED_SCOPES)
+        email = await self.api.email(grant.access_token)
+        old = self.credentials.refresh_token(self.service)
+        if old is not None and old != grant.refresh_token:
+            await self.authorization.revoke(old)
+        self.credentials.save_refresh_token(self.service, grant.refresh_token)
+        await self.state.save(self.service, GoogleState(email))
+        return await self.status()
 
     async def disconnect(self) -> ServiceStatus:
-        """Forgets the refresh token and the account. Revoking the grant at
-        Google comes with sign-in."""
+        """Revokes the grant at Google, then forgets the token and the account."""
+        token = self.credentials.refresh_token(self.service)
+        if token is not None:
+            await self.authorization.revoke(token)
         self.credentials.delete_refresh_token(self.service)
         await self.state.clear(self.service)
         return await self.status()
 
     async def sync(self) -> SyncResult:
-        if self.credentials.refresh_token(self.service) is None:
+        refresh = self.credentials.refresh_token(self.service)
+        if refresh is None:
             raise AuthError(self.service, "Google Tasks is not connected.")
-        raise NotImplementedError
+        try:
+            access = await self.authorization.access_token(refresh)
+        except AuthError as error:
+            if self.authorization.configured:
+                # The grant is gone: forget it, keep the topics.
+                self.credentials.delete_refresh_token(self.service)
+            raise AuthError(self.service, f"{error} Connect Google Tasks again.") from error
+        found = []
+        for task_list in await self.api.lists(access):
+            found += await self.api.tasks(access, task_list)
+        return SyncResult([tasks.topic(task) for task in found if tasks.is_open(task)], removed=[], complete=True)
 
     async def reply(self, topic_key: str, body: str) -> None:
-        raise NotImplementedError
+        raise Unsupported(self.service, "SilentDesk cannot reply to a task.")
 
     async def delete_topic(self, topic_key: str) -> None:
-        raise NotImplementedError
+        raise Unsupported(self.service, "SilentDesk has read-only access to Google Tasks.")

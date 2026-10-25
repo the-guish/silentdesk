@@ -178,6 +178,25 @@ def test_a_failing_step_is_named_and_unexpected_requests_are_reported(tmp_path):
     ]
 
 
+def test_a_reply_can_redirect_with_values_from_the_request(tmp_path):
+    (tmp_path / "any.json").write_text("{}")
+    case = fetch_case(
+        [
+            {
+                "args": ["/sign-in?redirect_uri=/done&state=s1"],
+                "exit": 0,
+                "stdout": {"stdin": "", "reply": {"code": "c"}},
+            }
+        ],
+        http=[
+            {"path": "/sign-in", "redirect": "{query.redirect_uri}?code=c&state={query.state}"},
+            {"path": "/done", "query": {"state": "s1"}, "body": {"code": "c"}},
+        ],
+    )
+    # urllib follows the redirect to {server}/done, relative to the server.
+    assert conformance.run_case(case, FETCHER, schemas=tmp_path) == []
+
+
 @pytest.fixture
 def cases_dir(tmp_path: Path) -> Path:
     (tmp_path / "passes.json").write_text(json.dumps(case(ERROR)))

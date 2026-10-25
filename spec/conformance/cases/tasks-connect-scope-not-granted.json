@@ -1,0 +1,78 @@
+{
+  "description": "a sign-in that does not grant read access to Google Tasks stores nothing",
+  "env": {
+    "SILENTDESK_TEST_KEYRING": "{home}/keyring.json",
+    "SILENTDESK_TEST_BASE_URL": "{server}",
+    "SILENTDESK_TEST_BROWSER": "follow",
+    "SILENTDESK_TEST_NOW": "2026-10-24T12:00:00Z",
+    "SILENTDESK_GOOGLE_CLIENT_ID": "test-client.apps.googleusercontent.com"
+  },
+  "http": [
+    {
+      "path": "/google-accounts/o/oauth2/v2/auth",
+      "redirect": "{query.redirect_uri}?code=auth-code&state={query.state}"
+    },
+    {
+      "method": "POST",
+      "path": "/google-oauth/token",
+      "body": {
+        "access_token": "access-1",
+        "expires_in": 3599,
+        "token_type": "Bearer",
+        "scope": "openid email",
+        "refresh_token": "refresh-1"
+      }
+    }
+  ],
+  "steps": [
+    {
+      "args": [
+        "connect",
+        "tasks"
+      ],
+      "exit": 1,
+      "schema": "error.json",
+      "stdout": {
+        "error": {
+          "kind": "auth",
+          "message": {
+            "$any": "string"
+          }
+        }
+      }
+    },
+    {
+      "args": [
+        "services"
+      ],
+      "exit": 0,
+      "schema": "services.json",
+      "stdout": [
+        {
+          "service": "github",
+          "configured": true,
+          "connected": false,
+          "account": null
+        },
+        {
+          "service": "gmail",
+          "configured": true,
+          "connected": false,
+          "account": null
+        },
+        {
+          "service": "jira",
+          "configured": true,
+          "connected": false,
+          "account": null
+        },
+        {
+          "service": "tasks",
+          "configured": true,
+          "connected": false,
+          "account": null
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,41 @@
+{
+  "description": "disconnecting Google Tasks revokes the grant at Google",
+  "env": {
+    "SILENTDESK_TEST_KEYRING": "{home}/keyring.json",
+    "SILENTDESK_TEST_BASE_URL": "{server}",
+    "SILENTDESK_TEST_BROWSER": "follow",
+    "SILENTDESK_TEST_NOW": "2026-10-24T12:00:00Z",
+    "SILENTDESK_GOOGLE_CLIENT_ID": "test-client.apps.googleusercontent.com"
+  },
+  "files": {
+    "keyring.json": {
+      "google-tasks-refresh-token": "refresh-1"
+    }
+  },
+  "http": [
+    {
+      "method": "POST",
+      "path": "/google-oauth/revoke",
+      "body": {}
+    }
+  ],
+  "args": [
+    "disconnect",
+    "tasks"
+  ],
+  "exit": 0,
+  "schema": "status.json",
+  "stdout": {
+    "service": "tasks",
+    "configured": true,
+    "connected": false,
+    "account": null
+  },
+  "requests": [
+    {
+      "method": "POST",
+      "path": "/google-oauth/revoke",
+      "body": "token=refresh-1"
+    }
+  ]
+}
