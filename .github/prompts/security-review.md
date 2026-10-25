@@ -38,7 +38,6 @@ Use only the plain marks ✓ and ✗. Use no emoji.
 | **Review depth** | ${DEPTH} |
 | **Model** | `${MODEL}` |
 | **Effort** | ${EFFORT} |
-| **Run** | ${RUN_AT}, [workflow run](${RUN_URL}) |
 | **Commit** | `<first 7 characters of the head commit>` |
 | **Scope** | <N> files changed, <short description of what the change does> |
 

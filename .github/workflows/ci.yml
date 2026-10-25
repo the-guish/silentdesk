@@ -154,13 +154,10 @@ jobs:
           REPO: ${{ github.repository }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
-          RUN_AT=$(date -u '+%Y-%m-%d %H:%M UTC')
-          export RUN_AT
           {
             echo 'text<<END_OF_PROMPT'
-            envsubst '$REPO $PR_NUMBER $HEAD_SHA $DEPTH $MODEL $EFFORT $RUN_AT $RUN_URL' < .github/prompts/security-review.md
+            envsubst '$REPO $PR_NUMBER $HEAD_SHA $DEPTH $MODEL $EFFORT' < .github/prompts/security-review.md
             echo 'END_OF_PROMPT'
           } >> "$GITHUB_OUTPUT"
       # v1.0.262
