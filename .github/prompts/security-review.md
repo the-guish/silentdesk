@@ -26,7 +26,7 @@ Post each finding as an inline comment on its line, in this form:
 
 ## Summary comment
 
-Then post one summary comment with `gh pr comment`, filled in from this template.
+Then post one summary comment with `gh pr comment ${PR_NUMBER}`, filled in from this template.
 Use only the plain marks ✓ and ✗. Use no emoji.
 
 ```

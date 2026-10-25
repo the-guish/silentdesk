@@ -18,6 +18,7 @@ silentdesk = "silentdesk.cli:main"
 
 [dependency-groups]
 dev = [
+    "coverage>=7.10",
     "import-linter>=2.15",
     "pytest>=8",
     "ruff>=0.8",
@@ -104,3 +105,13 @@ type = "forbidden"
 allow_indirect_imports = true
 source_modules = ["silentdesk.apps.*.adapters"]
 forbidden_modules = ["silentdesk.apps.*.application", "silentdesk.apps.*.core", "silentdesk.apps.*.wiring"]
+
+# The conformance suite runs the CLI under coverage, from a throwaway home
+# folder. Its report is the one SonarQube Cloud reads.
+[tool.coverage.run]
+source = ["silentdesk"]
+relative_files = true
+parallel = true
+
+[tool.coverage.paths]
+source = ["core/src/", "*/linux/core/src/"]
