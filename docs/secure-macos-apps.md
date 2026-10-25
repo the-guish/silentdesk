@@ -96,7 +96,7 @@ Repo: [RocketChat/Rocket.Chat.Electron](https://github.com/RocketChat/Rocket.Cha
 - The session tokens for each server, `Meteor.loginToken`, live in the web view's localStorage, which Chromium keeps on disk unencrypted.
 
 **For SilentDesk.**
-- Worth taking: reaching the platform's secure store through a thin, standard layer rather than app-specific cryptography. The cores do the same with the Security framework and the Secret Service API.
+- Worth taking: reaching the platform's secure store through a thin, standard layer rather than app-specific cryptography. The Python core does this through the `keyring` library's Secret Service backend, and the Swift core will through the Security framework.
 - Not for SilentDesk: a plain-text fallback when the secure store is unavailable. Principle 1 rules it out, so a core that cannot reach the credential store fails with error kind `storage`. Accepting plain-text values from earlier versions on read: the only plain-text path is the test keyring, and only tests may set it. Session tokens in web storage or any other plain store: tokens are credential-store entries.
 
 ## Starcat
@@ -130,4 +130,4 @@ Repo: [starcat-app/Starcat](https://github.com/starcat-app/Starcat).
 
 **For SilentDesk.**
 - Worth taking: Apple's sample as a starting point for a wrapper, if one is wanted. One token per item needs no more than that.
-- Not for SilentDesk: a vendored third-party Keychain wrapper. The spec's single service name needs a handful of Security framework calls, and the Python core goes through the `keyring` library's Secret Service backend, so neither core needs a dependency for it.
+- Not for SilentDesk: a vendored third-party Keychain wrapper. The Python core already goes through the `keyring` library, and on macOS the spec's single service name needs only a handful of Security framework calls, so the Swift core needs no wrapper dependency.
