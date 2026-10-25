@@ -35,9 +35,19 @@ def test_dates_show_the_time_today_the_day_this_year_or_the_full_date():
 def test_rows_name_the_service_and_who_wrote_last():
     assert format.subtitle(topic()) == "Gmail · Bo Lind"
     assert format.subtitle(topic("tasks", None, None)) == "Google Tasks"
-    assert format.direction_icon(topic()) == "mail-unread-symbolic"
-    assert format.direction_icon(topic(direction=Direction.OUTBOUND)) == "mail-send-symbolic"
-    assert format.direction_icon(topic("tasks", None)) == "object-select-symbolic"
+    assert format.subtitle(topic(direction=Direction.OUTBOUND)) == "Gmail · Waiting on others"
+
+
+def test_avatars_show_who_wrote_last_or_an_icon():
+    assert format.avatar(topic()) == ("Bo Lind", "avatar-default-symbolic")
+    assert format.avatar(topic("tasks", None, None)) == (None, "checkbox-checked-symbolic")
+
+
+def test_items_say_whether_they_were_received_or_sent_and_when():
+    local = NOW.astimezone(timezone(timedelta(hours=2)))
+    assert format.item_line(Direction.INBOUND, "2026-10-24T09:05:00Z", local) == "Received · Today 11:05"
+    assert format.item_line(Direction.OUTBOUND, "2026-03-02T09:00:00Z", local) == "Sent · Mar 2, 11:00"
+    assert format.item_line(None, "2025-12-31T09:00:00Z", local) == "Dec 31, 2025, 11:00"
 
 
 def test_search_matches_every_word_in_title_service_and_people():
