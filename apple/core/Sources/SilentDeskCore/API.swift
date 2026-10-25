@@ -28,6 +28,7 @@ public enum API {
             GitHubWiring.create(settings: settings, database: database, keyring: keyring, http: http),
             GoogleTasksWiring.create(settings: settings, database: database, keyring: keyring, http: http, oauth: oauth),
             JiraWiring.create(settings: settings, database: database, keyring: keyring, http: http),
+            SlackWiring.create(settings: settings, database: database, keyring: keyring, http: http, oauth: oauth),
         ]
         return DeskWiring.create(connectors: connectors, settings: settings, database: database)
     }

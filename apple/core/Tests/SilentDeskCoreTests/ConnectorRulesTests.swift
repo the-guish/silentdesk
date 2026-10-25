@@ -97,9 +97,69 @@ private func pull(_ id: Int, _ reason: GitHubReason, updated: String, title: Str
         url: "", updated: "")))
 }
 
+// MARK: Slack
+
+@Test func slackMarkupBecomesPlainText() {
+    let names = ["U2": "Bo", "U9": ""]
+    #expect(SlackRules.plainText("On it, <@U2>", names: names) == "On it, @Bo")
+    #expect(SlackRules.plainText("<@U9|bo9> and <@U3>", names: names) == "@bo9 and @someone")
+    #expect(SlackRules.plainText("Can you check <https://x.example/deploy|the deploy>?", names: [:]) == "Can you check the deploy?")
+    #expect(SlackRules.plainText("See <https://x.example>", names: [:]) == "See https://x.example")
+    #expect(SlackRules.plainText("In <#C1|general> <!here> <!subteam^S1|@ops>", names: [:]) == "In #general @here @@ops")
+    #expect(SlackRules.plainText("a &lt;b&gt; &amp; c", names: [:]) == "a <b> & c")
+    #expect(SlackRules.plainText("unterminated <tag", names: [:]) == "unterminated <tag")
+}
+
+@Test func slackPreviewsCollapseAndCut() {
+    #expect(SlackRules.preview("  Lunch\n at  1? ") == "Lunch at 1?")
+    #expect(SlackRules.preview("one two three four", limit: 10) == "one two…")
+    #expect(SlackRules.preview("abcdefghijklmnop", limit: 5) == "abcde…")
+    #expect(SlackRules.mentionIDs("<@U2> hi <@U1|ana> <@U2>") == ["U1", "U2"])
+    #expect(SlackRules.mentionIDs("none") == [])
+    #expect(SlackRules.rfc3339(ts: "1761300000.000100") == "2025-10-24T10:00:00Z")
+    #expect(SlackRules.rfc3339(ts: "junk") == "1970-01-01T00:00:00Z")
+}
+
+private func match(_ channel: String, _ ts: String, im: Bool = true, mpim: Bool = false) -> SlackMatch {
+    SlackMatch(channelID: channel, channelName: "U2", isIM: im, isMPIM: mpim, user: "U2", username: nil, text: "t", ts: ts, permalink: "")
+}
+
+@Test func slackKeepsRecentDirectMessagesOnly() {
+    let found = [
+        match("D1", "100.1"), match("C1", "999.0", im: false), match("G1", "300.1", im: false, mpim: true),
+        match("D1", "100.1"), match("D1", "200.1"),
+    ]
+    #expect(SlackRules.selectRecent(found, count: 2).map(\.ts) == ["300.1", "200.1"])
+    #expect(SlackRules.selectRecent(found, count: 10).map(\.ts) == ["300.1", "200.1", "100.1"])
+}
+
+@Test func slackConversationsBecomeTopics() {
+    let messages = [
+        SlackDirectMessage(channelID: "D1", ts: "200.1", direction: .outbound, author: "Ana", counterpart: "Bo", preview: "On it", permalink: "p2", date: "d2"),
+        SlackDirectMessage(channelID: "G1", ts: "300.1", direction: .inbound, author: "Cy", counterpart: "Group DM", preview: "", permalink: "", date: "d3"),
+        SlackDirectMessage(channelID: "D1", ts: "100.1", direction: .inbound, author: "Bo", counterpart: "Bo", preview: "Hi", permalink: "p1", date: "d1"),
+    ]
+    let topics = SlackRules.topics(messages)
+    #expect(topics.map(\.key) == ["D1", "G1"])
+    #expect(topics[0].title == "On it")
+    #expect(topics[0].items.map(\.key) == ["100.1", "200.1"])
+    #expect(topics[1].title == "(empty message)")
+    #expect(topics[1].items[0].url == nil)
+    #expect(!topics[0].deletable)
+}
+
+@Test func slackTokensRefreshBeforeExpiry() {
+    let rotating = SlackCredential(accessToken: "a", refreshToken: "r", expiresAt: 1_000)
+    #expect(SlackRules.needsRefresh(rotating, now: 940))
+    #expect(!SlackRules.needsRefresh(rotating, now: 939))
+    #expect(!SlackRules.needsRefresh(SlackCredential(accessToken: "a", refreshToken: nil, expiresAt: 1_000), now: 2_000))
+    #expect(!SlackRules.needsRefresh(SlackCredential(accessToken: "a", refreshToken: "r", expiresAt: nil), now: 2_000))
+}
+
 // MARK: Credentials
 
 @Test func credentialsHideTheirTokensWhenPrinted() {
     #expect(!"\(GoogleTasksGrant(accessToken: "a-secret", refreshToken: "r-secret"))".contains("secret"))
+    #expect(!"\(SlackCredential(accessToken: "xoxp-secret", refreshToken: "xoxe-secret", expiresAt: 10))".contains("secret"))
     #expect(!"\(JiraCredential(email: "ana@acme.com", token: "jira-secret"))".contains("secret"))
 }
