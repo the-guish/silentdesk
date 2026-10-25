@@ -15,6 +15,7 @@ from .errors import (
     RemoteError,
     SyncFailed,
     UnknownService,
+    UnknownTopic,
     Unsupported,
 )
 from .http import Http, Response
@@ -47,5 +48,6 @@ __all__ = [
     "Topic",
     "TopicView",
     "UnknownService",
+    "UnknownTopic",
     "Unsupported",
 ]

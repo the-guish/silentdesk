@@ -1,0 +1,7 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "empty.json",
+  "title": "silentdesk reply and delete",
+  "type": "object",
+  "maxProperties": 0
+}

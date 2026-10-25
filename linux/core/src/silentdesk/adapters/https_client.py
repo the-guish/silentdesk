@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import ipaddress
 import ssl
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from importlib.metadata import version
 from typing import Any
 
@@ -60,7 +60,7 @@ class HttpsClient(Http):
         url: str,
         *,
         headers: Mapping[str, str] | None = None,
-        params: Mapping[str, str] | None = None,
+        params: Mapping[str, str | Sequence[str]] | None = None,
         json: Any = None,
         form: Mapping[str, str] | None = None,
     ) -> Response:

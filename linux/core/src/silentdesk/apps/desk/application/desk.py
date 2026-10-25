@@ -4,9 +4,10 @@ import asyncio
 import uuid
 from collections.abc import Callable, Mapping, Sequence
 
-from ....contract import Connector, Desk, ServiceStatus, SyncFailed, TopicView, UnknownService
+from ....contract import Connector, Desk, ServiceStatus, SyncFailed, TopicView, UnknownService, UnknownTopic
 from ..core import sync as rounds
 from ..core import topics
+from ..domain.topics import TopicRecord
 from ..ports.clock import Clock
 from ..ports.topic_store import TopicStore
 
@@ -90,8 +91,22 @@ class DeskService(Desk):
     async def last_synced(self) -> str | None:
         return await self.store.last_synced()
 
+    async def _record(self, topic_id: str) -> TopicRecord:
+        for record in await self.store.topics():
+            if record.id == topic_id:
+                return record
+        raise UnknownTopic(f"No topic has the ID {topic_id!r}.")
+
     async def reply(self, topic_id: str, body: str) -> None:
-        raise NotImplementedError
+        if not body.strip():
+            raise ValueError("The reply is empty.")
+        record = await self._record(topic_id)
+        async with self.locks[record.service]:
+            await self._connector(record.service).reply(record.key, body)
 
     async def delete(self, topic_id: str) -> None:
-        raise NotImplementedError
+        record = await self._record(topic_id)
+        async with self.locks[record.service]:
+            await self._connector(record.service).delete_topic(record.key)
+            others = [r for r in await self.store.topics() if r.service == record.service and r.id != topic_id]
+            await self.store.replace(record.service, others)
