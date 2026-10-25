@@ -2,6 +2,8 @@ REPO: ${REPO}
 PR NUMBER: ${PR_NUMBER}
 HEAD COMMIT: ${HEAD_SHA}
 REVIEW DEPTH: ${DEPTH}
+MODEL: ${MODEL}
+EFFORT: ${EFFORT}
 
 Review this pull request for security vulnerabilities only.
 Read the diff with `gh pr diff`, and read the surrounding code to judge each change in context.
@@ -34,6 +36,9 @@ Use only the plain marks ✓ and ✗. Use no emoji.
 |---|---|
 | **Result** | ✓ No security issues found |
 | **Review depth** | ${DEPTH} |
+| **Model** | `${MODEL}` |
+| **Effort** | ${EFFORT} |
+| **Run** | ${RUN_AT}, [workflow run](${RUN_URL}) |
 | **Commit** | `<first 7 characters of the head commit>` |
 | **Scope** | <N> files changed, <short description of what the change does> |
 

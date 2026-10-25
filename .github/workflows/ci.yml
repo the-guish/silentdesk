@@ -141,6 +141,10 @@ jobs:
       pull-requests: write
       # Signs in as the Claude GitHub app, so the comments carry its name and logo.
       id-token: write
+    env:
+      DEPTH: ${{ needs.security-screening.outputs.touches_security == 'true' && 'Deep' || 'Standard' }}
+      MODEL: ${{ needs.security-screening.outputs.touches_security == 'true' && 'claude-fable-5-1' || 'claude-opus-5-5' }}
+      EFFORT: ${{ needs.security-screening.outputs.touches_security == 'true' && 'xhigh' || 'medium' }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -150,11 +154,13 @@ jobs:
           REPO: ${{ github.repository }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-          DEPTH: ${{ needs.security-screening.outputs.touches_security == 'true' && 'Deep (Fable, extra-high effort)' || 'Standard (Opus, medium effort)' }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
+          RUN_AT=$(date -u '+%Y-%m-%d %H:%M UTC')
+          export RUN_AT
           {
             echo 'text<<END_OF_PROMPT'
-            envsubst '$REPO $PR_NUMBER $HEAD_SHA $DEPTH' < .github/prompts/security-review.md
+            envsubst '$REPO $PR_NUMBER $HEAD_SHA $DEPTH $MODEL $EFFORT $RUN_AT $RUN_URL' < .github/prompts/security-review.md
             echo 'END_OF_PROMPT'
           } >> "$GITHUB_OUTPUT"
       # v1.0.262
@@ -163,6 +169,6 @@ jobs:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           prompt: ${{ steps.prompt.outputs.text }}
           claude_args: |
-            --model ${{ needs.security-screening.outputs.touches_security == 'true' && 'claude-fable-5-1' || 'claude-opus-5-5' }}
-            --effort ${{ needs.security-screening.outputs.touches_security == 'true' && 'xhigh' || 'medium' }}
+            --model ${{ env.MODEL }}
+            --effort ${{ env.EFFORT }}
             --allowedTools "Read,Grep,Glob,mcp__github_inline_comment__create_inline_comment,Bash(gh pr diff:*),Bash(gh pr view:*),Bash(gh pr comment:*)"
