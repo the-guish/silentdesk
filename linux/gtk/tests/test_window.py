@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import time
 from datetime import UTC, datetime
+from functools import cache
 
 import pytest
 from silentdesk.contract import Desk, Direction, Item, Message, ServiceStatus, SyncFailed, TopicView, Unsupported
@@ -97,11 +98,18 @@ def worker():
     worker.stop()
 
 
-def window(desk: FakeDesk, worker: CoreWorker) -> MainWindow:
+@cache
+def application() -> Adw.Application:
+    """One application for every test. Windows join an application only after
+    its startup, which registering runs, and an application registers on the
+    session bus once per process."""
     app = Adw.Application(application_id="com.silentdesk.test", flags=Gio.ApplicationFlags.NON_UNIQUE)
-    # Windows join an application only after its startup, which registering runs.
     app.register(None)
-    return MainWindow(app, desk, worker, now=lambda: datetime(2026, 10, 24, 12, 0, tzinfo=UTC))
+    return app
+
+
+def window(desk: FakeDesk, worker: CoreWorker) -> MainWindow:
+    return MainWindow(application(), desk, worker, now=lambda: datetime(2026, 10, 24, 12, 0, tzinfo=UTC))
 
 
 def test_the_window_syncs_on_start_and_shows_the_topics(worker):
