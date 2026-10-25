@@ -4,6 +4,7 @@ The Linux app, in Python with GTK4 and libadwaita. It reaches the core in [`../c
 
 ## How it works
 
+- **The window** opens maximized. Unmaximized, it is 960 by 640.
 - **The queue:** every topic, newest first, with an avatar of who wrote last, its service, and when. A topic whose newest item the user wrote reads "Waiting on others". Search opens with the search button, Ctrl+F, or by typing in the queue, and filters by title, service and people.
 - **The topic screen:** a topic's items, each with who wrote it, whether it was received or sent, and when, and a button to open it in its service; a note says why there is no text. Where the service keeps a conversation (Slack), its recent messages are read live and shown instead, never stored. Gmail topics have a reply entry; Ctrl+Enter sends. A Delete button shows on topics their connector marks deletable, and on each deletable item of a topic with several, such as one Gmail message, which moves to the trash; each asks first.
 - **Menu and shortcuts:** the main menu holds Services, Keyboard Shortcuts and About. Ctrl+F searches, Ctrl+R or F5 refreshes, Ctrl+, opens Services, Ctrl+? lists the shortcuts, Escape goes back, Ctrl+Enter sends a reply, Ctrl+W closes the window and Ctrl+Q quits.
