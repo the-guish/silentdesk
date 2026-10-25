@@ -204,10 +204,12 @@
               "direction": "inbound",
               "author": "Cy",
               "url": "https://acme.slack.com/archives/G1/p1761310000000200",
-              "date": "2025-10-24T12:46:40Z"
+              "date": "2025-10-24T12:46:40Z",
+              "deletable": false
             }
           ],
-          "updatedAt": "2025-10-24T12:46:40Z"
+          "updatedAt": "2025-10-24T12:46:40Z",
+          "deletable": false
         },
         {
           "id": {
@@ -221,17 +223,20 @@
               "direction": "inbound",
               "author": "Bo",
               "url": "https://acme.slack.com/archives/D1/p1761300000000100",
-              "date": "2025-10-24T10:00:00Z"
+              "date": "2025-10-24T10:00:00Z",
+              "deletable": false
             },
             {
               "key": "1761305000.000300",
               "direction": "outbound",
               "author": "Ana",
               "url": "https://acme.slack.com/archives/D1/p1761305000000300",
-              "date": "2025-10-24T11:23:20Z"
+              "date": "2025-10-24T11:23:20Z",
+              "deletable": false
             }
           ],
-          "updatedAt": "2025-10-24T11:23:20Z"
+          "updatedAt": "2025-10-24T11:23:20Z",
+          "deletable": false
         }
       ]
     }

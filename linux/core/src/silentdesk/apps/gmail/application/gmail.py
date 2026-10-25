@@ -18,8 +18,8 @@ SAVE_EVERY = 500
 
 class Gmail(Connector):
     """The Gmail Inbox: one topic per thread, its messages as items. Replies
-    go to the thread's newest message, and deleting moves the thread to the
-    trash. Messages stay after they leave the Inbox."""
+    go to the thread's newest message. Deleting moves the thread, or one
+    message, to the trash. Messages stay after they leave the Inbox."""
 
     def __init__(
         self, api: GmailApi, authorization: Authorization, credentials: Credentials, state: StateStore
@@ -128,3 +128,9 @@ class Gmail(Connector):
         access = await self._access_token()
         await self.api.trash_thread(access, topic_key)
         await self.state.remove_thread(topic_key)
+
+    async def delete_item(self, topic_key: str, item_key: str) -> None:
+        """Moves one message to the Gmail trash and forgets it."""
+        access = await self._access_token()
+        await self.api.trash_message(access, item_key)
+        await self.state.remove_message(item_key)

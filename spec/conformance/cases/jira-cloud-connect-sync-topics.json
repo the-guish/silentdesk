@@ -112,10 +112,12 @@
               "direction": "outbound",
               "author": "Bo",
               "url": "https://acme.atlassian.net/browse/WEB-7",
-              "date": "2026-10-24T09:30:00Z"
+              "date": "2026-10-24T09:30:00Z",
+              "deletable": false
             }
           ],
-          "updatedAt": "2026-10-24T09:30:00Z"
+          "updatedAt": "2026-10-24T09:30:00Z",
+          "deletable": false
         },
         {
           "id": {
@@ -129,10 +131,12 @@
               "direction": "inbound",
               "author": "Bo",
               "url": "https://acme.atlassian.net/browse/PAY-412",
-              "date": "2026-10-23T08:00:00Z"
+              "date": "2026-10-23T08:00:00Z",
+              "deletable": false
             }
           ],
-          "updatedAt": "2026-10-23T08:00:00Z"
+          "updatedAt": "2026-10-23T08:00:00Z",
+          "deletable": false
         }
       ]
     }

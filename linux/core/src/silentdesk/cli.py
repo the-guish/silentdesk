@@ -13,7 +13,7 @@ from collections.abc import Callable, Sequence
 from typing import Any
 
 from . import api
-from .contract import ConnectorError, StorageError, SyncFailed, UnknownService, UnknownTopic
+from .contract import ConnectorError, StorageError, SyncFailed, UnknownItem, UnknownService, UnknownTopic
 
 EXIT_OK = 0
 EXIT_FAILED = 1
@@ -122,9 +122,12 @@ def _history(args: list[str], stdin: Callable[[], str]) -> Any:
 
 
 def _delete(args: list[str], stdin: Callable[[], str]) -> Any:
-    if len(args) != 1:
-        raise UsageError("delete takes one topic ID.")
-    asyncio.run(api.desk().delete(args[0]))
+    if len(args) not in (1, 2):
+        raise UsageError("delete takes one topic ID, and optionally one of its item keys.")
+    if len(args) == 2:
+        asyncio.run(api.desk().delete_item(args[0], args[1]))
+    else:
+        asyncio.run(api.desk().delete(args[0]))
     return {}
 
 
@@ -161,7 +164,7 @@ def run(argv: Sequence[str], stdin: Callable[[], str] = lambda: sys.stdin.read()
         if handler is None:
             raise UsageError(f"Unknown command {command!r}. Commands: {names}.")
         return EXIT_OK, handler(args, stdin)
-    except (UsageError, UnknownService, UnknownTopic) as error:
+    except (UsageError, UnknownService, UnknownTopic, UnknownItem) as error:
         return EXIT_USAGE, _error("usage", str(error))
     except ConnectorError as error:
         return EXIT_FAILED, _error(error.kind, str(error))

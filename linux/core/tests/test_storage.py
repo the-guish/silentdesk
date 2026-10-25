@@ -78,23 +78,25 @@ def test_a_failed_transaction_is_rolled_back(database):
         assert db.execute("SELECT count(*) FROM desk_values").fetchone() == (0,)
 
 
-def record(id: str, service: str, key: str, *dates: str) -> TopicRecord:
-    items = [Item(f"{key}-{n}", Direction.INBOUND, "Ana", None, date) for n, date in enumerate(dates)]
-    return TopicRecord(id, service, key, f"Topic {key}", items, "2026-10-01T00:00:00Z", max(dates))
+def record(id: str, service: str, key: str, *dates: str, deletable: bool = False) -> TopicRecord:
+    items = [Item(f"{key}-{n}", Direction.INBOUND, "Ana", None, date, deletable) for n, date in enumerate(dates)]
+    return TopicRecord(id, service, key, f"Topic {key}", items, "2026-10-01T00:00:00Z", max(dates), deletable)
 
 
 def test_topic_store_keeps_topics_and_their_items_in_order(database):
     store = SqlcipherTopicStore(database)
     gmail = [record("1", "gmail", "t1", "2026-10-02T00:00:00Z", "2026-10-03T00:00:00Z")]
     tasks = [record("2", "tasks", "k1", "2026-10-04T00:00:00Z")]
+    later = record("3", "gmail", "t2", "2026-10-05T00:00:00Z", deletable=True)
 
     asyncio.run(store.replace("gmail", gmail))
     asyncio.run(store.replace("tasks", tasks))
-    asyncio.run(store.replace("gmail", [record("3", "gmail", "t2", "2026-10-05T00:00:00Z")]))
+    asyncio.run(store.replace("gmail", [later]))
 
     stored = {r.id: r for r in asyncio.run(store.topics())}
     assert sorted(stored) == ["2", "3"]
     assert stored["2"] == tasks[0]
+    assert stored["3"] == later
     with database.transaction() as db:
         # Topic 1's items went with it.
         assert db.execute("SELECT count(*) FROM desk_items").fetchone() == (2,)
@@ -140,7 +142,37 @@ def test_the_topics_command_prints_camel_case_json_newest_first(tmp_path, monkey
         "service": "tasks",
         "title": "Topic new",
         "items": [
-            {"key": "new-0", "direction": "inbound", "author": "Ana", "url": None, "date": "2026-10-09T00:00:00Z"}
+            {
+                "key": "new-0",
+                "direction": "inbound",
+                "author": "Ana",
+                "url": None,
+                "date": "2026-10-09T00:00:00Z",
+                "deletable": False,
+            }
         ],
         "updatedAt": "2026-10-09T00:00:00Z",
+        "deletable": False,
     }
+
+
+def test_upgrading_makes_gmail_topics_deletable_and_leaves_the_others(tmp_path, keyring):
+    """Gmail syncs only the threads that change, so migration 0006 marks
+    its existing topics as its next sync would."""
+    before = tmp_path / "before"
+    before.mkdir()
+    for script in sorted(MIGRATIONS.glob("*.sql"))[:5]:
+        (before / script.name).write_text(script.read_text())
+    path = tmp_path / "silentdesk.db"
+    with SqlcipherDatabase(path, keyring, before).transaction() as db:
+        for id, service in [("1", "gmail"), ("2", "tasks")]:
+            db.execute(
+                "INSERT INTO desk_topics (id, service, key, title, created_at, updated_at) VALUES (?, ?, ?, 'T', 'd', 'd')",
+                (id, service, f"k{id}"),
+            )
+            db.execute("INSERT INTO desk_items (topic_id, position, key, date) VALUES (?, 0, ?, 'd')", (id, f"i{id}"))
+
+    upgraded = {r.service: r for r in asyncio.run(SqlcipherTopicStore(SqlcipherDatabase(path, keyring)).topics())}
+
+    assert upgraded["gmail"].deletable and upgraded["gmail"].items[0].deletable
+    assert not upgraded["tasks"].deletable and not upgraded["tasks"].items[0].deletable

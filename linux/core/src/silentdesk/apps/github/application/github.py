@@ -85,3 +85,6 @@ class GitHub(Connector):
 
     async def delete_topic(self, topic_key: str) -> None:
         raise Unsupported(self.service, "SilentDesk cannot delete a pull request.")
+
+    async def delete_item(self, topic_key: str, item_key: str) -> None:
+        raise Unsupported(self.service, "SilentDesk cannot delete a pull request.")

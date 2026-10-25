@@ -1,5 +1,5 @@
 {
-  "description": "SilentDesk cannot reply in or delete a Slack conversation",
+  "description": "SilentDesk cannot reply in, or delete, a Slack conversation or any of its messages",
   "env": {
     "SILENTDESK_TEST_KEYRING": "{home}/keyring.json",
     "SILENTDESK_TEST_BASE_URL": "{server}",
@@ -135,10 +135,12 @@
               "url": {
                 "$any": "string"
               },
-              "date": "2025-10-24T10:00:00Z"
+              "date": "2025-10-24T10:00:00Z",
+              "deletable": false
             }
           ],
-          "updatedAt": "2025-10-24T10:00:00Z"
+          "updatedAt": "2025-10-24T10:00:00Z",
+          "deletable": false
         }
       ],
       "capture": {
@@ -169,6 +171,23 @@
       "args": [
         "delete",
         "{capture.topic}"
+      ],
+      "exit": 1,
+      "schema": "error.json",
+      "stdout": {
+        "error": {
+          "kind": "unsupported",
+          "message": {
+            "$any": "string"
+          }
+        }
+      }
+    },
+    {
+      "args": [
+        "delete",
+        "{capture.topic}",
+        "1761300000.000100"
       ],
       "exit": 1,
       "schema": "error.json",

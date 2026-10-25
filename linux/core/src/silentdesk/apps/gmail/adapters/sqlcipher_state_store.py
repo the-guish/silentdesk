@@ -65,3 +65,7 @@ class SqlcipherStateStore(StateStore):
     async def remove_thread(self, thread_id: str) -> None:
         with self.database.transaction() as db:
             db.execute("DELETE FROM gmail_messages WHERE thread_id = ?", (thread_id,))
+
+    async def remove_message(self, message_id: str) -> None:
+        with self.database.transaction() as db:
+            db.execute("DELETE FROM gmail_messages WHERE message_id = ?", (message_id,))

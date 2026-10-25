@@ -18,16 +18,21 @@ class SqlcipherTopicStore(TopicStore):
 
     async def topics(self) -> list[TopicRecord]:
         with self.database.transaction() as db:
-            topics = db.execute("SELECT id, service, key, title, created_at, updated_at FROM desk_topics").fetchall()
+            topics = db.execute(
+                "SELECT id, service, key, title, created_at, updated_at, deletable FROM desk_topics"
+            ).fetchall()
             rows = db.execute(
-                "SELECT topic_id, key, direction, author, url, date FROM desk_items ORDER BY topic_id, position"
+                "SELECT topic_id, key, direction, author, url, date, deletable FROM desk_items"
+                " ORDER BY topic_id, position"
             ).fetchall()
         items: dict[str, list[Item]] = defaultdict(list)
-        for topic_id, key, direction, author, url, date in rows:
-            items[topic_id].append(Item(key, Direction(direction) if direction else None, author, url, date))
+        for topic_id, key, direction, author, url, date, deletable in rows:
+            items[topic_id].append(
+                Item(key, Direction(direction) if direction else None, author, url, date, bool(deletable))
+            )
         return [
-            TopicRecord(id, service, key, title, items[id], created_at, updated_at)
-            for id, service, key, title, created_at, updated_at in topics
+            TopicRecord(id, service, key, title, items[id], created_at, updated_at, bool(deletable))
+            for id, service, key, title, created_at, updated_at, deletable in topics
         ]
 
     async def replace(self, service: str, records: Sequence[TopicRecord]) -> None:
@@ -35,14 +40,24 @@ class SqlcipherTopicStore(TopicStore):
             # Their items go with them (ON DELETE CASCADE).
             db.execute("DELETE FROM desk_topics WHERE service = ?", (service,))
             db.executemany(
-                "INSERT INTO desk_topics (id, service, key, title, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)",
-                [(r.id, service, r.key, r.title, r.created_at, r.updated_at) for r in records],
+                "INSERT INTO desk_topics (id, service, key, title, created_at, updated_at, deletable)"
+                " VALUES (?, ?, ?, ?, ?, ?, ?)",
+                [(r.id, service, r.key, r.title, r.created_at, r.updated_at, r.deletable) for r in records],
             )
             db.executemany(
-                "INSERT INTO desk_items (topic_id, position, key, direction, author, url, date)"
-                " VALUES (?, ?, ?, ?, ?, ?, ?)",
+                "INSERT INTO desk_items (topic_id, position, key, direction, author, url, date, deletable)"
+                " VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
                 [
-                    (r.id, position, i.key, i.direction.value if i.direction else None, i.author, i.url, i.date)
+                    (
+                        r.id,
+                        position,
+                        i.key,
+                        i.direction.value if i.direction else None,
+                        i.author,
+                        i.url,
+                        i.date,
+                        i.deletable,
+                    )
                     for r in records
                     for position, i in enumerate(r.items)
                 ],

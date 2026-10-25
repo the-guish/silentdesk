@@ -47,22 +47,28 @@ CAN_REPLY = frozenset({"gmail"})
 
 @dataclass(frozen=True)
 class Deletion:
-    """How deleting a topic reads: the question that confirms it, and the
-    toast once done."""
+    """How deleting a topic or an item reads: the question that confirms it,
+    and the toast once done. Whether it can be deleted is the connector's
+    call, in `deletable`."""
 
     heading: str
     body: str
     done: str
 
 
-# The services whose connectors can delete a topic.
+GMAIL_TRASH = "Gmail keeps it in the trash for 30 days, then deletes it."
 DELETIONS = {
-    "gmail": Deletion(
-        "Move this thread to the trash?",
-        "Gmail keeps it in the trash for 30 days, then deletes it.",
-        "Moved to the trash",
-    ),
+    ("gmail", "topic"): Deletion("Move this thread to the trash?", GMAIL_TRASH, "Moved to the trash"),
+    ("gmail", "item"): Deletion("Move this message to the trash?", GMAIL_TRASH, "Moved to the trash"),
 }
+
+
+def deletion(service: str, what: str) -> Deletion:
+    """How deleting a "topic" or an "item" of this service reads."""
+    if found := DELETIONS.get((service, what)):
+        return found
+    noun = "topic" if what == "topic" else "message"
+    return Deletion(f"Delete this {noun}?", f"SilentDesk deletes it in {service_name(service)}.", "Deleted")
 
 
 def fields(service: str) -> list[Field]:
