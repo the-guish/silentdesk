@@ -88,11 +88,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6
-      - name: Install SQLCipher
+      - name: Install SQLCipher and OpenSSL
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libsqlcipher-dev
+          sudo apt-get install -y libsqlcipher-dev libssl-dev
       - run: swift --version
       - run: swift build --package-path apple/core
       - name: Unit tests

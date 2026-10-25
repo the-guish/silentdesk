@@ -18,7 +18,7 @@ final class LoopbackOAuth: OAuth {
 
     func signIn(_ client: OAuthClient, scopes: [String]) async throws -> Tokens {
         let verifier = Base64.encodeURLSafe(Base64.randomBytes(32), padding: false)
-        let challenge = Base64.encodeURLSafe(SHA256.hash(Data(verifier.utf8)), padding: false)
+        let challenge = Base64.encodeURLSafe(Hashing.sha256(Data(verifier.utf8)), padding: false)
         let listener = LoopbackListener(
             service: client.service, path: client.path, state: Base64.encodeURLSafe(Base64.randomBytes(16), padding: false))
         try listener.start(port: client.port)

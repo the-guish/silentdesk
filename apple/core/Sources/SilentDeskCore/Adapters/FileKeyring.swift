@@ -48,7 +48,7 @@ final class FileKeyring: Keyring {
         let document = JSON.object(entries.mapValues { JSON.string($0) })
         // Readable by the user only, like the real credential store.
         let written = FileManager.default.createFile(
-            atPath: path, contents: Data((document.serialized(indent: 2) + "\n").utf8),
+            atPath: path, contents: Data((document.serialized(pretty: true) + "\n").utf8),
             attributes: [.posixPermissions: 0o600])
         guard written else { throw StorageError("The keyring file \(path) cannot be written.") }
     }

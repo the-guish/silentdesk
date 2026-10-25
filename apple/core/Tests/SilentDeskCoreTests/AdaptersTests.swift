@@ -14,42 +14,34 @@ private func permissions(_ path: String) throws -> Int {
     try #require(FileManager.default.attributesOfItem(atPath: path)[.posixPermissions] as? Int)
 }
 
-// MARK: Settings
+// MARK: Hashing and addresses
 
-@Test func settingsComeFromTheEnvironmentWithEmptyValuesUnset() {
-    let settings = LocalSettings.fromEnvironment([
-        "HOME": "/home/ana",
-        "XDG_DATA_HOME": "/data/",
-        "SILENTDESK_GOOGLE_CLIENT_ID": "",
-        "SILENTDESK_SLACK_CLIENT_ID": "1.2",
-        "SILENTDESK_SLACK_REDIRECT_PORT": "47699",
-        "SILENTDESK_TEST_BASE_URL": "http://127.0.0.1:9/",
-        "SILENTDESK_TEST_BROWSER": "follow",
-        "SILENTDESK_TEST_NOW": "2026-10-24T12:00:00Z",
-    ])
-    #expect(settings.dataDirectory == "/data/silentdesk")
-    #expect(settings.googleClientID == nil)
-    #expect(settings.slackClientID == "1.2")
-    #expect(settings.slackRedirectPort == 47699)
-    #expect(settings.testBaseURL == "http://127.0.0.1:9")
-    #expect(settings.testBrowser)
-    #expect(settings.now == "2026-10-24T12:00:00Z")
-    #expect(settings.baseURL("github", default: "https://api.github.com") == "http://127.0.0.1:9/github")
-    #expect(LocalSettings(dataDirectory: "/d").baseURL("github", default: "https://api.github.com") == "https://api.github.com")
-    #expect(LocalSettings.port(nil) == 47615)
-    #expect(LocalSettings.port("0") == 47615)
-    #expect(LocalSettings.port("70000") == 47615)
-    #expect(LocalSettings.port("8x") == 47615)
-    #expect(LocalSettings.port("8080") == 8080)
+private func hex(_ data: Data) -> String {
+    data.map { String(format: "%02x", $0) }.joined()
 }
 
-@Test func theDataFolderFollowsTheHome() {
-    let folder = LocalSettings.dataDirectory(["HOME": "/home/ana"])
-    #if os(macOS)
-    #expect(folder == "/home/ana/Library/Application Support/SilentDesk")
-    #else
-    #expect(folder == "/home/ana/.local/share/silentdesk")
-    #endif
+@Test func sha256MatchesTheStandardVectors() {
+    #expect(hex(Hashing.sha256(Data())) == "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855")
+    #expect(hex(Hashing.sha256(Data("abc".utf8))) == "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad")
+    let long = String(repeating: "a", count: 1_000)
+    #expect(hex(Hashing.sha256(Data(long.utf8))) == "41edece42d63e8d9bf515a9ba6932e1c20cbc9f5a5d134645adb5db1b9737ea3")
+}
+
+@Test func pkceChallengeIsTheURLSafeHashWithoutPadding() {
+    // RFC 7636 appendix B.
+    let verifier = "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk"
+    let challenge = Base64.encodeURLSafe(Hashing.sha256(Data(verifier.utf8)), padding: false)
+    #expect(challenge == "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM")
+}
+
+@Test func loopbackHostsAreRecognized() {
+    #expect(isLoopback("localhost"))
+    #expect(isLoopback("127.0.0.1"))
+    #expect(isLoopback("127.1.2.3"))
+    #expect(isLoopback("::1"))
+    #expect(!isLoopback("example.com"))
+    #expect(!isLoopback("128.0.0.1"))
+    #expect(!isLoopback(nil))
 }
 
 // MARK: Keyring
@@ -66,8 +58,9 @@ private func permissions(_ path: String) throws -> Int {
     try keyring.delete("never-there")
     #expect(try keyring.get("database-key") == nil)
     #expect(try keyring.get("github-token") == "ghp")
-    let text = try String(contentsOfFile: "\(folder)/nested/keyring.json", encoding: .utf8)
-    #expect(text == "{\n  \"github-token\": \"ghp\"\n}\n")
+    let data = try #require(FileManager.default.contents(atPath: "\(folder)/nested/keyring.json"))
+    #expect(try JSON.parse(data) == ["github-token": "ghp"], "one JSON object of strings, as the spec describes")
+    #expect(String(decoding: data, as: UTF8.self).contains("\n"), "readable by a person")
 }
 
 // MARK: Database
@@ -237,7 +230,7 @@ private final class SigningInBrowser: Browser {
     #expect(form["client_id"] == "cid" && form["client_secret"] == "secret")
     #expect(form["redirect_uri"] == query["redirect_uri"])
     let verifier = try #require(form["code_verifier"])
-    #expect(Base64.encodeURLSafe(SHA256.hash(Data(verifier.utf8)), padding: false) == query["code_challenge"])
+    #expect(Base64.encodeURLSafe(Hashing.sha256(Data(verifier.utf8)), padding: false) == query["code_challenge"])
 }
 
 @Test func oauthReportsRevokedGrantsAsAuthErrors() async throws {

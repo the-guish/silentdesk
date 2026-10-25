@@ -20,12 +20,15 @@ let package = Package(
         // development build this core, the distribution's SQLCipher is used
         // instead: apt install libsqlcipher-dev.
         .systemLibrary(name: "CSQLCipher", pkgConfig: "sqlcipher", providers: [.apt(["libsqlcipher-dev"])]),
+        // OpenSSL's hashing for the Linux build; Apple platforms use CryptoKit.
+        .systemLibrary(name: "COpenSSL", pkgConfig: "libcrypto", providers: [.apt(["libssl-dev"])]),
         // The core's public API, used by the CLI and the apps.
         .target(
             name: "SilentDeskCore",
             dependencies: [
                 .product(name: "SQLCipher", package: "SQLCipher.swift", condition: .when(platforms: applePlatforms)),
                 .target(name: "CSQLCipher", condition: .when(platforms: [.linux])),
+                .target(name: "COpenSSL", condition: .when(platforms: [.linux])),
             ]
         ),
         // The JSON command line from spec/cli.md, as a library so it can be tested.
