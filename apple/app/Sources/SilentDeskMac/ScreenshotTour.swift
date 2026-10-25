@@ -62,9 +62,9 @@ struct ScreenshotTour {
         try? await Task.sleep(for: .seconds(seconds))
     }
 
-    /// Saves the window as the window server shows it, with screencapture,
-    /// and as its views draw themselves, which misses the sidebar's
-    /// translucent material. Both while it is unclear which works on CI.
+    /// Saves the window as the window server shows it, title bar and
+    /// toolbar included. Without screencapture, as its views draw
+    /// themselves, which misses the sidebar's translucent material.
     private func save(_ name: String, _ window: NSWindow?) {
         guard let window else {
             log("screenshot \(name): no window")
@@ -74,20 +74,26 @@ struct ScreenshotTour {
         let capture = Process()
         capture.executableURL = URL(fileURLWithPath: "/usr/sbin/screencapture")
         capture.arguments = ["-x", "-o", "-l", String(window.windowNumber), file.path]
-        do {
-            try capture.run()
+        var captured = false
+        if (try? capture.run()) != nil {
             capture.waitUntilExit()
-            log("screenshot \(name): screencapture exited \(capture.terminationStatus)")
-        } catch {
-            log("screenshot \(name): \(error)")
+            captured = capture.terminationStatus == 0 && FileManager.default.fileExists(atPath: file.path)
         }
-
+        if captured {
+            log("screenshot \(name): \(file.path)")
+            return
+        }
         guard let view = window.contentView?.superview ?? window.contentView,
             let bitmap = view.bitmapImageRepForCachingDisplay(in: view.bounds)
         else { return }
         view.cacheDisplay(in: view.bounds, to: bitmap)
         guard let png = bitmap.representation(using: .png, properties: [:]) else { return }
-        try? png.write(to: folder.appendingPathComponent("\(name)-drawn.png"))
+        do {
+            try png.write(to: file)
+            log("screenshot \(name): \(file.path), drawn")
+        } catch {
+            log("screenshot \(name): \(error)")
+        }
     }
 }
 

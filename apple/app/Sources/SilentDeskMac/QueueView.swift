@@ -53,17 +53,16 @@ struct QueueView: View {
         }
     }
 
-    @ViewBuilder
     private var sidebar: some View {
         @Bindable var queue = queue
-        switch queue.content {
-        case .noMatch:
-            ContentUnavailableView.search(text: queue.query)
-        case .list, .empty:
-            List(selection: $queue.selection) {
-                ForEach(queue.shown, id: \.id) { topic in
-                    TopicRow(topic: topic)
-                }
+        return List(selection: $queue.selection) {
+            ForEach(queue.shown, id: \.id) { topic in
+                TopicRow(topic: topic)
+            }
+        }
+        .overlay {
+            if queue.content == .noMatch {
+                ContentUnavailableView.search(text: queue.query)
             }
         }
     }

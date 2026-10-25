@@ -13,7 +13,7 @@ struct SettingsView: View {
             ServicesView(model: services)
                 .tabItem { Label("Services", systemImage: "link") }
         }
-        .frame(width: 560, height: 520)
+        .frame(width: 560, height: 460)
     }
 }
 
@@ -111,6 +111,7 @@ struct ServiceRow: View {
     private var title: some View {
         VStack(alignment: .leading, spacing: 2) {
             Text(name)
+                .foregroundStyle(status.configured ? .primary : .secondary)
             Text(Services.describe(status))
                 .font(.caption)
                 .foregroundStyle(.secondary)

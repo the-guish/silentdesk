@@ -166,6 +166,7 @@ struct ReplyBar: View {
             TextEditor(text: $model.reply)
                 .font(.body)
                 .scrollContentBackground(.hidden)
+                .scrollIndicators(.never)
                 .frame(height: 64)
                 .padding(6)
                 .background(Color(nsColor: .textBackgroundColor), in: RoundedRectangle(cornerRadius: 8))
