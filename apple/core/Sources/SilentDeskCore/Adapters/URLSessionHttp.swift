@@ -93,11 +93,26 @@ final class URLSessionHttp: Http, @unchecked Sendable {
             newRequest request: URLRequest,
             completionHandler: @escaping @Sendable (URLRequest?) -> Void
         ) {
-            if let url = request.url, allows(url) {
-                completionHandler(request)
-            } else {
+            guard let url = request.url, allows(url) else {
                 completionHandler(nil)
+                return
             }
+            var redirect = request
+            // A token belongs to the origin it was sent to. Foundation on
+            // Linux would carry it to another host; httpx, in the Python
+            // core, drops it there, and so does this.
+            let sameOrigin = response.url.map { origin(of: $0) == origin(of: url) } ?? false
+            if !sameOrigin {
+                redirect.setValue(nil, forHTTPHeaderField: "Authorization")
+            }
+            completionHandler(redirect)
+        }
+
+        /// Scheme, host and port, as a browser compares origins.
+        private func origin(of url: URL) -> String {
+            let scheme = url.scheme?.lowercased() ?? ""
+            let port = url.port ?? (scheme == "https" ? 443 : 80)
+            return "\(scheme)://\(url.host?.lowercased() ?? ""):\(port)"
         }
     }
 }
