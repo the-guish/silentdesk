@@ -4,7 +4,7 @@ import asyncio
 import uuid
 from collections.abc import Callable, Mapping, Sequence
 
-from ....contract import Connector, Desk, ServiceStatus, SyncFailed, TopicView, UnknownService, UnknownTopic
+from ....contract import Connector, Desk, Message, ServiceStatus, SyncFailed, TopicView, UnknownService, UnknownTopic
 from ..core import sync as rounds
 from ..core import topics
 from ..domain.topics import TopicRecord
@@ -96,6 +96,11 @@ class DeskService(Desk):
             if record.id == topic_id:
                 return record
         raise UnknownTopic(f"No topic has the ID {topic_id!r}.")
+
+    async def history(self, topic_id: str) -> list[Message]:
+        record = await self._record(topic_id)
+        async with self.locks[record.service]:
+            return await self._connector(record.service).history(record.key)
 
     async def reply(self, topic_id: str, body: str) -> None:
         if not body.strip():

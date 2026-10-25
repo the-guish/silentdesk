@@ -5,7 +5,7 @@ Apps depend on each other only through these classes. They hold no logic:
 abstract classes for behaviour, frozen dataclasses for the data they pass."""
 
 from .browser import Browser
-from .connector import Connector, Direction, Item, ServiceStatus, SyncResult, Topic
+from .connector import Connector, Direction, Item, Message, ServiceStatus, SyncResult, Topic
 from .database import Database, StorageError
 from .desk import Desk, TopicView
 from .errors import (
@@ -34,6 +34,7 @@ __all__ = [
     "Http",
     "Item",
     "Keyring",
+    "Message",
     "NetworkError",
     "OAuth",
     "OAuthClient",

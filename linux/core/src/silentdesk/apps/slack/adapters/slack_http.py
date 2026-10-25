@@ -6,7 +6,7 @@ import json
 from typing import Any
 
 from ....contract import AuthError, Http, NetworkError, RemoteError
-from ..domain.slack import Match, SlackAccount
+from ..domain.slack import HistoryEntry, Match, SlackAccount
 from ..ports.slack_api import SlackApi
 
 SERVICE = "slack"
@@ -53,6 +53,22 @@ class SlackHttpApi(SlackApi):
         found = (await self._call("search.messages", token, params)).get("messages", {})
         matches = found.get("matches", []) if isinstance(found, dict) else []
         return [_match(match) for match in matches if isinstance(match, dict) and isinstance(match.get("ts"), str)]
+
+    async def history(self, token: str, channel_id: str, count: int) -> list[HistoryEntry]:
+        found = (await self._call("conversations.history", token, {"channel": channel_id, "limit": str(count)})).get(
+            "messages", []
+        )
+        return [
+            HistoryEntry(
+                user=m.get("user") if isinstance(m.get("user"), str) else None,
+                username=m.get("username") if isinstance(m.get("username"), str) else None,
+                text=str(m.get("text", "")),
+                ts=m["ts"],
+                subtype=m.get("subtype") if isinstance(m.get("subtype"), str) else None,
+            )
+            for m in found
+            if isinstance(m, dict) and isinstance(m.get("ts"), str)
+        ]
 
     async def user_name(self, token: str, user_id: str) -> str:
         try:

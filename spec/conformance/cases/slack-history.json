@@ -1,0 +1,235 @@
+{
+  "description": "a Slack topic's conversation is read live, oldest first, without join and leave events",
+  "env": {
+    "SILENTDESK_TEST_KEYRING": "{home}/keyring.json",
+    "SILENTDESK_TEST_BASE_URL": "{server}",
+    "SILENTDESK_TEST_BROWSER": "follow",
+    "SILENTDESK_TEST_NOW": "2026-10-24T12:00:00Z",
+    "SILENTDESK_SLACK_CLIENT_ID": "1234.5678",
+    "SILENTDESK_SLACK_REDIRECT_PORT": "47699"
+  },
+  "http": [
+    {
+      "path": "/slack/oauth/v2/authorize",
+      "redirect": "{query.redirect_uri}?code=slack-code&state={query.state}"
+    },
+    {
+      "method": "POST",
+      "path": "/slack/api/oauth.v2.access",
+      "body": {
+        "ok": true,
+        "authed_user": {
+          "id": "U0",
+          "access_token": "xoxp-1",
+          "scope": "search:read,users:read,im:history,mpim:history",
+          "token_type": "user"
+        }
+      }
+    },
+    {
+      "path": "/slack/api/auth.test",
+      "body": {
+        "ok": true,
+        "user_id": "U0",
+        "user": "ana",
+        "team_id": "T1",
+        "team": "Acme"
+      }
+    },
+    {
+      "path": "/slack/api/search.messages",
+      "query": {
+        "query": "to:me"
+      },
+      "body": {
+        "ok": true,
+        "messages": {
+          "matches": [
+            {
+              "type": "im",
+              "channel": {
+                "id": "D1",
+                "name": "U2",
+                "is_im": true,
+                "is_mpim": false
+              },
+              "user": "U2",
+              "text": "Hi",
+              "ts": "1761300000.000100",
+              "permalink": "https://acme.slack.com/archives/D1/p1761300000000100"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "path": "/slack/api/search.messages",
+      "body": {
+        "ok": true,
+        "messages": {
+          "matches": []
+        }
+      }
+    },
+    {
+      "path": "/slack/api/users.info",
+      "query": {
+        "user": "U2"
+      },
+      "body": {
+        "ok": true,
+        "user": {
+          "id": "U2",
+          "name": "bo",
+          "profile": {
+            "display_name": "Bo"
+          }
+        }
+      }
+    },
+    {
+      "path": "/slack/api/conversations.history",
+      "query": {
+        "channel": "D1"
+      },
+      "body": {
+        "ok": true,
+        "messages": [
+          {
+            "user": "U0",
+            "text": "On it, <@U2>",
+            "ts": "1761305000.000300"
+          },
+          {
+            "user": "U2",
+            "subtype": "channel_join",
+            "text": "joined",
+            "ts": "1761302000.000200"
+          },
+          {
+            "user": "U2",
+            "text": "Can you check &lt;prod&gt;?",
+            "ts": "1761300000.000100"
+          }
+        ]
+      }
+    },
+    {
+      "path": "/slack/api/users.info",
+      "query": {
+        "user": "U0"
+      },
+      "body": {
+        "ok": true,
+        "user": {
+          "id": "U0",
+          "name": "ana",
+          "profile": {
+            "display_name": "Ana"
+          }
+        }
+      }
+    }
+  ],
+  "steps": [
+    {
+      "args": [
+        "connect",
+        "slack"
+      ],
+      "exit": 0,
+      "schema": "status.json",
+      "stdout": {
+        "service": "slack",
+        "configured": true,
+        "connected": true,
+        "account": "ana · Acme"
+      }
+    },
+    {
+      "args": [
+        "sync",
+        "slack"
+      ],
+      "exit": 0,
+      "schema": "sync.json",
+      "stdout": {
+        "lastSynced": "2026-10-24T12:00:00Z"
+      }
+    },
+    {
+      "args": [
+        "topics"
+      ],
+      "exit": 0,
+      "schema": "topics.json",
+      "stdout": [
+        {
+          "id": {
+            "$any": "string"
+          },
+          "service": "slack",
+          "title": "Hi",
+          "items": [
+            {
+              "key": "1761300000.000100",
+              "direction": "inbound",
+              "author": "Bo",
+              "url": {
+                "$any": "string"
+              },
+              "date": "2025-10-24T10:00:00Z"
+            }
+          ],
+          "updatedAt": "2025-10-24T10:00:00Z"
+        }
+      ],
+      "capture": {
+        "topic": [
+          0,
+          "id"
+        ]
+      }
+    },
+    {
+      "args": [
+        "history",
+        "{capture.topic}"
+      ],
+      "exit": 0,
+      "schema": "history.json",
+      "stdout": [
+        {
+          "key": "1761300000.000100",
+          "direction": "inbound",
+          "author": "Bo",
+          "text": "Can you check <prod>?",
+          "date": "2025-10-24T10:00:00Z"
+        },
+        {
+          "key": "1761305000.000300",
+          "direction": "outbound",
+          "author": "Ana",
+          "text": "On it, @Bo",
+          "date": "2025-10-24T11:23:20Z"
+        }
+      ]
+    },
+    {
+      "args": [
+        "history",
+        "no-such-topic"
+      ],
+      "exit": 2,
+      "schema": "error.json",
+      "stdout": {
+        "error": {
+          "kind": "usage",
+          "message": {
+            "$any": "string"
+          }
+        }
+      }
+    }
+  ]
+}

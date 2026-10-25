@@ -33,3 +33,5 @@ slack-connect-scope-not-granted
 slack-connect-sync-conversations
 slack-is-read-only
 slack-sync-token-revoked
+history-unsupported
+slack-history
