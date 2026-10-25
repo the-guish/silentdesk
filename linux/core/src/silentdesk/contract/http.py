@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -23,7 +23,8 @@ class Http(ABC):
         url: str,
         *,
         headers: Mapping[str, str] | None = None,
-        params: Mapping[str, str] | None = None,
+        # A list repeats the parameter, as in ?a=1&a=2.
+        params: Mapping[str, str | Sequence[str]] | None = None,
         json: Any = None,
         form: Mapping[str, str] | None = None,
     ) -> Response:

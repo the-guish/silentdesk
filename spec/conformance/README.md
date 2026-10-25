@@ -31,6 +31,8 @@ Each file in [`cases/`](cases) is one test. The runner starts a core's `silentde
 
 A case with `steps` runs several commands in a row, in the same home folder and against the same fake server. Each step has its own `args`, `stdin`, `exit`, `schema` and `stdout`; `env`, `files`, `http` and `requests` belong to the case.
 
+A step can keep values from its output for later steps: `"capture": {"topic": [0, "id"]}` keeps the first item's `id`, and `{capture.topic}` in a later step's `args` or `stdin` stands for it. Topic IDs are random, so this is how a case refers to one.
+
 ### The fake server
 
 `http` lists the replies a fake server sends, which `{server}` in `env` points the core at:

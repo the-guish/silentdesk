@@ -173,6 +173,14 @@ Syncs one service, or, without an argument, every connected service in turn: Goo
 {"lastSynced": "2026-10-24T12:00:00Z"}
 ```
 
+### `reply <topic-id>`
+
+Replies in a topic, through its service: for Gmail, to the thread's newest message. The reply is plain text on stdin, written by the user, so it carries no AI notice (core principle 9). Prints `{}` ([schema](schema/empty.json)). An empty reply, or an unknown topic ID, is a usage error; a service that cannot reply fails with `unsupported`.
+
+### `delete <topic-id>`
+
+Deletes a topic in its service, then drops it: for Gmail, the thread moves to the trash, which Gmail empties after 30 days. Prints `{}` ([schema](schema/empty.json)). An unknown topic ID is a usage error; a service that cannot delete fails with `unsupported`.
+
 ## Planned
 
 Not part of the contract yet:

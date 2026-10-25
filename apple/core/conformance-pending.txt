@@ -26,3 +26,6 @@ tasks-connect-scope-not-granted
 tasks-connect-sync-topics
 tasks-disconnect-revokes
 tasks-sync-grant-revoked
+gmail-connect-sync-threads
+gmail-reply-and-delete
+gmail-sync-new-messages-only
