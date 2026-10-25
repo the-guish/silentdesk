@@ -2,7 +2,7 @@
 
 Both cores keep local data in one SQLite database file, with the same schema, so either core can open a database the other wrote.
 
-- **Location:** `silentdesk.db` in the data folder: `$XDG_DATA_HOME/silentdesk/` on Linux, by default `~/.local/share/silentdesk/`. The folder is mode 0700 and the file 0600.
+- **Location:** `silentdesk.db` in the data folder: `$XDG_DATA_HOME/silentdesk/` on Linux, by default `~/.local/share/silentdesk/`; `~/Library/Application Support/SilentDesk/` on macOS, unless `XDG_DATA_HOME` is set, as the conformance suite sets it. The folder is mode 0700 and the file 0600.
 - **Schema:** [`sql/`](sql) holds numbered migrations, `0001_init.sql` and up. A core runs, in order, every migration above the database's `PRAGMA user_version`, then sets `user_version` to the last one's number, all in one transaction. Migrations are never edited once released; a change is a new file.
 - **Ownership:** each app owns the tables whose names start with its name, such as `gmail_state`. No app reads another's tables.
 - **Foreign keys** are on (`PRAGMA foreign_keys = ON`) for every connection.
@@ -14,7 +14,7 @@ Core principle 1 ([legacy/docs/specs/core.md](../legacy/docs/specs/core.md)) req
 | Core | Library |
 |------|---------|
 | Python | `sqlcipher3`, whose `sqlcipher3-binary` wheel bundles SQLCipher |
-| Swift | SQLCipher's Swift package; the system SQLite cannot be used |
+| Swift | SQLCipher's Swift package on Apple platforms; the system SQLite cannot be used. Its binaries are Apple-only, so on Linux, where only CI and development build this core, the distribution's `libsqlcipher` is linked instead |
 
 - **Key:** a random 256-bit key, generated on first run and kept in the OS credential store (Secret Service on Linux, Keychain on Apple), as in legacy. It is passed to SQLCipher as a raw key, so no passphrase derivation runs on open.
 - **Missing key:** if the key is gone but the database file exists, the core refuses to open it rather than create a new key and lose the data, as in legacy. Commands then fail with error kind `storage`.

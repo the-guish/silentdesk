@@ -1,0 +1,6 @@
+// The distribution's OpenSSL, for the Linux build: apt install libssl-dev.
+module COpenSSL [system] {
+    header "shim.h"
+    link "crypto"
+    export *
+}

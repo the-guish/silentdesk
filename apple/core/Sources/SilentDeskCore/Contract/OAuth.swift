@@ -68,3 +68,19 @@ protocol OAuth: Sendable {
     /// Asks the provider to end the grant. Best effort: it never throws.
     func revoke(url: String, token: String) async
 }
+
+// Secrets never reach a description, so they cannot leak through an error
+// message or a log; the Python core's contract hides the same fields.
+
+extension OAuthClient: CustomStringConvertible {
+    var description: String {
+        "OAuthClient(service: \(service), clientID: \(clientID), clientSecret: \(clientSecret == nil ? "none" : "hidden"))"
+    }
+}
+
+extension Tokens: CustomStringConvertible {
+    var description: String {
+        "Tokens(accessToken: \(accessToken == nil ? "none" : "hidden"), refreshToken: \(refreshToken == nil ? "none" : "hidden"),"
+            + " scopes: \(scopes))"
+    }
+}
