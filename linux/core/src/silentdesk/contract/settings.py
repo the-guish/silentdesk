@@ -28,3 +28,12 @@ class Settings(ABC):
     @property
     @abstractmethod
     def google_client_secret(self) -> str | None: ...
+
+    @property
+    @abstractmethod
+    def slack_client_id(self) -> str | None: ...
+
+    @property
+    @abstractmethod
+    def slack_redirect_port(self) -> int:
+        """Slack matches redirect URLs exactly, so the sign-in port is fixed."""

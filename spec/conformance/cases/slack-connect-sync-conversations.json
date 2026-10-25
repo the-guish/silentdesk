@@ -1,0 +1,292 @@
+{
+  "description": "Slack signs in through the browser, and a sync makes one topic per direct conversation",
+  "env": {
+    "SILENTDESK_TEST_KEYRING": "{home}/keyring.json",
+    "SILENTDESK_TEST_BASE_URL": "{server}",
+    "SILENTDESK_TEST_BROWSER": "follow",
+    "SILENTDESK_TEST_NOW": "2026-10-24T12:00:00Z",
+    "SILENTDESK_SLACK_CLIENT_ID": "1234.5678",
+    "SILENTDESK_SLACK_REDIRECT_PORT": "47699"
+  },
+  "http": [
+    {
+      "path": "/slack/oauth/v2/authorize",
+      "redirect": "{query.redirect_uri}?code=slack-code&state={query.state}"
+    },
+    {
+      "method": "POST",
+      "path": "/slack/api/oauth.v2.access",
+      "body": {
+        "ok": true,
+        "authed_user": {
+          "id": "U0",
+          "access_token": "xoxp-1",
+          "scope": "search:read,users:read,im:history,mpim:history",
+          "token_type": "user"
+        }
+      }
+    },
+    {
+      "path": "/slack/api/auth.test",
+      "body": {
+        "ok": true,
+        "user_id": "U0",
+        "user": "ana",
+        "team_id": "T1",
+        "team": "Acme"
+      }
+    },
+    {
+      "path": "/slack/api/search.messages",
+      "query": {
+        "query": "to:me"
+      },
+      "body": {
+        "ok": true,
+        "messages": {
+          "matches": [
+            {
+              "type": "im",
+              "channel": {
+                "id": "D1",
+                "name": "U2",
+                "is_im": true,
+                "is_mpim": false
+              },
+              "user": "U2",
+              "text": "Can you check <https://x.example/deploy|the deploy>?",
+              "ts": "1761300000.000100",
+              "permalink": "https://acme.slack.com/archives/D1/p1761300000000100"
+            },
+            {
+              "type": "mpim",
+              "channel": {
+                "id": "G1",
+                "name": "mpdm-ana--bo--cy-1",
+                "is_im": false,
+                "is_mpim": true
+              },
+              "user": "U3",
+              "text": "Lunch at 1?",
+              "ts": "1761310000.000200",
+              "permalink": "https://acme.slack.com/archives/G1/p1761310000000200"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "path": "/slack/api/search.messages",
+      "query": {
+        "query": "from:<@U0>"
+      },
+      "body": {
+        "ok": true,
+        "messages": {
+          "matches": [
+            {
+              "type": "im",
+              "channel": {
+                "id": "D1",
+                "name": "U2",
+                "is_im": true,
+                "is_mpim": false
+              },
+              "user": "U0",
+              "text": "On it, <@U2>",
+              "ts": "1761305000.000300",
+              "permalink": "https://acme.slack.com/archives/D1/p1761305000000300"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "path": "/slack/api/search.messages",
+      "body": {
+        "ok": true,
+        "messages": {
+          "matches": []
+        }
+      }
+    },
+    {
+      "path": "/slack/api/users.info",
+      "query": {
+        "user": "U0"
+      },
+      "body": {
+        "ok": true,
+        "user": {
+          "id": "U0",
+          "name": "ana",
+          "profile": {
+            "display_name": "Ana"
+          }
+        }
+      }
+    },
+    {
+      "path": "/slack/api/users.info",
+      "query": {
+        "user": "U2"
+      },
+      "body": {
+        "ok": true,
+        "user": {
+          "id": "U2",
+          "name": "bo",
+          "profile": {
+            "display_name": "Bo"
+          }
+        }
+      }
+    },
+    {
+      "path": "/slack/api/users.info",
+      "query": {
+        "user": "U3"
+      },
+      "body": {
+        "ok": true,
+        "user": {
+          "id": "U3",
+          "name": "cy",
+          "profile": {
+            "display_name": "Cy"
+          }
+        }
+      }
+    }
+  ],
+  "steps": [
+    {
+      "args": [
+        "connect",
+        "slack"
+      ],
+      "exit": 0,
+      "schema": "status.json",
+      "stdout": {
+        "service": "slack",
+        "configured": true,
+        "connected": true,
+        "account": "ana · Acme"
+      }
+    },
+    {
+      "args": [
+        "sync",
+        "slack"
+      ],
+      "exit": 0,
+      "schema": "sync.json",
+      "stdout": {
+        "lastSynced": "2026-10-24T12:00:00Z"
+      }
+    },
+    {
+      "args": [
+        "topics"
+      ],
+      "exit": 0,
+      "schema": "topics.json",
+      "stdout": [
+        {
+          "id": {
+            "$any": "string"
+          },
+          "service": "slack",
+          "title": "Lunch at 1?",
+          "items": [
+            {
+              "key": "1761310000.000200",
+              "direction": "inbound",
+              "author": "Cy",
+              "url": "https://acme.slack.com/archives/G1/p1761310000000200",
+              "date": "2025-10-24T12:46:40Z"
+            }
+          ],
+          "updatedAt": "2025-10-24T12:46:40Z"
+        },
+        {
+          "id": {
+            "$any": "string"
+          },
+          "service": "slack",
+          "title": "On it, @Bo",
+          "items": [
+            {
+              "key": "1761300000.000100",
+              "direction": "inbound",
+              "author": "Bo",
+              "url": "https://acme.slack.com/archives/D1/p1761300000000100",
+              "date": "2025-10-24T10:00:00Z"
+            },
+            {
+              "key": "1761305000.000300",
+              "direction": "outbound",
+              "author": "Ana",
+              "url": "https://acme.slack.com/archives/D1/p1761305000000300",
+              "date": "2025-10-24T11:23:20Z"
+            }
+          ],
+          "updatedAt": "2025-10-24T11:23:20Z"
+        }
+      ]
+    }
+  ],
+  "requests": [
+    {
+      "path": "/slack/oauth/v2/authorize",
+      "query": {
+        "client_id": "1234.5678",
+        "user_scope": "search:read,users:read,im:history,mpim:history",
+        "redirect_uri": "http://localhost:47699/slack/callback",
+        "code_challenge_method": "S256"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/slack/api/oauth.v2.access"
+    },
+    {
+      "path": "/slack/api/auth.test",
+      "headers": {
+        "Authorization": "Bearer xoxp-1"
+      }
+    },
+    {
+      "path": "/slack/api/search.messages",
+      "query": {
+        "query": "to:me",
+        "sort": "timestamp",
+        "count": "30"
+      }
+    },
+    {
+      "path": "/slack/api/search.messages",
+      "query": {
+        "query": "from:<@U0>"
+      }
+    },
+    {
+      "path": "/slack/api/users.info",
+      "query": {
+        "user": "U3"
+      }
+    },
+    {
+      "path": "/slack/api/users.info",
+      "query": {
+        "user": "U0"
+      }
+    },
+    {
+      "path": "/slack/api/users.info",
+      "query": {
+        "user": "U2"
+      }
+    }
+  ]
+}
