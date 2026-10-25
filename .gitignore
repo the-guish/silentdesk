@@ -17,6 +17,9 @@ legacy/src-tauri/resources/
 __pycache__/
 .pytest_cache/
 .ruff_cache/
+.coverage
+.coverage.*
+coverage.xml
 
 # Swift
 .build/

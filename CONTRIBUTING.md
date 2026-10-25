@@ -60,6 +60,19 @@ uv run spec/runner/conformance.py --pending apple/core/conformance-pending.txt -
 - Keep each pull request small and focused on one change.
 - Describe what changed and why.
 
+## SonarQube Cloud
+
+SonarQube Cloud has one project per platform, set in `linux/sonar-project.properties` and `apple/sonar-project.properties`. CI scans a project only when its folder changes.
+
+The conformance suite sets the Linux core's coverage. It runs the CLI under coverage. Unit tests report no coverage. These commands show it locally:
+
+```sh
+uv sync --directory linux/core
+export COVERAGE_RCFILE=$PWD/linux/core/pyproject.toml COVERAGE_FILE=$PWD/linux/core/.coverage
+uv run spec/runner/conformance.py --pending linux/core/conformance-pending.txt -- linux/core/.venv/bin/coverage run -m silentdesk
+cd linux && core/.venv/bin/coverage combine && core/.venv/bin/coverage report
+```
+
 ## License
 
 By contributing, you agree that your contributions are licensed under the [Apache License 2.0](LICENSE). Add your name to [AUTHORS](AUTHORS) in your first pull request.
