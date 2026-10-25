@@ -77,7 +77,7 @@ class Gmail(Connector):
 
     async def _access_token(self) -> str:
         refresh = self.credentials.refresh_token()
-        if refresh is None or await self.state.load() is None:
+        if refresh is None:
             raise AuthError(self.service, "Gmail is not connected.")
         try:
             return await self.authorization.access_token(refresh)
@@ -92,7 +92,9 @@ class Gmail(Connector):
         entered it since, until Gmail's history runs out (about a week)."""
         access = await self._access_token()
         state = await self.state.load()
-        assert state is not None
+        if state is None:
+            # A sign-in kept from legacy has no account yet.
+            state = GmailState((await self.api.profile(access)).email, None)
         changes = await self.api.inbox_changes(access, state.history_id) if state.history_id else None
         if changes is not None:
             ids, history_id = changes

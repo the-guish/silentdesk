@@ -48,7 +48,9 @@ def test_search_matches_every_word_in_title_service_and_people():
 
 
 def test_errors_read_as_one_line():
-    from silentdesk.contract import RemoteError
+    from silentdesk.contract import AuthError, RemoteError, SyncFailed
 
     assert format.describe(RemoteError("jira", "Jira answered 503.")) == "Jira: Jira answered 503."
     assert format.describe(ValueError("Bad.")) == "Bad."
+    failed = SyncFailed([("tasks", AuthError("tasks", "Not configured.")), ("gmail", RemoteError("gmail", "Quota."))])
+    assert format.describe(failed) == "Could not sync Google Tasks: Not configured. Could not sync Gmail: Quota."

@@ -83,8 +83,10 @@ def matches(topic: TopicView, query: str) -> bool:
 def describe(error: BaseException) -> str:
     """An error as one line for a toast."""
     if isinstance(error, SyncFailed):
-        failed = ", ".join(service_name(service) for service, _ in error.failures)
-        return f"Could not sync {failed}."
+        return " ".join(
+            f"Could not sync {service_name(service)}: {failure or type(failure).__name__}"
+            for service, failure in error.failures
+        )
     if isinstance(error, ConnectorError) and error.service:
         return f"{service_name(error.service)}: {error}"
     return str(error) or type(error).__name__
