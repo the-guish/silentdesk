@@ -41,3 +41,49 @@ private func pull(_ id: Int, _ reason: GitHubReason, updated: String, title: Str
     #expect(topic.items[0].direction == .outbound)
     #expect(!topic.deletable)
 }
+
+// MARK: Jira
+
+@Test func jiraSitesAreNormalized() throws {
+    #expect(try JiraRules.normalizeSite("acme.atlassian.net") == "https://acme.atlassian.net")
+    #expect(try JiraRules.normalizeSite(" https://acme.atlassian.net/ ") == "https://acme.atlassian.net")
+    #expect(try JiraRules.normalizeSite("jira.acme.com/jira/") == "https://jira.acme.com/jira")
+    #expect(try JiraRules.normalizeSite("https://jira.acme.com:8443/jira") == "https://jira.acme.com:8443/jira")
+    #expect(throws: ConnectorError.self) { try JiraRules.normalizeSite("http://jira.acme.com") }
+    #expect(throws: ConnectorError.self) { try JiraRules.normalizeSite("") }
+    #expect(JiraRules.isCloudSite("https://acme.atlassian.net"))
+    #expect(!JiraRules.isCloudSite("https://jira.acme.com"))
+}
+
+@Test func jiraIssuesBecomeTopics() {
+    let account = JiraAccount(
+        userID: "acc-ana", userName: "Ana",
+        endpoint: JiraEndpoint(site: "https://acme.atlassian.net", apiBase: "https://acme.atlassian.net", flavor: .cloud))
+    let mine = JiraIssue(
+        issueID: "1", key: "PAY-1", summary: " Refund ", status: "Open", project: "PAY",
+        assignee: JiraUser(id: "acc-ana", name: "Ana"), reporter: JiraUser(id: "acc-bo", name: "Bo"),
+        updated: "2026-10-23T10:00:00.000+0200")
+    let topic = JiraRules.topic(mine, account: account)
+    #expect(topic.title == "Refund")
+    #expect(topic.key == "1")
+    #expect(topic.items[0] == Item(
+        key: "PAY-1", direction: .inbound, author: "Bo", url: "https://acme.atlassian.net/browse/PAY-1",
+        date: "2026-10-23T08:00:00Z", deletable: false))
+    let theirs = JiraIssue(
+        issueID: "2", key: "WEB-7", summary: "", status: "", project: "", assignee: nil,
+        reporter: JiraUser(id: nil, name: ""), updated: nil)
+    let waiting = JiraRules.topic(theirs, account: account)
+    #expect(waiting.title == "WEB-7")
+    #expect(waiting.items[0].direction == .outbound)
+    #expect(waiting.items[0].author == nil)
+    #expect(waiting.items[0].date == "")
+    #expect(JiraRules.accountLabel(account) == "Ana · acme.atlassian.net")
+    #expect(JiraCredential(email: "a@b", token: "t").flavor == .cloud)
+    #expect(JiraCredential(email: nil, token: "t").flavor == .dataCenter)
+}
+
+// MARK: Credentials
+
+@Test func credentialsHideTheirTokensWhenPrinted() {
+    #expect(!"\(JiraCredential(email: "ana@acme.com", token: "jira-secret"))".contains("secret"))
+}
