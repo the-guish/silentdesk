@@ -39,3 +39,10 @@ extension Http {
         try await request(method, url, headers: headers, params: params, json: json, form: form)
     }
 }
+
+extension Response: CustomStringConvertible {
+    /// The body may carry tokens, so only its size is shown.
+    var description: String {
+        "Response(status: \(status), \(body.count) bytes)"
+    }
+}
