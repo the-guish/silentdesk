@@ -36,3 +36,7 @@ slack-sync-token-revoked
 history-unsupported
 slack-history
 gmail-delete-one-message
+projects-empty
+projects-add-rename-delete
+projects-name-rules
+projects-move-topics

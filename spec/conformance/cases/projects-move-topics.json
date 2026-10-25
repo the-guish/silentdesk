@@ -1,0 +1,407 @@
+{
+  "description": "a topic moves to a project and back to Default, keeps its project across syncs, and returns to Default when its project is deleted",
+  "env": {
+    "SILENTDESK_TEST_KEYRING": "{home}/keyring.json",
+    "SILENTDESK_TEST_BASE_URL": "{server}",
+    "SILENTDESK_TEST_NOW": "2026-10-24T12:00:00Z"
+  },
+  "http": [
+    {
+      "path": "/github/user",
+      "body": {
+        "login": "ana",
+        "name": "Ana Ruiz"
+      }
+    },
+    {
+      "path": "/github/search/issues",
+      "query": {
+        "q": "is:pr is:open archived:false review-requested:@me"
+      },
+      "status": 200,
+      "body": {
+        "items": [
+          {
+            "id": 11,
+            "number": 4,
+            "title": "Add retries",
+            "html_url": "https://github.com/acme/web/pull/4",
+            "repository_url": "https://api.github.com/repos/acme/web",
+            "user": {
+              "login": "bo"
+            },
+            "draft": false,
+            "updated_at": "2026-10-23T09:00:00Z"
+          }
+        ]
+      }
+    },
+    {
+      "path": "/github/search/issues",
+      "query": {
+        "q": "is:pr is:open archived:false assignee:@me"
+      },
+      "status": 200,
+      "body": {
+        "items": [
+          {
+            "id": 11,
+            "number": 4,
+            "title": "Add retries",
+            "html_url": "https://github.com/acme/web/pull/4",
+            "repository_url": "https://api.github.com/repos/acme/web",
+            "user": {
+              "login": "bo"
+            },
+            "draft": false,
+            "updated_at": "2026-10-23T09:00:00Z"
+          },
+          {
+            "id": 12,
+            "number": 5,
+            "title": "Fix login",
+            "html_url": "https://github.com/acme/web/pull/5",
+            "repository_url": "https://api.github.com/repos/acme/web",
+            "user": {
+              "login": "bo"
+            },
+            "draft": false,
+            "updated_at": "2026-10-22T09:00:00Z"
+          }
+        ]
+      }
+    },
+    {
+      "path": "/github/search/issues",
+      "query": {
+        "q": "is:pr is:open archived:false author:@me"
+      },
+      "status": 200,
+      "body": {
+        "items": [
+          {
+            "id": 13,
+            "number": 9,
+            "title": "",
+            "html_url": "https://github.com/acme/api/pull/9",
+            "repository_url": "https://api.github.com/repos/acme/api",
+            "user": {
+              "login": "ana"
+            },
+            "draft": false,
+            "updated_at": "2026-10-24T08:00:00Z"
+          }
+        ]
+      }
+    }
+  ],
+  "steps": [
+    {
+      "args": [
+        "connect",
+        "github"
+      ],
+      "stdin": {
+        "token": "ghp_test"
+      },
+      "exit": 0,
+      "schema": "status.json",
+      "stdout": {
+        "service": "github",
+        "configured": true,
+        "connected": true,
+        "account": "ana · github.com"
+      }
+    },
+    {
+      "args": [
+        "sync",
+        "github"
+      ],
+      "exit": 0,
+      "schema": "sync.json",
+      "stdout": {
+        "lastSynced": "2026-10-24T12:00:00Z"
+      }
+    },
+    {
+      "args": [
+        "topics"
+      ],
+      "exit": 0,
+      "schema": "topics.json",
+      "stdout": [
+        {
+          "id": {
+            "$any": "string"
+          },
+          "service": "github",
+          "title": "acme/api#9",
+          "items": {
+            "$any": "array"
+          },
+          "projectId": null,
+          "updatedAt": {
+            "$any": "string"
+          },
+          "deletable": false
+        },
+        {
+          "id": {
+            "$any": "string"
+          },
+          "service": "github",
+          "title": "Add retries",
+          "items": {
+            "$any": "array"
+          },
+          "projectId": null,
+          "updatedAt": {
+            "$any": "string"
+          },
+          "deletable": false
+        },
+        {
+          "id": {
+            "$any": "string"
+          },
+          "service": "github",
+          "title": "Fix login",
+          "items": {
+            "$any": "array"
+          },
+          "projectId": null,
+          "updatedAt": {
+            "$any": "string"
+          },
+          "deletable": false
+        }
+      ],
+      "capture": {
+        "api": [
+          0,
+          "id"
+        ],
+        "retries": [
+          1,
+          "id"
+        ]
+      }
+    },
+    {
+      "args": [
+        "project",
+        "add",
+        "Acme"
+      ],
+      "exit": 0,
+      "schema": "project.json",
+      "stdout": {
+        "id": {
+          "$any": "string"
+        },
+        "name": "Acme"
+      },
+      "capture": {
+        "acme": [
+          "id"
+        ]
+      }
+    },
+    {
+      "args": [
+        "move",
+        "{capture.api}",
+        "{capture.acme}"
+      ],
+      "exit": 0,
+      "schema": "empty.json",
+      "stdout": {}
+    },
+    {
+      "args": [
+        "move",
+        "{capture.retries}",
+        "{capture.acme}"
+      ],
+      "exit": 0,
+      "schema": "empty.json",
+      "stdout": {}
+    },
+    {
+      "args": [
+        "move",
+        "{capture.retries}",
+        "default"
+      ],
+      "exit": 0,
+      "schema": "empty.json",
+      "stdout": {}
+    },
+    {
+      "args": [
+        "sync",
+        "github"
+      ],
+      "exit": 0,
+      "schema": "sync.json",
+      "stdout": {
+        "lastSynced": "2026-10-24T12:00:00Z"
+      }
+    },
+    {
+      "args": [
+        "topics"
+      ],
+      "exit": 0,
+      "schema": "topics.json",
+      "stdout": [
+        {
+          "id": {
+            "$any": "string"
+          },
+          "service": "github",
+          "title": "acme/api#9",
+          "items": {
+            "$any": "array"
+          },
+          "projectId": {
+            "$any": "string"
+          },
+          "updatedAt": {
+            "$any": "string"
+          },
+          "deletable": false
+        },
+        {
+          "id": {
+            "$any": "string"
+          },
+          "service": "github",
+          "title": "Add retries",
+          "items": {
+            "$any": "array"
+          },
+          "projectId": null,
+          "updatedAt": {
+            "$any": "string"
+          },
+          "deletable": false
+        },
+        {
+          "id": {
+            "$any": "string"
+          },
+          "service": "github",
+          "title": "Fix login",
+          "items": {
+            "$any": "array"
+          },
+          "projectId": null,
+          "updatedAt": {
+            "$any": "string"
+          },
+          "deletable": false
+        }
+      ]
+    },
+    {
+      "args": [
+        "move",
+        "{capture.api}",
+        "no-such-project"
+      ],
+      "exit": 2,
+      "schema": "error.json",
+      "stdout": {
+        "error": {
+          "kind": "usage",
+          "message": {
+            "$any": "string"
+          }
+        }
+      }
+    },
+    {
+      "args": [
+        "move",
+        "no-such-topic",
+        "{capture.acme}"
+      ],
+      "exit": 2,
+      "schema": "error.json",
+      "stdout": {
+        "error": {
+          "kind": "usage",
+          "message": {
+            "$any": "string"
+          }
+        }
+      }
+    },
+    {
+      "args": [
+        "project",
+        "delete",
+        "{capture.acme}"
+      ],
+      "exit": 0,
+      "schema": "empty.json",
+      "stdout": {}
+    },
+    {
+      "args": [
+        "topics"
+      ],
+      "exit": 0,
+      "schema": "topics.json",
+      "stdout": [
+        {
+          "id": {
+            "$any": "string"
+          },
+          "service": "github",
+          "title": "acme/api#9",
+          "items": {
+            "$any": "array"
+          },
+          "projectId": null,
+          "updatedAt": {
+            "$any": "string"
+          },
+          "deletable": false
+        },
+        {
+          "id": {
+            "$any": "string"
+          },
+          "service": "github",
+          "title": "Add retries",
+          "items": {
+            "$any": "array"
+          },
+          "projectId": null,
+          "updatedAt": {
+            "$any": "string"
+          },
+          "deletable": false
+        },
+        {
+          "id": {
+            "$any": "string"
+          },
+          "service": "github",
+          "title": "Fix login",
+          "items": {
+            "$any": "array"
+          },
+          "projectId": null,
+          "updatedAt": {
+            "$any": "string"
+          },
+          "deletable": false
+        }
+      ]
+    }
+  ]
+}

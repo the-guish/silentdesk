@@ -13,6 +13,7 @@ This folder defines that behaviour without depending on either language. Each co
 |------|------------|
 | [`cli.md`](cli.md) | Commands, output, errors and exit codes |
 | [`schema/`](schema) | JSON Schema for every command's output |
+| [`filters.md`](filters.md) | The filter bar both apps show over the topics |
 | [`storage.md`](storage.md) | The shared SQLite database (not decided yet) |
 | [`conformance/`](conformance) | The test cases, as data |
 | [`runner/`](runner) | Runs the cases against any core's `silentdesk` |
