@@ -57,7 +57,8 @@ def statuses(tmp_path, client_id: str | None = None) -> list[ServiceStatus]:
 
 def test_services_are_listed_by_name_and_need_a_client_id_to_be_configured(tmp_path):
     assert statuses(tmp_path) == [
+        ServiceStatus("github", configured=True, connected=False, account=None),
         ServiceStatus("gmail", configured=False, connected=False, account=None),
         ServiceStatus("tasks", configured=False, connected=False, account=None),
     ]
-    assert [status.configured for status in statuses(tmp_path, client_id="client")] == [True, True]
+    assert [status.configured for status in statuses(tmp_path, client_id="client")] == [True, True, True]

@@ -1,6 +1,8 @@
 {
   "description": "a Google client ID configures Gmail and Google Tasks",
-  "args": ["services"],
+  "args": [
+    "services"
+  ],
   "env": {
     "SILENTDESK_TEST_KEYRING": "{home}/keyring.json",
     "SILENTDESK_GOOGLE_CLIENT_ID": "test-client.apps.googleusercontent.com"
@@ -8,7 +10,23 @@
   "exit": 0,
   "schema": "services.json",
   "stdout": [
-    { "service": "gmail", "configured": true, "connected": false, "account": null },
-    { "service": "tasks", "configured": true, "connected": false, "account": null }
+    {
+      "service": "github",
+      "configured": true,
+      "connected": false,
+      "account": null
+    },
+    {
+      "service": "gmail",
+      "configured": true,
+      "connected": false,
+      "account": null
+    },
+    {
+      "service": "tasks",
+      "configured": true,
+      "connected": false,
+      "account": null
+    }
   ]
 }

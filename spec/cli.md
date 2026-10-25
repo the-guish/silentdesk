@@ -90,6 +90,7 @@ Takes no arguments. Lists every service SilentDesk can connect, sorted by `servi
 
 ```json
 [
+  {"service": "github", "configured": true, "connected": false, "account": null},
   {"service": "gmail", "configured": true, "connected": false, "account": null},
   {"service": "tasks", "configured": true, "connected": false, "account": null}
 ]
@@ -97,10 +98,10 @@ Takes no arguments. Lists every service SilentDesk can connect, sorted by `servi
 
 | Field | Type | Notes |
 |-------|------|-------|
-| `service` | string | The service's name: `gmail` or `tasks` so far. |
-| `configured` | boolean | The core has what it needs to sign in: for Google services, a client ID. |
-| `connected` | boolean | A sign-in is stored: for Google services, a refresh token in the keyring. |
-| `account` | string \| null | The connected account, such as an email address. `null` when not connected. |
+| `service` | string | The service's name: `github`, `gmail` or `tasks` so far. |
+| `configured` | boolean | The core has what it needs to sign in: for Google services, a client ID. GitHub needs nothing: the user brings a token. |
+| `connected` | boolean | A sign-in is stored: for Google services, a refresh token in the keyring; for GitHub, a token and its account. |
+| `account` | string \| null | The connected account, such as an email address, or `login · host` for GitHub. `null` when not connected. |
 
 ### `topics`
 
@@ -136,6 +137,10 @@ Takes no arguments. Lists every topic, newest first: by `updatedAt`, then by `id
 ### `connect <service>`
 
 Connects one service. Reads the service's fields as one JSON object of strings on stdin, such as `{"token": "…"}`; empty input means no fields. Each service lists its fields in its own section. Prints the service's status, as one item of `services` ([schema](schema/status.json)).
+
+| Service | Fields |
+|---------|--------|
+| `github` | `token`: a personal access token, required. `server`: a GitHub Enterprise Server host, such as `github.acme.com`; empty or missing for github.com. |
 
 ### `disconnect <service>`
 
