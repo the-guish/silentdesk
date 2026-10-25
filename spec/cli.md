@@ -1,7 +1,5 @@
 # SilentDesk — CLI contract
 
-Status: v1 · Last updated: 2026-10-25
-
 Both cores ship a program named `silentdesk`. The conformance suite tests each core through it. The apps reach the same operations through the core's public API (`silentdesk.api` in Python, `SilentDeskCore` in Swift), one function per command, and use nothing else from the core.
 
 ```

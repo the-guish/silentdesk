@@ -1,7 +1,5 @@
 # SilentDesk — Product Spec
 
-Status: draft · Last updated: 2026-10-23
-
 ## 1. Purpose
 
 A desktop task tracker for work. _One or two sentences on the problem it solves and why existing tools don't fit._

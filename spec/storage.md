@@ -1,7 +1,5 @@
 # SilentDesk — Storage
 
-Status: v1 · Last updated: 2026-10-25
-
 Both cores keep local data in one SQLite database file, with the same schema, so either core can open a database the other wrote.
 
 - **Location:** `silentdesk.db` in the data folder: `$XDG_DATA_HOME/silentdesk/` on Linux, by default `~/.local/share/silentdesk/`. The folder is mode 0700 and the file 0600.

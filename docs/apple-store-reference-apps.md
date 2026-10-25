@@ -1,7 +1,5 @@
 # Apple Store Reference Apps
 
-Status: reference · Last updated: 2026-10-25
-
 Open-source apps confirmed on the Mac App Store, as a reference for publishing SilentDesk there. How the ones that handle secrets protect them is in [secure-macos-apps.md](secure-macos-apps.md).
 
 **How they were found.**

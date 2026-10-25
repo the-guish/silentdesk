@@ -1,7 +1,5 @@
 # SilentDesk — Core contract
 
-Status: v1 scaffold · Last updated: 2026-10-24
-
 SilentDesk has two cores that must behave the same:
 
 | Core | Language | Used by |

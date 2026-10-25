@@ -1,7 +1,5 @@
 # Required AI Security Review
 
-Status: in use · Last updated: 2026-10-25
-
 Every ready pull request gets two AI security reviews before a person merges it. Claude Code reviews it in two stages inside CI. Cursor's Security Reviewer reviews it last, on Cursor's side. The two come from different vendors and different models. Each can catch issues the other misses.
 
 ![A ready pull request runs the tests, then the Claude screening, then a deep or standard Claude review. Cursor's Security Reviewer runs after all other checks. A person reads both and merges.](required-AI-security-review.svg)
