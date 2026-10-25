@@ -1,0 +1,69 @@
+{
+  "description": "Jira Data Center connects with a personal access token, REST API v2 and /search",
+  "env": {
+    "SILENTDESK_TEST_KEYRING": "{home}/keyring.json",
+    "SILENTDESK_TEST_BASE_URL": "{server}",
+    "SILENTDESK_TEST_NOW": "2026-10-24T12:00:00Z"
+  },
+  "http": [
+    {
+      "path": "/jira/rest/api/2/myself",
+      "body": {
+        "key": "ana",
+        "name": "ana",
+        "displayName": "Ana Ruiz"
+      }
+    },
+    {
+      "path": "/jira/rest/api/2/search",
+      "body": {
+        "issues": []
+      }
+    }
+  ],
+  "steps": [
+    {
+      "args": [
+        "connect",
+        "jira"
+      ],
+      "stdin": {
+        "site": "jira.acme.com/jira",
+        "token": "pat-token"
+      },
+      "exit": 0,
+      "schema": "status.json",
+      "stdout": {
+        "service": "jira",
+        "configured": true,
+        "connected": true,
+        "account": "Ana Ruiz · jira.acme.com/jira"
+      }
+    },
+    {
+      "args": [
+        "sync",
+        "jira"
+      ],
+      "exit": 0,
+      "schema": "sync.json",
+      "stdout": {
+        "lastSynced": "2026-10-24T12:00:00Z"
+      }
+    }
+  ],
+  "requests": [
+    {
+      "path": "/jira/rest/api/2/myself",
+      "headers": {
+        "Authorization": "Bearer pat-token"
+      }
+    },
+    {
+      "path": "/jira/rest/api/2/search",
+      "headers": {
+        "Authorization": "Bearer pat-token"
+      }
+    }
+  ]
+}

@@ -38,5 +38,6 @@ Secrets are not in the database: they live in the OS credential store, under ser
 | `gmail-refresh-token` | Gmail's OAuth refresh token |
 | `google-tasks-refresh-token` | Google Tasks' OAuth refresh token |
 | `github-token` | GitHub's personal access token |
+| `jira-credential` | Jira's token, as JSON: `{"email": …, "token": …}`, with `email` null for Data Center |
 
 A service counts as connected when its entry is present. Tests can replace the credential store with a file; see [cli.md](cli.md#test-keyring).

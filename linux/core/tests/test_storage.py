@@ -10,7 +10,7 @@ import pytest
 from silentdesk import api, cli
 from silentdesk.adapters.file_keyring import FileKeyring
 from silentdesk.adapters.local_settings import LocalSettings
-from silentdesk.adapters.sqlcipher_database import SqlcipherDatabase
+from silentdesk.adapters.sqlcipher_database import MIGRATIONS, SqlcipherDatabase
 from silentdesk.apps.desk.adapters.sqlcipher_topic_store import SqlcipherTopicStore
 from silentdesk.apps.desk.domain.topics import TopicRecord
 from silentdesk.apps.gmail.adapters.sqlcipher_state_store import SqlcipherStateStore as GmailStateStore
@@ -34,7 +34,7 @@ def test_first_use_creates_a_private_encrypted_database_and_its_key(database, ke
     with database.transaction() as db:
         (version,) = db.execute("PRAGMA user_version").fetchone()
 
-    assert version == 2
+    assert version == len(list(MIGRATIONS.glob("*.sql")))
     assert len(keyring.get("database-key")) == 64
     assert stat.S_IMODE(database.path.stat().st_mode) == 0o600
     assert stat.S_IMODE(database.path.parent.stat().st_mode) == 0o700
