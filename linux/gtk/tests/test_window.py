@@ -7,17 +7,17 @@ import time
 from datetime import UTC, datetime
 
 import pytest
-from silentdesk.contract import Desk, Direction, Item, ServiceStatus, SyncFailed, TopicView
+from silentdesk.contract import Desk, Direction, Item, Message, ServiceStatus, SyncFailed, TopicView, Unsupported
 
 # Through the app's package, which picks the GTK and libadwaita versions first.
-from silentdesk_gtk.window import MainWindow, describe
+from silentdesk_gtk.window import MainWindow
 from silentdesk_gtk.worker import CoreWorker
 
-from gi.repository import Adw, GLib  # isort: skip
+from gi.repository import Adw, Gio, GLib  # isort: skip
 
 
-def topic(id: str, title: str, author: str, date: str) -> TopicView:
-    return TopicView(id, "gmail", title, [Item(id, Direction.INBOUND, author, None, date)], date)
+def topic(id: str, title: str, author: str, date: str, service: str = "gmail") -> TopicView:
+    return TopicView(id, service, title, [Item(id, Direction.INBOUND, author, None, date)], date)
 
 
 class FakeDesk(Desk):
@@ -26,6 +26,11 @@ class FakeDesk(Desk):
         self.synced: str | None = None
         self.syncs = 0
         self.sync_error = sync_error
+        self.statuses = {
+            "github": ServiceStatus("github", True, False, None),
+            "gmail": ServiceStatus("gmail", True, True, "ana@example.com"),
+        }
+        self.calls: list[tuple] = []
 
     async def topics(self):
         return list(self.shown)
@@ -34,6 +39,9 @@ class FakeDesk(Desk):
         return self.synced
 
     async def sync(self, service=None):
+        if service:
+            self.calls.append(("sync", service))
+            return
         self.syncs += 1
         if self.sync_error:
             raise self.sync_error
@@ -41,22 +49,33 @@ class FakeDesk(Desk):
         self.synced = "2026-10-24T11:58:00Z"
 
     async def services(self):
-        return [ServiceStatus("gmail", True, True, "ana@example.com")]
+        return list(self.statuses.values())
 
     async def connect(self, service, params):
-        raise NotImplementedError
+        self.calls.append(("connect", service, dict(params)))
+        self.statuses[service] = ServiceStatus(service, True, True, "ana")
+        return self.statuses[service]
 
     async def disconnect(self, service):
-        raise NotImplementedError
+        self.calls.append(("disconnect", service))
+        self.statuses[service] = ServiceStatus(service, True, False, None)
+        self.shown = [t for t in self.shown if t.service != service]
+        return self.statuses[service]
 
     async def history(self, topic_id):
-        raise NotImplementedError
+        if topic_id != "slack-1":
+            raise Unsupported("gmail", "SilentDesk shows Gmail's headers only.")
+        return [
+            Message("10.0", Direction.INBOUND, "Bo", "Can you check prod?", "2026-10-24T10:00:00Z"),
+            Message("20.0", Direction.OUTBOUND, "Ana", "On it.", "2026-10-24T10:05:00Z"),
+        ]
 
     async def reply(self, topic_id, body):
-        raise NotImplementedError
+        self.calls.append(("reply", topic_id, body))
 
     async def delete(self, topic_id):
-        raise NotImplementedError
+        self.calls.append(("delete", topic_id))
+        self.shown = [t for t in self.shown if t.id != topic_id]
 
 
 def run_until(condition, seconds: float = 5) -> None:
@@ -79,7 +98,9 @@ def worker():
 
 
 def window(desk: FakeDesk, worker: CoreWorker) -> MainWindow:
-    app = Adw.Application(application_id="com.silentdesk.test")
+    app = Adw.Application(application_id="com.silentdesk.test", flags=Gio.ApplicationFlags.NON_UNIQUE)
+    # Windows join an application only after its startup, which registering runs.
+    app.register(None)
     return MainWindow(app, desk, worker, now=lambda: datetime(2026, 10, 24, 12, 0, tzinfo=UTC))
 
 
@@ -126,8 +147,89 @@ def test_refresh_does_not_start_a_second_round_while_one_runs(worker):
     assert desk.syncs == 1
 
 
-def test_errors_read_as_one_line():
-    from silentdesk.contract import RemoteError
+def started(desk: FakeDesk, worker: CoreWorker) -> MainWindow:
+    win = window(desk, worker)
+    run_until(lambda: win.topics.total == 2 and not win.refreshing)
+    return win
 
-    assert describe(RemoteError("jira", "Jira answered 503.")) == "Jira: Jira answered 503."
-    assert describe(ValueError("Bad.")) == "Bad."
+
+def test_a_topic_without_a_conversation_shows_its_items_and_a_reply_box(worker):
+    win = started(FakeDesk(), worker)
+
+    page = win.open_topic(win.topics.at(1))
+    run_until(lambda: not page.loading)
+
+    assert page.showing == "items"
+    assert page.entries == [("Bo · 09:00", "")]
+    assert page.reply_view is not None and page.delete_button is not None
+    assert win.navigation.get_visible_page() is page
+
+
+def test_a_slack_topic_shows_its_conversation_and_offers_no_reply(worker):
+    desk = FakeDesk()
+    desk.shown.append(topic("slack-1", "Bo", "Bo", "2026-10-24T10:00:00Z", service="slack"))
+    win = window(desk, worker)
+    run_until(lambda: win.topics.total == 3 and not win.refreshing)
+
+    page = win.open_topic(next(t for t in win.topics.shown_topics() if t.service == "slack"))
+    run_until(lambda: page.showing == "history")
+
+    assert page.entries == [("Bo · 10:00", "Can you check prod?"), ("Ana (you) · 10:05", "On it.")]
+    assert page.reply_view is None and page.delete_button is None
+
+
+def test_a_reply_is_sent_then_its_service_syncs(worker):
+    desk = FakeDesk()
+    win = started(desk, worker)
+    page = win.open_topic(win.topics.at(1))
+    page.send()
+    assert desk.calls == []
+
+    page.reply_view.get_buffer().set_text("Paid, thanks.")
+    assert page.send_button.get_sensitive()
+    page.send()
+
+    run_until(lambda: ("sync", "gmail") in desk.calls)
+    assert desk.calls[0] == ("reply", "1", "Paid, thanks.")
+    buffer = page.reply_view.get_buffer()
+    assert buffer.get_text(buffer.get_start_iter(), buffer.get_end_iter(), False) == ""
+
+
+def test_a_deleted_topic_leaves_the_queue(worker):
+    desk = FakeDesk()
+    win = started(desk, worker)
+    page = win.open_topic(win.topics.at(1))
+
+    page.delete()
+
+    run_until(lambda: win.topics.total == 1)
+    assert desk.calls == [("delete", "1")]
+    assert win.navigation.get_visible_page().get_tag() == "queue"
+
+
+def test_connecting_a_service_asks_for_its_fields_then_syncs_it(worker):
+    desk = FakeDesk()
+    win = started(desk, worker)
+    dialog = win.show_services()
+    run_until(lambda: len(dialog.rows) == 2)
+
+    dialog.connect_service("github", {"token": "", "server": ""})
+    assert dialog.last_error == "Fill in: Personal access token."
+
+    dialog.connect_service("github", {"token": " ghp_1 ", "server": ""})
+    run_until(lambda: ("sync", "github") in desk.calls)
+    assert desk.calls[0] == ("connect", "github", {"token": "ghp_1"})
+    run_until(lambda: dialog.statuses and dialog.statuses[0].connected)
+
+
+def test_disconnecting_a_service_drops_its_topics(worker):
+    desk = FakeDesk()
+    win = started(desk, worker)
+    dialog = win.show_services()
+    run_until(lambda: len(dialog.rows) == 2)
+
+    dialog.disconnect_service("gmail")
+
+    run_until(lambda: win.topics.total == 0)
+    assert desk.calls == [("disconnect", "gmail")]
+    assert win.stack.get_visible_child_name() == "empty"

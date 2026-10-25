@@ -1,5 +1,6 @@
-"""The main window: the topic queue, search, Refresh and automatic syncing.
-See legacy/docs/specs/sync.md."""
+"""The main window: the topic queue, search, Refresh and automatic syncing,
+with the topic screen and the Services dialog over it. See
+legacy/docs/specs/sync.md."""
 
 from __future__ import annotations
 
@@ -8,10 +9,12 @@ from collections.abc import Callable
 from datetime import datetime
 
 from gi.repository import Adw, GLib, Gtk
-from silentdesk.contract import ConnectorError, Desk, SyncFailed, TopicView
+from silentdesk.contract import Desk, TopicView
 
-from . import format
+from . import format, services
+from .services_dialog import ServicesDialog
 from .topic_list import TopicList
+from .topic_page import TopicPage
 from .worker import CoreWorker
 
 # Every connected service syncs this often while the app is open, in seconds.
@@ -20,16 +23,6 @@ SYNC_EVERY = 120
 SYNC_ON_FOCUS_AFTER = 30
 # The footer's "Updated … ago" is rewritten this often.
 FOOTER_EVERY = 30
-
-
-def describe(error: BaseException) -> str:
-    """An error as one line for a toast."""
-    if isinstance(error, SyncFailed):
-        failed = ", ".join(format.service_name(service) for service, _ in error.failures)
-        return f"Could not sync {failed}."
-    if isinstance(error, ConnectorError) and error.service:
-        return f"{format.service_name(error.service)}: {error}"
-    return str(error) or type(error).__name__
 
 
 class MainWindow(Adw.ApplicationWindow):
@@ -52,7 +45,10 @@ class MainWindow(Adw.ApplicationWindow):
         self.refresh_button = Gtk.Button(icon_name="view-refresh-symbolic", tooltip_text="Refresh")
         self.refresh_button.connect("clicked", lambda _: self.refresh())
         self.spinner = Gtk.Spinner()
+        services_button = Gtk.Button(icon_name="network-server-symbolic", tooltip_text="Services")
+        services_button.connect("clicked", lambda _: self.show_services())
         header = Adw.HeaderBar()
+        header.pack_start(services_button)
         header.pack_end(self.refresh_button)
         header.pack_end(self.spinner)
 
@@ -63,11 +59,16 @@ class MainWindow(Adw.ApplicationWindow):
 
         self.stack = Gtk.Stack()
         self.stack.add_named(Gtk.ScrolledWindow(child=self.topics.view, vexpand=True), "list")
+        connect_button = Gtk.Button(
+            label="Connect a Service", halign=Gtk.Align.CENTER, css_classes=["pill", "suggested-action"]
+        )
+        connect_button.connect("clicked", lambda _: self.show_services())
         self.stack.add_named(
             Adw.StatusPage(
                 icon_name="mail-unread-symbolic",
                 title="No topics yet",
                 description="Connect a service, and its work shows up here.",
+                child=connect_button,
             ),
             "empty",
         )
@@ -86,11 +87,15 @@ class MainWindow(Adw.ApplicationWindow):
         body = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         body.append(search_row)
         body.append(self.stack)
-        self.toasts = Adw.ToastOverlay(child=body)
-        view = Adw.ToolbarView(content=self.toasts)
+        view = Adw.ToolbarView(content=body)
         view.add_top_bar(header)
         view.add_bottom_bar(self.footer)
-        self.set_content(view)
+        self.topics.view.connect("activate", lambda _, position: self.open_topic(self.topics.at(position)))
+        self.navigation = Adw.NavigationView()
+        self.navigation.add(Adw.NavigationPage(child=view, title="SilentDesk", tag="queue"))
+        self.toasts = Adw.ToastOverlay(child=self.navigation)
+        self.set_content(self.toasts)
+        self.services_dialog: ServicesDialog | None = None
 
         self.connect("notify::is-active", lambda *_: self._on_focus())
         self._timers = [
@@ -134,6 +139,44 @@ class MainWindow(Adw.ApplicationWindow):
 
         self.worker.run(self.desk.sync(), done)
 
+    def open_topic(self, topic: TopicView) -> TopicPage:
+        page = TopicPage(topic, self.desk, self.worker, self.now, self.toast, self._replied, self._deleted)
+        self.navigation.push(page)
+        return page
+
+    def show_services(self) -> ServicesDialog:
+        self.services_dialog = ServicesDialog(self.desk, self.worker, self._service_changed)
+        self.services_dialog.present(self)
+        return self.services_dialog
+
+    def toast(self, message: str) -> None:
+        self.toasts.add_toast(Adw.Toast(title=message, timeout=4))
+
+    def sync_service(self, service: str) -> None:
+        """Syncs one service outside the rounds, such as right after it
+        connects, then shows the topics."""
+
+        def done(_: object, error: BaseException | None) -> None:
+            if error:
+                self._fail(error)
+            self.load()
+
+        self.worker.run(self.desk.sync(service), done)
+
+    def _service_changed(self, service: str, connected: bool) -> None:
+        if connected:
+            self.sync_service(service)
+        else:
+            self.load()
+
+    def _replied(self, topic: TopicView) -> None:
+        self.sync_service(topic.service)
+
+    def _deleted(self, topic: TopicView) -> None:
+        self.navigation.pop_to_tag("queue")
+        self.toast(services.DELETIONS[topic.service].done)
+        self.load()
+
     def _tick(self) -> bool:
         self.refresh()
         return GLib.SOURCE_CONTINUE
@@ -147,7 +190,7 @@ class MainWindow(Adw.ApplicationWindow):
         self._show()
 
     def _fail(self, error: BaseException) -> None:
-        self.last_error = describe(error)
+        self.last_error = format.describe(error)
         self.toasts.add_toast(Adw.Toast(title=self.last_error, timeout=6))
         self._show()
 
