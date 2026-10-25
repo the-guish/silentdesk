@@ -6,12 +6,6 @@ services-unconfigured
 services-connected
 disconnect-forgets-the-sign-in
 sync-not-connected
-github-connect-needs-a-token
-github-connect-rejected-token
-github-connect-sync-topics
-github-disconnect-drops-topics
-github-enterprise-server
-github-sync-rejected-token
 jira-cloud-connect-sync-topics
 jira-connect-rejected-token
 jira-data-center
@@ -30,6 +24,5 @@ slack-connect-scope-not-granted
 slack-connect-sync-conversations
 slack-is-read-only
 slack-sync-token-revoked
-history-unsupported
 slack-history
 gmail-delete-one-message
