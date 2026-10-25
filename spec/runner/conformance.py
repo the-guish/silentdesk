@@ -207,18 +207,42 @@ def request_mismatches(expected: list[dict[str, Any]] | None, actual: list[dict[
     return problems
 
 
-def run_step(step: dict[str, Any], command: list[str], home: str, env: dict[str, str], schemas: Path) -> list[str]:
+def substitute(text: str, captured: dict[str, str]) -> str:
+    for name, value in captured.items():
+        text = text.replace(f"{{capture.{name}}}", value)
+    return text
+
+
+def capture(step: dict[str, Any], document: Any, captured: dict[str, str]) -> list[str]:
+    """Keeps values from a step's output for later steps, by path, such as
+    {"topic": [0, "id"]} for the first topic's ID."""
+    problems = []
+    for name, path in step.get("capture", {}).items():
+        value = document
+        try:
+            for key in path:
+                value = value[key]
+        except (KeyError, IndexError, TypeError):
+            problems.append(f"cannot capture {name}: nothing at {path}")
+            continue
+        captured[name] = value if isinstance(value, str) else json.dumps(value)
+    return problems
+
+
+def run_step(
+    step: dict[str, Any], command: list[str], home: str, env: dict[str, str], schemas: Path, captured: dict[str, str]
+) -> list[str]:
     """Runs one command of a case; returns what was wrong."""
     stdin = step.get("stdin")
     if stdin is not None and not isinstance(stdin, str):
         stdin = json.dumps(stdin)
     try:
         process = subprocess.run(
-            [*command, *step["args"]],
+            [*command, *(substitute(arg, captured) for arg in step["args"])],
             check=False,
             cwd=home,
             env=env,
-            input=(stdin or "").encode(),
+            input=substitute(stdin or "", captured).encode(),
             capture_output=True,
             timeout=TIMEOUT_SECONDS,
         )
@@ -240,6 +264,7 @@ def run_step(step: dict[str, Any], command: list[str], home: str, env: dict[str,
         for error in jsonschema.Draft202012Validator(schema).iter_errors(document):
             problems.append(f"does not match {step['schema']} at {error.json_path}: {error.message}")
         problems += mismatches(step["stdout"], document)
+        problems += capture(step, document, captured)
     if problems and process.stderr:
         problems.append("stderr: " + process.stderr.decode("utf-8", "replace").strip()[-2000:])
     return problems
@@ -256,10 +281,11 @@ def run_case(case: dict[str, Any], command: list[str], schemas: Path = SCHEMAS) 
         write_files(Path(home), case.get("files", {}))
         extra = {name: value.replace("{server}", server.url) for name, value in case.get("env", {}).items()}
         env = isolated_env(home, extra)
-        problems = []
+        problems: list[str] = []
+        captured: dict[str, str] = {}
         for number, step in enumerate(steps, 1):
             label = f"step {number}: " if "steps" in case else ""
-            problems += [label + problem for problem in run_step(step, command, home, env, schemas)]
+            problems += [label + problem for problem in run_step(step, command, home, env, schemas, captured)]
         problems += request_mismatches(case.get("requests"), server.requests)
     return problems
 

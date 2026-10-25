@@ -197,6 +197,34 @@ def test_a_reply_can_redirect_with_values_from_the_request(tmp_path):
     assert conformance.run_case(case, FETCHER, schemas=tmp_path) == []
 
 
+def test_steps_can_use_values_captured_from_earlier_output(tmp_path):
+    (tmp_path / "any.json").write_text("{}")
+    echo = [
+        sys.executable,
+        "-c",
+        "import json, sys; print(json.dumps({'args': sys.argv[1:], 'stdin': sys.stdin.read()}))",
+    ]
+    case = {
+        "steps": [
+            {
+                "args": ["first"],
+                "schema": "any.json",
+                "exit": 0,
+                "stdout": {"args": ["first"], "stdin": ""},
+                "capture": {"word": ["args", 0]},
+            },
+            {
+                "args": ["again", "{capture.word}"],
+                "stdin": "said {capture.word}",
+                "schema": "any.json",
+                "exit": 0,
+                "stdout": {"args": ["again", "first"], "stdin": "said first"},
+            },
+        ]
+    }
+    assert conformance.run_case(case, echo, schemas=tmp_path) == []
+
+
 @pytest.fixture
 def cases_dir(tmp_path: Path) -> Path:
     (tmp_path / "passes.json").write_text(json.dumps(case(ERROR)))

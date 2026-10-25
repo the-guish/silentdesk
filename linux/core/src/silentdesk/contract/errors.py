@@ -45,6 +45,10 @@ class UnknownService(Exception):
     """No connector has this service name."""
 
 
+class UnknownTopic(Exception):
+    """No topic has this ID, or its service no longer knows it."""
+
+
 class SyncFailed(Exception):
     """A sync round in which one or more services failed. The others synced."""
 
