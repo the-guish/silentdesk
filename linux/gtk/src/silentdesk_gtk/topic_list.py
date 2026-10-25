@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from datetime import datetime
 
-from gi.repository import Gio, GObject, Gtk, Pango
+from gi.repository import Adw, Gio, GObject, Gtk, Pango
 from silentdesk.contract import TopicView
 
 from . import format
@@ -62,7 +62,7 @@ class TopicList:
 
     @staticmethod
     def _setup(factory: Gtk.SignalListItemFactory, item: Gtk.ListItem) -> None:
-        icon = Gtk.Image(valign=Gtk.Align.CENTER)
+        avatar = Adw.Avatar(size=36, show_initials=True, valign=Gtk.Align.CENTER)
         title = Gtk.Label(xalign=0, ellipsize=Pango.EllipsizeMode.END)
         subtitle = Gtk.Label(xalign=0, ellipsize=Pango.EllipsizeMode.END, css_classes=["dim-label", "caption"])
         date = Gtk.Label(valign=Gtk.Align.CENTER, css_classes=["dim-label", "caption", "numeric"])
@@ -70,15 +70,17 @@ class TopicList:
         text.append(title)
         text.append(subtitle)
         row = Gtk.Box(spacing=12, margin_top=6, margin_bottom=6, margin_start=6, margin_end=6)
-        for widget in (icon, text, date):
+        for widget in (avatar, text, date):
             row.append(widget)
         item.set_child(row)
 
     def _bind(self, factory: Gtk.SignalListItemFactory, item: Gtk.ListItem) -> None:
         topic = item.get_item().topic
-        icon, text, date = list(_children(item.get_child()))
+        avatar, text, date = list(_children(item.get_child()))
         title, subtitle = list(_children(text))
-        icon.set_from_icon_name(format.direction_icon(topic))
+        name, icon = format.avatar(topic)
+        avatar.set_text(name)
+        avatar.set_icon_name(icon)
         title.set_label(topic.title)
         subtitle.set_label(format.subtitle(topic))
         date.set_label(format.short_date(topic.updated_at, self.now()))

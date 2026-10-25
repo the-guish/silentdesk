@@ -9,10 +9,11 @@ import time
 from collections.abc import Callable
 from datetime import datetime
 
-from gi.repository import Adw, GLib, Gtk
+from gi.repository import Adw, Gio, GLib, GObject, Gtk
+from silentdesk import api
 from silentdesk.contract import Desk, TopicView
 
-from . import format, services
+from . import format, services, style
 from .services_dialog import ServicesDialog
 from .topic_list import TopicList
 from .topic_page import TopicPage
@@ -22,8 +23,80 @@ from .worker import CoreWorker
 SYNC_EVERY = 120
 # Coming back to the window syncs if the last round started this long ago.
 SYNC_ON_FOCUS_AFTER = 30
-# The footer's "Updated … ago" is rewritten this often.
-FOOTER_EVERY = 30
+# The header's "Updated … ago" is rewritten this often.
+SUBTITLE_EVERY = 30
+
+# Each window action and its keyboard shortcuts. `window.close` is GTK's own.
+SHORTCUTS = {
+    "win.search": ["<Control>f"],
+    "win.refresh": ["<Control>r", "F5"],
+    "win.services": ["<Control>comma"],
+    "win.show-help-overlay": ["<Control>question"],
+    "window.close": ["<Control>w"],
+}
+
+# The Keyboard Shortcuts window, as GtkBuilder describes it.
+SHORTCUTS_UI = """
+<interface>
+  <object class="GtkShortcutsWindow" id="shortcuts">
+    <property name="modal">True</property>
+    <child>
+      <object class="GtkShortcutsSection">
+        <child>
+          <object class="GtkShortcutsGroup">
+            <property name="title">Topics</property>
+            <child><object class="GtkShortcutsShortcut">
+              <property name="title">Search</property><property name="accelerator">&lt;Control&gt;f</property>
+            </object></child>
+            <child><object class="GtkShortcutsShortcut">
+              <property name="title">Refresh</property><property name="accelerator">&lt;Control&gt;r F5</property>
+            </object></child>
+            <child><object class="GtkShortcutsShortcut">
+              <property name="title">Back to the topics</property><property name="accelerator">Escape</property>
+            </object></child>
+            <child><object class="GtkShortcutsShortcut">
+              <property name="title">Send a reply</property><property name="accelerator">&lt;Control&gt;Return</property>
+            </object></child>
+          </object>
+        </child>
+        <child>
+          <object class="GtkShortcutsGroup">
+            <property name="title">General</property>
+            <child><object class="GtkShortcutsShortcut">
+              <property name="title">Services</property><property name="accelerator">&lt;Control&gt;comma</property>
+            </object></child>
+            <child><object class="GtkShortcutsShortcut">
+              <property name="title">Keyboard shortcuts</property>
+              <property name="accelerator">&lt;Control&gt;question</property>
+            </object></child>
+            <child><object class="GtkShortcutsShortcut">
+              <property name="title">Close the window</property><property name="accelerator">&lt;Control&gt;w</property>
+            </object></child>
+            <child><object class="GtkShortcutsShortcut">
+              <property name="title">Quit</property><property name="accelerator">&lt;Control&gt;q</property>
+            </object></child>
+          </object>
+        </child>
+      </object>
+    </child>
+  </object>
+</interface>
+"""
+
+
+def version() -> str:
+    """The core's version, for the About dialog."""
+    return api.version()["version"]
+
+
+def main_menu() -> Gio.Menu:
+    menu = Gio.Menu()
+    menu.append("Services", "win.services")
+    section = Gio.Menu()
+    section.append("Keyboard Shortcuts", "win.show-help-overlay")
+    section.append("About SilentDesk", "win.about")
+    menu.append_section(None, section)
+    return menu
 
 
 class MainWindow(Adw.ApplicationWindow):
@@ -36,6 +109,7 @@ class MainWindow(Adw.ApplicationWindow):
         clock: Callable[[], float] = time.monotonic,
     ) -> None:
         super().__init__(application=app, title="SilentDesk", default_width=960, default_height=640)
+        style.install()
         self.desk, self.worker, self.now, self.clock = desk, worker, now, clock
         self.refreshing = False
         self.round_started: float | None = None
@@ -46,17 +120,30 @@ class MainWindow(Adw.ApplicationWindow):
         self.refresh_button = Gtk.Button(icon_name="view-refresh-symbolic", tooltip_text="Refresh")
         self.refresh_button.connect("clicked", lambda _: self.refresh())
         self.spinner = Gtk.Spinner()
-        services_button = Gtk.Button(icon_name="network-server-symbolic", tooltip_text="Services")
-        services_button.connect("clicked", lambda _: self.show_services())
-        header = Adw.HeaderBar()
-        header.pack_start(services_button)
+        self.search_button = Gtk.ToggleButton(icon_name="system-search-symbolic", tooltip_text="Search")
+        self.menu_button = Gtk.MenuButton(
+            icon_name="open-menu-symbolic", tooltip_text="Main Menu", menu_model=main_menu(), primary=True
+        )
+        # When topics last changed, under the app's name.
+        self.window_title = Adw.WindowTitle(title="SilentDesk")
+        header = Adw.HeaderBar(title_widget=self.window_title)
+        header.pack_start(self.search_button)
+        header.pack_end(self.menu_button)
         header.pack_end(self.refresh_button)
         header.pack_end(self.spinner)
 
+        # Hidden until the search button, Ctrl+F or typing in the queue opens it.
         self.search = Gtk.SearchEntry(placeholder_text="Search topics", hexpand=True)
         self.search.connect("search-changed", lambda entry: self._search(entry.get_text()))
-        search_row = Gtk.Box(margin_start=12, margin_end=12, margin_top=6, margin_bottom=6)
-        search_row.append(self.search)
+        self.search_bar = Gtk.SearchBar(child=Adw.Clamp(child=self.search, maximum_size=600))
+        self.search_bar.connect_entry(self.search)
+        self.search_bar.set_key_capture_widget(self)
+        self.search_bar.bind_property(
+            "search-mode-enabled",
+            self.search_button,
+            "active",
+            GObject.BindingFlags.BIDIRECTIONAL | GObject.BindingFlags.SYNC_CREATE,
+        )
 
         self.stack = Gtk.Stack()
         self.stack.add_named(Gtk.ScrolledWindow(child=self.topics.view, vexpand=True), "list")
@@ -77,31 +164,36 @@ class MainWindow(Adw.ApplicationWindow):
             Adw.StatusPage(icon_name="system-search-symbolic", title="No topics match your search"), "no-match"
         )
 
-        self.footer = Gtk.Label(
-            xalign=0,
-            margin_start=12,
-            margin_end=12,
-            margin_top=6,
-            margin_bottom=6,
-            css_classes=["dim-label", "caption"],
-        )
-        body = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-        body.append(search_row)
-        body.append(self.stack)
-        view = Adw.ToolbarView(content=body)
+        view = Adw.ToolbarView(content=self.stack)
         view.add_top_bar(header)
-        view.add_bottom_bar(self.footer)
+        view.add_top_bar(self.search_bar)
         self.topics.view.connect("activate", lambda _, position: self.open_topic(self.topics.at(position)))
         self.navigation = Adw.NavigationView()
         self.navigation.add(Adw.NavigationPage(child=view, title="SilentDesk", tag="queue"))
+        # Typing starts a search only on the queue, not on a topic's screen.
+        self.navigation.connect("notify::visible-page", lambda *_: self._on_page_changed())
         self.toasts = Adw.ToastOverlay(child=self.navigation)
         self.set_content(self.toasts)
         self.services_dialog: ServicesDialog | None = None
+        self.about_dialog: Adw.AboutDialog | None = None
+
+        for name, callback in [
+            ("search", self._start_search),
+            ("refresh", self.refresh),
+            ("services", self.show_services),
+            ("about", self.show_about),
+        ]:
+            action = Gio.SimpleAction(name=name)
+            action.connect("activate", lambda _action, _param, callback=callback: callback())
+            self.add_action(action)
+        for action, accels in SHORTCUTS.items():
+            app.set_accels_for_action(action, accels)
+        self.set_help_overlay(Gtk.Builder.new_from_string(SHORTCUTS_UI, -1).get_object("shortcuts"))
 
         self.connect("notify::is-active", lambda *_: self._on_focus())
         self._timers = [
             GLib.timeout_add_seconds(SYNC_EVERY, self._tick),
-            GLib.timeout_add_seconds(FOOTER_EVERY, self._update_footer),
+            GLib.timeout_add_seconds(SUBTITLE_EVERY, self._update_subtitle),
         ]
         self.connect("close-request", self._on_close)
         self._show()
@@ -152,6 +244,27 @@ class MainWindow(Adw.ApplicationWindow):
         self.services_dialog = ServicesDialog(self.desk, self.worker, self._service_changed)
         self.services_dialog.present(self)
         return self.services_dialog
+
+    def show_about(self) -> Adw.AboutDialog:
+        self.about_dialog = Adw.AboutDialog(
+            application_name="SilentDesk",
+            application_icon="mail-unread-symbolic",
+            developer_name="The SilentDesk Authors",
+            version=version(),
+            comments="Your work from Gmail, Google Tasks, GitHub, Jira and Slack, in one quiet queue.",
+            license_type=Gtk.License.APACHE_2_0,
+        )
+        self.about_dialog.present(self)
+        return self.about_dialog
+
+    def _start_search(self) -> None:
+        if self.navigation.get_visible_page().get_tag() == "queue":
+            self.search_bar.set_search_mode(True)
+            self.search.grab_focus()
+
+    def _on_page_changed(self) -> None:
+        on_queue = self.navigation.get_visible_page().get_tag() == "queue"
+        self.search_bar.set_key_capture_widget(self if on_queue else None)
 
     def toast(self, message: str) -> None:
         self.toasts.add_toast(Adw.Toast(title=message, timeout=4))
@@ -215,13 +328,13 @@ class MainWindow(Adw.ApplicationWindow):
         self.toasts.add_toast(Adw.Toast(title=self.last_error, timeout=6))
         self._show()
 
-    def _update_footer(self) -> bool:
+    def _update_subtitle(self) -> bool:
         if self.refreshing:
-            self.footer.set_label("Refreshing…")
+            self.window_title.set_subtitle("Refreshing…")
         elif self.last_synced:
-            self.footer.set_label(f"Updated {format.ago(self.last_synced, self.now())}")
+            self.window_title.set_subtitle(f"Updated {format.ago(self.last_synced, self.now())}")
         else:
-            self.footer.set_label("")
+            self.window_title.set_subtitle("")
         return GLib.SOURCE_CONTINUE
 
     def _show(self) -> None:
@@ -232,7 +345,7 @@ class MainWindow(Adw.ApplicationWindow):
         self.stack.set_visible_child_name(page)
         self.refresh_button.set_sensitive(not self.refreshing)
         self.spinner.set_spinning(self.refreshing)
-        self._update_footer()
+        self._update_subtitle()
 
     def _on_close(self, *_: object) -> bool:
         for timer in self._timers:
