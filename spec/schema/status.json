@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "status.json",
+  "title": "silentdesk connect and disconnect",
+  "type": "object",
+  "required": [
+    "service",
+    "configured",
+    "connected",
+    "account"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "service": {
+      "type": "string",
+      "minLength": 1
+    },
+    "configured": {
+      "type": "boolean"
+    },
+    "connected": {
+      "type": "boolean"
+    },
+    "account": {
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  }
+}

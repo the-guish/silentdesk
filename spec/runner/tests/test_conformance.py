@@ -67,7 +67,7 @@ def test_case_fails_when_stdout_breaks_the_schema():
     document = '{"error": {"kind": "other", "message": "Bad."}}'
     problems = conformance.run_case(case(document), STUB)
     assert problems == [
-        "does not match error.json at $.error.kind: 'other' is not one of ['usage', 'storage', 'internal']"
+        "does not match error.json at $.error.kind: 'other' is not one of ['usage', 'auth', 'network', 'remote', 'unsupported', 'sync', 'storage', 'internal']"
     ]
 
 
@@ -112,6 +112,70 @@ def test_cases_start_with_their_files(tmp_path):
         "stdout": ['{"k": 1}', "text"],
     }
     assert conformance.run_case(case, show_files, schemas=tmp_path) == []
+
+
+# A stub core that echoes its stdin as JSON, after fetching $SILENTDESK_URL/<argv[1]> when given.
+FETCHER = [
+    sys.executable,
+    "-c",
+    """
+import json, os, sys, urllib.request
+reply = None
+if len(sys.argv) > 1:
+    request = urllib.request.Request(os.environ["SILENTDESK_URL"] + sys.argv[1], headers={"Authorization": "Bearer t"})
+    try:
+        reply = json.load(urllib.request.urlopen(request))
+    except urllib.error.HTTPError as error:
+        reply = error.code
+print(json.dumps({"stdin": sys.stdin.read(), "reply": reply}))
+""",
+]
+
+
+def fetch_case(steps: list[dict], **fields) -> dict:
+    return {
+        "env": {"SILENTDESK_URL": "{server}"},
+        "steps": [{"schema": "any.json", **step} for step in steps],
+        **fields,
+    }
+
+
+def test_steps_share_the_fake_server_and_get_their_stdin(tmp_path):
+    (tmp_path / "any.json").write_text("{}")
+    case = fetch_case(
+        http=[
+            {"path": "/github/user", "body": {"login": "ana"}},
+            {"path": "/search", "query": {"q": "a"}, "body": [1]},
+        ],
+        steps=[
+            {
+                "args": ["/github/user"],
+                "stdin": {"token": "t"},
+                "exit": 0,
+                "stdout": {"stdin": '{"token": "t"}', "reply": {"login": "ana"}},
+            },
+            {"args": ["/search?q=a&page=2"], "exit": 0, "stdout": {"stdin": "", "reply": [1]}},
+            {"args": ["/search?q=b"], "exit": 0, "stdout": {"stdin": "", "reply": 404}},
+        ],
+        requests=[
+            {"path": "/github/user", "headers": {"Authorization": "Bearer t"}},
+            {"path": "/search", "query": {"q": "a", "page": "2"}},
+            {"path": "/search"},
+        ],
+    )
+    assert conformance.run_case(case, FETCHER, schemas=tmp_path) == []
+
+
+def test_a_failing_step_is_named_and_unexpected_requests_are_reported(tmp_path):
+    (tmp_path / "any.json").write_text("{}")
+    case = fetch_case(
+        steps=[{"args": ["/user"], "exit": 1, "stdout": {"stdin": "", "reply": 404}}],
+        requests=[{"path": "/user", "headers": {"Authorization": "Bearer other"}}],
+    )
+    assert conformance.run_case(case, FETCHER, schemas=tmp_path) == [
+        "step 1: exit code 0, expected 1",
+        "request 1 (GET /user): header Authorization is 'Bearer t', expected 'Bearer other'",
+    ]
 
 
 @pytest.fixture

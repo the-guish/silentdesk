@@ -13,7 +13,16 @@ from silentdesk.apps.desk.application.desk import DeskService
 from silentdesk.apps.desk.core.sync import round_order
 from silentdesk.apps.desk.domain.topics import TopicRecord
 from silentdesk.apps.desk.ports.topic_store import TopicStore
-from silentdesk.contract import Connector, Direction, Item, ServiceStatus, SyncResult, Topic
+from silentdesk.contract import (
+    Connector,
+    Direction,
+    Item,
+    ServiceStatus,
+    SyncFailed,
+    SyncResult,
+    Topic,
+    UnknownService,
+)
 
 NOW = "2026-10-24T12:00:00Z"
 
@@ -175,15 +184,15 @@ def test_a_failing_service_does_not_stop_the_round():
     gmail = FakeConnector("gmail", [SyncResult([thread("t1", "Mail", email("m1", NOW))], [], complete=True)], log)
     service, store = desk(gmail, tasks)
 
-    with pytest.raises(ExceptionGroup) as raised:
+    with pytest.raises(SyncFailed) as raised:
         asyncio.run(service.sync())
 
     assert log == ["tasks", "gmail"]
-    assert [str(error) for error in raised.value.exceptions] == ["Google Tasks is down."]
+    assert [(name, str(error)) for name, error in raised.value.failures] == [("tasks", "Google Tasks is down.")]
     assert list(by_key(store)) == ["t1"]
 
 
 def test_syncing_an_unknown_service_is_an_error():
     service, _ = desk()
-    with pytest.raises(ValueError, match="Unknown service 'zulip'"):
+    with pytest.raises(UnknownService, match="Unknown service 'zulip'"):
         asyncio.run(service.sync("zulip"))

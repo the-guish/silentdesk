@@ -4,7 +4,7 @@ import asyncio
 import uuid
 from collections.abc import Callable, Mapping, Sequence
 
-from ....contract import Connector, Desk, ServiceStatus, TopicView
+from ....contract import Connector, Desk, ServiceStatus, SyncFailed, TopicView, UnknownService
 from ..core import sync as rounds
 from ..core import topics
 from ..ports.clock import Clock
@@ -39,30 +39,45 @@ class DeskService(Desk):
     async def services(self) -> list[ServiceStatus]:
         return [await self.connectors[service].status() for service in sorted(self.connectors)]
 
+    def _connector(self, service: str) -> Connector:
+        if service not in self.connectors:
+            raise UnknownService(f"Unknown service {service!r}. Services: {', '.join(sorted(self.connectors))}.")
+        return self.connectors[service]
+
     async def connect(self, service: str, params: Mapping[str, str]) -> ServiceStatus:
-        raise NotImplementedError
+        connector = self._connector(service)
+        async with self.locks[service]:
+            before = await connector.status()
+            status = await connector.connect(params)
+            if status.account != before.account:
+                # Another account: the old one's topics are not this one's.
+                await self.store.replace(service, [])
+        return status
 
     async def disconnect(self, service: str) -> ServiceStatus:
-        raise NotImplementedError
+        connector = self._connector(service)
+        async with self.locks[service]:
+            status = await connector.disconnect()
+            await self.store.replace(service, [])
+        return status
 
     async def sync(self, service: str | None = None) -> None:
         if service is not None:
-            if service not in self.connectors:
-                raise ValueError(f"Unknown service {service!r}.")
+            self._connector(service)
             await self._sync_one(service)
             return
 
         # A round: every connected service in turn. One failure does not stop
         # the others; they are all raised together at the end.
         statuses = [await connector.status() for connector in self.connectors.values()]
-        failures = []
+        failures: list[tuple[str, Exception]] = []
         for name in rounds.round_order(status.service for status in statuses if status.connected):
             try:
                 await self._sync_one(name)
             except Exception as error:  # noqa: BLE001 - reported below, after the other services
-                failures.append(error)
+                failures.append((name, error))
         if failures:
-            raise ExceptionGroup("Some services failed to sync.", failures)
+            raise SyncFailed(failures)
 
     async def _sync_one(self, service: str) -> None:
         async with self.locks[service]:

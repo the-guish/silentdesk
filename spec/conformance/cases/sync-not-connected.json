@@ -1,0 +1,8 @@
+{
+  "description": "syncing a service that is not connected is an auth error",
+  "args": ["sync", "gmail"],
+  "env": { "SILENTDESK_TEST_KEYRING": "{home}/keyring.json" },
+  "exit": 1,
+  "schema": "error.json",
+  "stdout": { "error": { "kind": "auth", "message": { "$any": "string" } } }
+}
