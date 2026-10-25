@@ -138,7 +138,7 @@ def test_the_window_syncs_on_start_and_shows_the_topics(worker):
     assert desk.syncs == 1
     assert [t.title for t in win.topics.shown_topics()] == ["Lunch?", "Invoice for October"]
     assert win.stack.get_visible_child_name() == "list"
-    assert win.footer.get_label() == "Updated 2 min ago"
+    assert win.window_title.get_subtitle() == "Updated 2 min ago"
 
 
 def test_search_narrows_the_list(worker):
@@ -185,7 +185,8 @@ def test_a_topic_without_a_conversation_shows_its_items_and_a_reply_box(worker):
     run_until(lambda: not page.loading)
 
     assert page.showing == "items"
-    assert page.entries == [("Bo · 09:00", "")]
+    assert page.entries == [("Bo", "Received · Today 09:00", "")]
+    assert page.note.get_visible()
     assert page.reply_view is not None and page.delete_button.get_visible()
     assert win.navigation.get_visible_page() is page
 
@@ -199,7 +200,11 @@ def test_a_slack_topic_shows_its_conversation_and_offers_no_reply(worker):
     page = win.open_topic(next(t for t in win.topics.shown_topics() if t.service == "slack"))
     run_until(lambda: page.showing == "history")
 
-    assert page.entries == [("Bo · 10:00", "Can you check prod?"), ("Ana (you) · 10:05", "On it.")]
+    assert page.entries == [
+        ("Bo", "Received · Today 10:00", "Can you check prod?"),
+        ("Ana", "Sent · Today 10:05", "On it."),
+    ]
+    assert not page.note.get_visible()
     assert page.reply_view is None and not page.delete_button.get_visible()
 
 
@@ -283,3 +288,42 @@ def test_a_topic_that_is_not_deletable_offers_no_delete(worker):
     win = started(FakeDesk(), worker)
     page = win.open_topic(topic("9", "PR", "Cy", "2026-10-24T10:00:00Z", service="github"))
     assert not page.delete_button.get_visible() and page.item_buttons == {}
+
+
+def test_search_stays_hidden_until_asked_for_and_only_on_the_queue(worker):
+    win = started(FakeDesk(), worker)
+    assert not win.search_bar.get_search_mode()
+
+    win.activate_action("win.search")
+    assert win.search_bar.get_search_mode() and win.search_button.get_active()
+
+    win.search_bar.set_search_mode(False)
+    page = win.open_topic(win.topics.at(0))
+    run_until(lambda: win.navigation.get_visible_page() is page)
+    win.activate_action("win.search")
+    assert not win.search_bar.get_search_mode()
+
+
+def test_the_main_actions_have_their_usual_shortcuts(worker):
+    win = started(FakeDesk(), worker)
+    app = win.get_application()
+    assert app.get_accels_for_action("win.search") == ["<Control>f"]
+    assert app.get_accels_for_action("win.refresh") == ["<Control>r", "F5"]
+    assert app.get_accels_for_action("win.services") == ["<Control>comma"]
+    assert app.get_accels_for_action("win.show-help-overlay") == ["<Control>question"]
+    assert win.get_help_overlay() is not None
+
+
+def test_about_names_the_app_and_its_license(worker):
+    from gi.repository import Gtk
+
+    win = started(FakeDesk(), worker)
+    win.activate_action("win.about")
+    assert win.about_dialog.get_application_name() == "SilentDesk"
+    assert win.about_dialog.get_license_type() == Gtk.License.APACHE_2_0
+
+
+def test_the_services_action_opens_the_services_dialog(worker):
+    win = started(FakeDesk(), worker)
+    win.activate_action("win.services")
+    assert win.services_dialog is not None
