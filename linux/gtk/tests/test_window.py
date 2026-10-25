@@ -466,3 +466,21 @@ def test_the_projects_dialog_renames_and_deletes_projects(worker):
     run_until(lambda: not dialog.rows)
     assert desk.shown[-1].project_id is None
     run_until(lambda: win.filter_bar.filters["projects"].choices == [Choice("default", "Default")])
+
+
+def test_the_updated_filter_asks_for_a_range_until_removed(worker):
+    desk = FakeDesk()
+    win = window(desk, worker)
+    run_until(lambda: win.topics.shown == 2 and not win.refreshing)
+
+    updated = win.filter_bar.add(filters.UPDATED)
+    assert updated.label == "Updated: All"
+    updated.set_updated(filters.Updated("within", 7, "days"))
+
+    run_until(lambda: desk.queries[-1] == TopicQuery(updated_from="2026-10-17T12:00:00Z"))
+    assert updated.label == "Updated: Last 7 days"
+    assert list(win.filter_bar.filters) == ["projects", "services", "updated"]
+
+    win.filter_bar.remove(filters.UPDATED)
+    assert list(win.filter_bar.filters) == ["projects", "services"]
+    run_until(lambda: win.query == TopicQuery())

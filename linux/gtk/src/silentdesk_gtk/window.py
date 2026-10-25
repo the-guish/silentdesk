@@ -224,6 +224,8 @@ class MainWindow(Adw.ApplicationWindow):
         """Reads every topic, those that match the query, the values the
         filters offer, and when topics last changed, then shows them."""
         self.loads += 1
+        # Made again, as "Within the last" moves with the clock.
+        self.query = self._make_query()
         load, match, query = self.loads, self.matches, self.query
         Read = tuple[list[TopicView], list[TopicView] | None, list[Project], list[ServiceStatus], str | None]
 
@@ -385,8 +387,12 @@ class MainWindow(Adw.ApplicationWindow):
 
     def _requery(self) -> None:
         """Makes the query from the search and the filter bar, then matches."""
-        self.query = filters.query(self.search_text, self.filter_bar.chosen())
+        self.query = self._make_query()
         self.match()
+
+    def _make_query(self) -> TopicQuery:
+        updated = filters.updated_range(self.filter_bar.updated(), self.now())
+        return filters.query(self.search_text, self.filter_bar.chosen(), updated)
 
     def clear_filters(self) -> None:
         self.filter_bar.clear()
