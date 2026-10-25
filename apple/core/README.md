@@ -17,6 +17,7 @@ swift test                            # unit tests
 | `Sources/SilentDeskCore/Contract/` | Protocols and data the apps expose to each other and to `API` |
 | `Sources/SilentDeskCore/Support/` | JSON, RFC 3339 dates and encodings on Foundation, SHA-256 on CryptoKit or OpenSSL, and two async primitives |
 | `Sources/SilentDeskCore/Adapters/` | Adapters every app can be given: settings, the SQLCipher database, the keyring, HTTPS, OAuth sign-in, the browser |
+| `Sources/SilentDeskCore/Apps/Desk/` | The orchestration app: one queue of topics, and sync rounds over every connector |
 | `Sources/SilentDeskCLI/` | The command line: parses arguments and prints JSON |
 | `Sources/silentdesk/` | The program's entry point |
 | `Tests/` | Unit tests for what the conformance suite cannot see |
