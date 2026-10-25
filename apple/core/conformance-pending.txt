@@ -20,3 +20,9 @@ jira-connect-rejected-token
 jira-data-center
 jira-scoped-token-gateway
 jira-site-must-use-https
+tasks-connect-access-denied
+tasks-connect-not-configured
+tasks-connect-scope-not-granted
+tasks-connect-sync-topics
+tasks-disconnect-revokes
+tasks-sync-grant-revoked

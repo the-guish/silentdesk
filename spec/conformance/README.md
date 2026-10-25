@@ -44,6 +44,8 @@ A case with `steps` runs several commands in a row, in the same home folder and 
 
 A reply answers every request with its `method` (default `GET`) and `path` whose query contains the reply's `query`; the first match wins. `status` defaults to 200, and a string `body` is sent as is. Any other request gets a 404.
 
+A reply with `redirect` sends a 302 to that address instead, after replacing `{query.<name>}` with that query parameter of the request. A sign-in page can so send a test browser back to the core with the `state` it was given: `"redirect": "{query.redirect_uri}?code=c1&state={query.state}"`.
+
 `requests`, if given, lists the requests the core must send, in order, and no others. Each names its `method` and `path`; its `query` and `headers` must be present in the request sent, and its `body`, if given, is compared as `stdout` is.
 
 ## How stdout is compared

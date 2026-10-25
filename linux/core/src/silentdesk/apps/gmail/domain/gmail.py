@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 
 @dataclass(frozen=True)
@@ -15,3 +15,9 @@ class GmailMessage:
     header_id: str
     # RFC 3339, from Gmail's internal date.
     date: str
+
+
+@dataclass(frozen=True)
+class Grant:
+    access_token: str = field(repr=False)
+    refresh_token: str = field(repr=False)

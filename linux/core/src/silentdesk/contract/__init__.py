@@ -19,6 +19,7 @@ from .errors import (
 )
 from .http import Http, Response
 from .keyring import Keyring
+from .oauth import OAuth, OAuthClient, Tokens
 from .settings import Settings
 
 __all__ = [
@@ -33,6 +34,8 @@ __all__ = [
     "Item",
     "Keyring",
     "NetworkError",
+    "OAuth",
+    "OAuthClient",
     "RemoteError",
     "Response",
     "ServiceStatus",
@@ -40,6 +43,7 @@ __all__ = [
     "StorageError",
     "SyncFailed",
     "SyncResult",
+    "Tokens",
     "Topic",
     "TopicView",
     "UnknownService",
