@@ -108,7 +108,7 @@ class MainWindow(Adw.ApplicationWindow):
         now: Callable[[], datetime] = lambda: datetime.now().astimezone(),
         clock: Callable[[], float] = time.monotonic,
     ) -> None:
-        super().__init__(application=app, title="SilentDesk", default_width=960, default_height=640)
+        super().__init__(application=app, title="SilentDesk", default_width=960, default_height=640, maximized=True)
         style.install()
         self.desk, self.worker, self.now, self.clock = desk, worker, now, clock
         self.refreshing = False
