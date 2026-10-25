@@ -16,3 +16,7 @@ Generated with Claude Code
 ```
 
 When more than one tool took part, name them all, separated by commas: `Generated with Claude Code, Codex`. Another tool uses its own name: `Generated with OpenCode`.
+
+## Branches
+
+Name branches with one of these prefixes: `feature/` for new work, `fix/` for bug fixes and `docs/` for documentation, such as `docs/secure-apps`.
