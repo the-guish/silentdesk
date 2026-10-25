@@ -57,9 +57,12 @@ jobs:
       - name: Screenshots
         timeout-minutes: 5
         run: |
-          # Opened as the Finder opens it, so its window is the active one.
-          open -W -n --stderr "$RUNNER_TEMP/screenshots.log" "$RUNNER_TEMP/SilentDesk.app" --args --screenshots "$RUNNER_TEMP/screenshots"
-          cat "$RUNNER_TEMP/screenshots.log"
+          # Started from this shell, which may record the screen; then
+          # brought to the front, so its window looks active.
+          "$RUNNER_TEMP/SilentDesk.app/Contents/MacOS/SilentDesk" --screenshots "$RUNNER_TEMP/screenshots" &
+          sleep 2
+          open "$RUNNER_TEMP/SilentDesk.app"
+          wait $!
           sips -s format png "$RUNNER_TEMP/SilentDesk.app/Contents/Resources/AppIcon.icns" --out "$RUNNER_TEMP/screenshots/0-icon.png"
           ls -l "$RUNNER_TEMP/screenshots"
       - uses: actions/upload-artifact@v4

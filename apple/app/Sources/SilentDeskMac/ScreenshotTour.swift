@@ -14,8 +14,9 @@ struct ScreenshotTour {
         try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         let queue = app.queue
         await queue.load()
+        // CI brings the app to the front meanwhile.
         NSApp.activate()
-        await settle()
+        await settle(seconds: 4)
         let main = NSApp.keyWindow ?? NSApp.windows.first { $0.isVisible }
         for (appearance, suffix) in [(NSAppearance.Name.aqua, "light"), (NSAppearance.Name.darkAqua, "dark")] {
             NSApp.appearance = NSAppearance(named: appearance)
