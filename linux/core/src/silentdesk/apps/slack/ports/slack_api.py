@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 
-from ..domain.slack import Match, SlackAccount
+from ..domain.slack import HistoryEntry, Match, SlackAccount
 
 
 class SlackApi(ABC):
@@ -14,6 +14,10 @@ class SlackApi(ABC):
     @abstractmethod
     async def search(self, token: str, query: str, count: int) -> list[Match]:
         """Messages matching a search, newest first."""
+
+    @abstractmethod
+    async def history(self, token: str, channel_id: str, count: int) -> list[HistoryEntry]:
+        """A conversation's `count` most recent messages. Needs the history scopes."""
 
     @abstractmethod
     async def user_name(self, token: str, user_id: str) -> str:

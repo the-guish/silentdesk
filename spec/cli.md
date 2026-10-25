@@ -178,6 +178,14 @@ Syncs one service, or, without an argument, every connected service in turn: Goo
 {"lastSynced": "2026-10-24T12:00:00Z"}
 ```
 
+### `history <topic-id>`
+
+A topic's recent messages with their text, oldest first, read live from its service and never stored ([schema](schema/history.json)). Slack shows the conversation's 50 most recent messages, without join and leave events. Services that keep no conversation fail with `unsupported`: Gmail, for one, never reads a message's body.
+
+```json
+[{"key": "1761300000.000100", "direction": "inbound", "author": "Bo Lind", "text": "Can you check the deploy?", "date": "2025-10-24T10:00:00Z"}]
+```
+
 ### `reply <topic-id>`
 
 Replies in a topic, through its service: for Gmail, to the thread's newest message. The reply is plain text on stdin, written by the user, so it carries no AI notice (core principle 9). Prints `{}` ([schema](schema/empty.json)). An empty reply, or an unknown topic ID, is a usage error; a service that cannot reply fails with `unsupported`.

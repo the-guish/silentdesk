@@ -3,7 +3,7 @@ from __future__ import annotations
 import time
 from collections.abc import Mapping
 
-from ....contract import AuthError, Connector, Direction, ServiceStatus, SyncResult, Unsupported
+from ....contract import AuthError, Connector, Direction, Message, ServiceStatus, SyncResult, Unsupported
 from ..core import slack
 from ..domain.slack import Credential, DirectMessage, Match, SlackAccount
 from ..ports.authorization import Authorization
@@ -113,6 +113,33 @@ class Slack(Connector):
             permalink=match.permalink,
             date=slack.ts_to_rfc3339(match.ts),
         )
+
+    async def history(self, topic_key: str) -> list[Message]:
+        """The conversation's recent messages, read live, oldest first. Join
+        and leave events are left out. Nothing is stored."""
+        credential, account = await self._credential()
+        token, names = credential.access_token, {}
+        try:
+            entries = await self.api.history(token, topic_key, slack.HISTORY_COUNT)
+            messages = []
+            for entry in sorted(entries, key=lambda e: slack.ts_value(e.ts)):
+                if entry.subtype in slack.EVENT_SUBTYPES:
+                    continue
+                author = await self._name(token, entry.user, names) if entry.user else entry.username or "someone"
+                mentioned = {u: await self._name(token, u, names) for u in slack.mention_ids(entry.text)}
+                messages.append(
+                    Message(
+                        key=entry.ts,
+                        direction=Direction.OUTBOUND if entry.user == account.user_id else Direction.INBOUND,
+                        author=author,
+                        text=slack.plain_text(entry.text, mentioned).strip(),
+                        date=slack.ts_to_rfc3339(entry.ts),
+                    )
+                )
+        except AuthError as error:
+            self.credentials.delete()
+            raise AuthError(self.service, f"{error} Connect Slack again.") from error
+        return messages
 
     async def reply(self, topic_key: str, body: str) -> None:
         raise Unsupported(self.service, "SilentDesk has read-only access to Slack.")

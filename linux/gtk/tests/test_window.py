@@ -49,6 +49,9 @@ class FakeDesk(Desk):
     async def disconnect(self, service):
         raise NotImplementedError
 
+    async def history(self, topic_id):
+        raise NotImplementedError
+
     async def reply(self, topic_id, body):
         raise NotImplementedError
 

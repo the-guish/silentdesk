@@ -115,6 +115,12 @@ def _reply(args: list[str], stdin: Callable[[], str]) -> Any:
     return {}
 
 
+def _history(args: list[str], stdin: Callable[[], str]) -> Any:
+    if len(args) != 1:
+        raise UsageError("history takes one topic ID.")
+    return plain(asyncio.run(api.desk().history(args[0])))
+
+
 def _delete(args: list[str], stdin: Callable[[], str]) -> Any:
     if len(args) != 1:
         raise UsageError("delete takes one topic ID.")
@@ -126,6 +132,7 @@ COMMANDS: dict[str, Command] = {
     "connect": _connect,
     "delete": _delete,
     "disconnect": _disconnect,
+    "history": _history,
     "reply": _reply,
     "services": _services,
     "sync": _sync,

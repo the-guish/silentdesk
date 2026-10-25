@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 
-from ....contract import AuthError, Connector, ServiceStatus, SyncResult, Unsupported
+from ....contract import AuthError, Connector, Message, ServiceStatus, SyncResult, Unsupported
 from ..core import tasks
 from ..domain.state import GoogleState
 from ..ports.authorization import Authorization
@@ -75,6 +75,9 @@ class GoogleTasks(Connector):
 
     async def reply(self, topic_key: str, body: str) -> None:
         raise Unsupported(self.service, "SilentDesk cannot reply to a task.")
+
+    async def history(self, topic_key: str) -> list[Message]:
+        raise Unsupported(self.service, "Google Tasks has no conversation to show.")
 
     async def delete_topic(self, topic_key: str) -> None:
         raise Unsupported(self.service, "SilentDesk has read-only access to Google Tasks.")

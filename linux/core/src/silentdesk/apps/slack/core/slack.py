@@ -20,6 +20,10 @@ SYNC_COUNT = 10
 PREVIEW_CHARS = 120
 # Refresh a little before the access token expires, in seconds.
 EXPIRY_MARGIN = 60
+# How many recent messages the topic screen shows.
+HISTORY_COUNT = 50
+# Subtypes that are events, not messages someone wrote.
+EVENT_SUBTYPES = {"channel_join", "channel_leave", "group_join", "group_leave"}
 
 
 def queries(me: str) -> list[str]:

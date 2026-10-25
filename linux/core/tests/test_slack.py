@@ -104,13 +104,16 @@ def test_a_refresh_without_a_new_refresh_token_keeps_the_old_one():
 
 class FakeApi(SlackApi):
     def __init__(self, found: dict[str, list[Match]]):
-        self.found, self.looked_up = found, []
+        self.found, self.looked_up, self.entries = found, [], []
 
     async def identity(self, token):
         return SlackAccount("U0", "Ana", "T1", "Acme")
 
     async def search(self, token, query, count):
         return self.found.get(query, [])
+
+    async def history(self, token, channel_id, count):
+        return self.entries
 
     async def user_name(self, token, user_id):
         self.looked_up.append(user_id)
@@ -159,3 +162,29 @@ def test_a_sync_makes_one_topic_per_conversation_with_names(tmp_path):
     assert topics["G1"].title == "Lunch?"
     # Each name is looked up once per sync.
     assert sorted(api.looked_up) == ["U0", "U2", "U3"]
+
+
+def test_history_reads_the_conversation_oldest_first_without_events(tmp_path):
+    from silentdesk.apps.slack.domain.slack import HistoryEntry
+
+    keyring = FileKeyring(tmp_path / "keyring.json")
+    api = FakeApi({})
+    api.entries = [
+        HistoryEntry("U0", None, "On it <@U2>", "20.0", None),
+        HistoryEntry("U2", None, "joined", "15.0", "channel_join"),
+        HistoryEntry("U2", None, "Can you check &lt;prod&gt;?", "10.0", None),
+    ]
+    app = Slack(
+        api,
+        FakeAuthorization(),
+        KeyringCredentials(keyring),
+        SqlcipherStateStore(SqlcipherDatabase(tmp_path / "db", keyring)),
+    )
+    asyncio.run(app.connect({}))
+
+    messages = asyncio.run(app.history("D1"))
+
+    assert [(m.key, m.direction, m.author, m.text) for m in messages] == [
+        ("10.0", Direction.INBOUND, "Bo", "Can you check <prod>?"),
+        ("20.0", Direction.OUTBOUND, "someone", "On it @Bo"),
+    ]
