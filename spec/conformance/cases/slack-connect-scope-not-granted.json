@@ -1,0 +1,62 @@
+{
+  "description": "a Slack sign-in without every user scope stores nothing",
+  "env": {
+    "SILENTDESK_TEST_KEYRING": "{home}/keyring.json",
+    "SILENTDESK_TEST_BASE_URL": "{server}",
+    "SILENTDESK_TEST_BROWSER": "follow",
+    "SILENTDESK_TEST_NOW": "2026-10-24T12:00:00Z",
+    "SILENTDESK_SLACK_CLIENT_ID": "1234.5678",
+    "SILENTDESK_SLACK_REDIRECT_PORT": "47699"
+  },
+  "http": [
+    {
+      "path": "/slack/oauth/v2/authorize",
+      "redirect": "{query.redirect_uri}?code=slack-code&state={query.state}"
+    },
+    {
+      "method": "POST",
+      "path": "/slack/api/oauth.v2.access",
+      "body": {
+        "ok": true,
+        "authed_user": {
+          "access_token": "xoxp-1",
+          "scope": "search:read"
+        }
+      }
+    }
+  ],
+  "steps": [
+    {
+      "args": [
+        "connect",
+        "slack"
+      ],
+      "exit": 1,
+      "schema": "error.json",
+      "stdout": {
+        "error": {
+          "kind": "auth",
+          "message": {
+            "$any": "string"
+          }
+        }
+      }
+    },
+    {
+      "args": [
+        "sync",
+        "slack"
+      ],
+      "exit": 1,
+      "schema": "error.json",
+      "stdout": {
+        "error": {
+          "kind": "auth",
+          "message": {
+            "$any": "string"
+          }
+        }
+      }
+    }
+  ]
+}

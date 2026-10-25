@@ -60,6 +60,8 @@ When a sync round fails, the error also lists each failed service, with the kind
 |----------|---------|
 | `SILENTDESK_GOOGLE_CLIENT_ID` | The Google OAuth client that Gmail and Google Tasks sign in with. Unset or empty: those services are not configured. |
 | `SILENTDESK_GOOGLE_CLIENT_SECRET` | That client's secret, if it has one. |
+| `SILENTDESK_SLACK_CLIENT_ID` | The Slack app Slack signs in with, with PKCE enabled. Unset or empty: Slack is not configured. |
+| `SILENTDESK_SLACK_REDIRECT_PORT` | The port of Slack's sign-in redirect, `http://localhost:<port>/slack/callback`, which must match the Slack app's redirect URL. Default 47615. |
 | `SILENTDESK_TEST_KEYRING` | **Tests only.** A JSON file used instead of the OS credential store; see below. |
 | `SILENTDESK_TEST_BASE_URL` | **Tests only.** Every address a core calls at `<url>/<name>` instead of its real host; see below. Plain `http` is then allowed, to loopback addresses only. |
 | `SILENTDESK_TEST_BROWSER` | **Tests only.** `follow`: instead of opening a browser for sign-in, the core requests the sign-in page itself and follows its redirects, as a browser would after the user signs in. |
@@ -79,6 +81,7 @@ With `SILENTDESK_TEST_BASE_URL`, each real host is replaced by `<url>/<name>`, k
 | `google-userinfo` | `https://openidconnect.googleapis.com` |
 | `tasks` | `https://tasks.googleapis.com` |
 | `gmail` | `https://gmail.googleapis.com` |
+| `slack` | `https://slack.com` |
 
 ### Test keyring
 
@@ -109,16 +112,17 @@ Takes no arguments. Lists every service SilentDesk can connect, sorted by `servi
   {"service": "github", "configured": true, "connected": false, "account": null},
   {"service": "gmail", "configured": true, "connected": false, "account": null},
   {"service": "jira", "configured": true, "connected": false, "account": null},
+  {"service": "slack", "configured": false, "connected": false, "account": null},
   {"service": "tasks", "configured": true, "connected": false, "account": null}
 ]
 ```
 
 | Field | Type | Notes |
 |-------|------|-------|
-| `service` | string | The service's name: `github`, `gmail`, `jira` or `tasks` so far. |
-| `configured` | boolean | The core has what it needs to sign in: for Google services, a client ID. GitHub and Jira need nothing: the user brings a token. |
+| `service` | string | The service's name: `github`, `gmail`, `jira`, `slack` or `tasks`. |
+| `configured` | boolean | The core has what it needs to sign in: for Google services and Slack, a client ID. GitHub and Jira need nothing: the user brings a token. |
 | `connected` | boolean | A sign-in is stored: for Google services, a refresh token in the keyring; for GitHub and Jira, a token and its account. |
-| `account` | string \| null | The connected account, such as an email address, or `login · host` for GitHub and `name · site` for Jira. `null` when not connected. |
+| `account` | string \| null | The connected account, such as an email address, or `login · host` for GitHub, `name · site` for Jira and `name · workspace` for Slack. `null` when not connected. |
 
 ### `topics`
 
@@ -159,6 +163,7 @@ Connects one service. Reads the service's fields as one JSON object of strings o
 |---------|--------|
 | `github` | `token`: a personal access token, required. `server`: a GitHub Enterprise Server host, such as `github.acme.com`; empty or missing for github.com. |
 | `gmail`, `tasks` | None: they sign in through the browser, with the Google client in `SILENTDESK_GOOGLE_CLIENT_ID`. Each has its own grant and refresh token. |
+| `slack` | None: it signs in through the browser, with the Slack app in `SILENTDESK_SLACK_CLIENT_ID`. |
 | `jira` | `site`: the Jira site, such as `acme.atlassian.net` or a Data Center address, required. `token`: an API token (Cloud) or personal access token (Data Center), required. `email`: the account's email for Jira Cloud; empty or missing for Data Center. |
 
 ### `disconnect <service>`

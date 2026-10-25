@@ -49,6 +49,12 @@
           "account": null
         },
         {
+          "service": "slack",
+          "configured": false,
+          "connected": false,
+          "account": null
+        },
+        {
           "service": "tasks",
           "configured": false,
           "connected": false,

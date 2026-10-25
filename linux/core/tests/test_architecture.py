@@ -129,4 +129,4 @@ def test_adapters_and_applications_are_concrete():
 def test_the_desk_is_wired_with_every_connector(tmp_path):
     desk = api.desk(LocalSettings(data_dir=tmp_path))
     assert isinstance(desk, contract.Desk)
-    assert sorted(desk.connectors) == ["github", "gmail", "jira", "tasks"]
+    assert sorted(desk.connectors) == ["github", "gmail", "jira", "slack", "tasks"]

@@ -29,6 +29,9 @@ class OAuthClient:
     # providers that match the registered URL exactly, a fixed port and path.
     port: int | None = None
     path: str = "/"
+    # How scopes are sent: Slack, for one, wants user_scope=a,b.
+    scope_param: str = "scope"
+    scope_separator: str = " "
 
 
 @dataclass(frozen=True)
