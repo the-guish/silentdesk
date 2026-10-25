@@ -53,6 +53,19 @@ class UnknownItem(Exception):
     """The topic has no item with this key."""
 
 
+class UnknownProject(Exception):
+    """No project has this ID."""
+
+
+class InvalidProjectName(Exception):
+    """A project name that is empty, taken, All or Default."""
+
+
+class InvalidQuery(Exception):
+    """A topics query with a value the core cannot read, such as a time
+    that is not RFC 3339."""
+
+
 class SyncFailed(Exception):
     """A sync round in which one or more services failed. The others synced."""
 

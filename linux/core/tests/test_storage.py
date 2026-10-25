@@ -133,7 +133,7 @@ def test_the_topics_command_prints_camel_case_json_newest_first(tmp_path, monkey
     asyncio.run(store.replace("tasks", [record("2", "tasks", "new", "2026-10-09T00:00:00Z")]))
     monkeypatch.setattr(api.LocalSettings, "from_environment", classmethod(lambda cls: settings))
 
-    code, document = cli.run(["topics"])
+    code, document = cli.run(["topics"], stdin=lambda: "")
 
     assert code == cli.EXIT_OK
     assert [topic["id"] for topic in document] == ["2", "1"]
@@ -151,6 +151,7 @@ def test_the_topics_command_prints_camel_case_json_newest_first(tmp_path, monkey
                 "deletable": False,
             }
         ],
+        "projectId": None,
         "updatedAt": "2026-10-09T00:00:00Z",
         "deletable": False,
     }

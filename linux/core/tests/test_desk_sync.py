@@ -21,6 +21,7 @@ from silentdesk.contract import (
     Connector,
     Direction,
     Item,
+    Project,
     RemoteError,
     ServiceStatus,
     SyncFailed,
@@ -101,6 +102,19 @@ class MemoryTopicStore(TopicStore):
 
     async def replace(self, service: str, records: Sequence[TopicRecord]) -> None:
         self.records = [r for r in self.records if r.service != service] + list(records)
+
+    # Projects are tested through the CLI, on the real database.
+    async def projects(self) -> list[Project]:
+        return []
+
+    async def save_project(self, project: Project) -> None:
+        raise NotImplementedError
+
+    async def delete_project(self, project_id: str) -> None:
+        raise NotImplementedError
+
+    async def move(self, topic_id: str, project_id: str | None) -> None:
+        raise NotImplementedError
 
     async def last_synced(self) -> str | None:
         return self.synced

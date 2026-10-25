@@ -50,6 +50,22 @@ class FakeDesk(Desk):
     async def last_synced(self):
         return self.synced
 
+    # The window has no projects yet.
+    async def projects(self):
+        return []
+
+    async def add_project(self, name):
+        raise NotImplementedError
+
+    async def rename_project(self, project_id, name):
+        raise NotImplementedError
+
+    async def delete_project(self, project_id):
+        raise NotImplementedError
+
+    async def move(self, topic_id, project_id):
+        raise NotImplementedError
+
     async def sync(self, service=None):
         if service:
             self.calls.append(("sync", service))
