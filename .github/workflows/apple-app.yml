@@ -36,7 +36,9 @@ jobs:
         with:
           persist-credentials: false
       - run: swift --version
-      # Builds the SwiftUI app too, which only builds on macOS.
+      # The SwiftUI app, which only builds on macOS.
+      - name: Build
+        run: swift build --package-path apple/app
       - name: Unit tests
         run: swift test --package-path apple/app
       - name: Build SilentDesk.app
@@ -56,6 +58,7 @@ jobs:
         timeout-minutes: 5
         run: |
           "$RUNNER_TEMP/SilentDesk.app/Contents/MacOS/SilentDesk" --screenshots "$RUNNER_TEMP/screenshots"
+          sips -s format png "$RUNNER_TEMP/SilentDesk.app/Contents/Resources/AppIcon.icns" --out "$RUNNER_TEMP/screenshots/0-icon.png"
           ls -l "$RUNNER_TEMP/screenshots"
       - uses: actions/upload-artifact@v4
         if: always()

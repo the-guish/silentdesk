@@ -16,7 +16,7 @@ struct ScreenshotTour {
         await queue.load()
         NSApp.activate()
         await settle()
-        let main = NSApp.keyWindow ?? NSApp.windows.first(where: \.isVisible)
+        let main = NSApp.keyWindow ?? NSApp.windows.first { $0.isVisible }
         for (appearance, suffix) in [(NSAppearance.Name.aqua, "light"), (NSAppearance.Name.darkAqua, "dark")] {
             NSApp.appearance = NSAppearance(named: appearance)
             queue.selection = nil

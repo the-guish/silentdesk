@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Builds SilentDesk.app: a universal release build of the SilentDesk
-# product, wrapped in an app bundle with Bundle/Info.plist and signed ad hoc.
+# product, wrapped in an app bundle with Bundle/Info.plist and the icon
+# Scripts/make-icon.swift draws, and signed ad hoc.
 #
 #   Scripts/bundle.sh [OUTPUT]     # default: .build/SilentDesk.app
 #
@@ -17,9 +18,10 @@ swift build -c release --product SilentDesk "${archs[@]}"
 bin="$(swift build -c release --product SilentDesk "${archs[@]}" --show-bin-path)"
 
 rm -rf "$app"
-mkdir -p "$app/Contents/MacOS" "$app/Contents/Frameworks"
+mkdir -p "$app/Contents/MacOS" "$app/Contents/Frameworks" "$app/Contents/Resources"
 cp "$bin/SilentDesk" "$app/Contents/MacOS/SilentDesk"
 sed -e "s/@VERSION@/$version/" -e "s/@BUILD@/$build/" Bundle/Info.plist > "$app/Contents/Info.plist"
+swift Scripts/make-icon.swift "$app/Contents/Resources/AppIcon.icns"
 
 # Dynamic frameworks the build linked, such as SQLCipher's, go in
 # Contents/Frameworks, where the executable then looks for them.

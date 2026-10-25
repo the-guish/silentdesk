@@ -25,6 +25,7 @@ It needs macOS 14 or newer. It is a Swift package, not an Xcode project, so it b
 | `Sources/SilentDesk/ScreenshotTour.swift` | `--screenshots DIR`: saves every screen as a PNG, light and dark, and quits |
 | `Bundle/Info.plist` | The app bundle's Info.plist |
 | `Scripts/bundle.sh` | Builds `SilentDesk.app`: universal, release, signed ad hoc |
+| `Scripts/make-icon.swift` | Draws the app's icon at build time |
 
 ## Build
 
