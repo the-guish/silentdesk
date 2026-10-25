@@ -51,7 +51,9 @@ def test_file_keyring_keeps_entries_in_a_private_file(tmp_path):
 
 
 def statuses(tmp_path, client_id: str | None = None) -> list[ServiceStatus]:
-    settings = LocalSettings(tmp_path, google_client_id=client_id, test_keyring=tmp_path / "keyring.json")
+    settings = LocalSettings(
+        tmp_path, google_client_id=client_id, slack_client_id=client_id, test_keyring=tmp_path / "keyring.json"
+    )
     return asyncio.run(api.desk(settings).services())
 
 
@@ -60,6 +62,7 @@ def test_services_are_listed_by_name_and_need_a_client_id_to_be_configured(tmp_p
         ServiceStatus("github", configured=True, connected=False, account=None),
         ServiceStatus("gmail", configured=False, connected=False, account=None),
         ServiceStatus("jira", configured=True, connected=False, account=None),
+        ServiceStatus("slack", configured=False, connected=False, account=None),
         ServiceStatus("tasks", configured=False, connected=False, account=None),
     ]
     assert all(status.configured for status in statuses(tmp_path, client_id="client"))

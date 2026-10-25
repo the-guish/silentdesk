@@ -99,7 +99,7 @@ def test_connect_and_disconnect_need_exactly_one_known_service(settings):
     assert run("disconnect", "gmail", "tasks")[1]["error"]["kind"] == "usage"
     code, document = run("connect", "zulip")
     assert (code, document["error"]["kind"]) == (cli.EXIT_USAGE, "usage")
-    assert "Services: github, gmail, jira, tasks." in document["error"]["message"]
+    assert "Services: github, gmail, jira, slack, tasks." in document["error"]["message"]
 
 
 @pytest.mark.parametrize("stdin", ["not json", "[1]", '{"token": 1}'])
