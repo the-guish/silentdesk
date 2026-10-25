@@ -1,7 +1,5 @@
 # SilentDesk — Jira Integration
 
-Status: v1 implemented · Last updated: 2026-10-23
-
 ## Goal (v1)
 
 Let the user connect Jira securely and pull their **last 10 open issues assigned to them or reported by them,** most recently updated first, as topics. One issue maps to one topic.

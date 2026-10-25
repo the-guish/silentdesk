@@ -1,7 +1,5 @@
 # SilentDesk — GitHub Integration
 
-Status: v1 implemented · Last updated: 2026-10-23
-
 ## Goal (v1)
 
 Let the user connect GitHub securely and pull their **open pull requests** as topics. One pull request maps to one topic. A pull request is included when it is:

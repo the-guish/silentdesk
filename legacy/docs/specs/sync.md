@@ -1,7 +1,5 @@
 # SilentDesk — Syncing
 
-Status: v1 implemented · Last updated: 2026-10-23
-
 ## When
 
 SilentDesk syncs every connected service automatically:

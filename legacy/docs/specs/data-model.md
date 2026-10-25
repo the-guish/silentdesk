@@ -1,7 +1,5 @@
 # SilentDesk — Data Model
 
-Status: draft · Last updated: 2026-10-23
-
 SilentDesk is a client, not a system of record (core principle 4). Its own data model exists mainly to **link tasks and topics** to items that live in corporate systems.
 
 ## Entities

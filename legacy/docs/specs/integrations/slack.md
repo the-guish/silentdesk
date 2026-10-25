@@ -1,7 +1,5 @@
 # SilentDesk — Slack Integration
 
-Status: v1 implemented · Last updated: 2026-10-24
-
 ## Goal (v1)
 
 Let the user connect their Slack account securely, then pull their **last 10 direct messages, sent and received,** as topics. This covers 1:1 DMs and group DMs. A conversation is one topic. Opening the topic shows the conversation's recent messages.
