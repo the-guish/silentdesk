@@ -11,6 +11,10 @@ final class KeychainKeyring: Keyring {
     /// The service name every secret is kept under, as in legacy.
     static let service = "com.silentdesk.app"
 
+    /// The item's identity: one generic password per entry name. The login
+    /// keychain is used, not the data-protection keychain, which needs a
+    /// signed app: the command line and development builds would fail on it.
+    /// The app can move the entries once its signing is settled.
     private func query(_ name: String) -> [String: Any] {
         [
             kSecClass as String: kSecClassGenericPassword,
@@ -34,15 +38,20 @@ final class KeychainKeyring: Keyring {
         return String(decoding: data, as: UTF8.self)
     }
 
+    /// Saved by delete-then-add, so there is no update path to get wrong. The
+    /// item stays on this device, is never synchronised, and carries a label
+    /// and description the user can recognise in Keychain Access, as
+    /// docs/secure-macos-apps.md recommends.
     func set(_ name: String, _ value: String) throws {
-        let data = Data(value.utf8)
-        let status = SecItemUpdate(query(name) as CFDictionary, [kSecValueData as String: data] as CFDictionary)
-        if status == errSecItemNotFound {
-            var attributes = query(name)
-            attributes[kSecValueData as String] = data
-            let added = SecItemAdd(attributes as CFDictionary, nil)
-            guard added == errSecSuccess else { throw StorageError("The Keychain could not be written (error \(added)).") }
-        } else if status != errSecSuccess {
+        try delete(name)
+        var attributes = query(name)
+        attributes[kSecValueData as String] = Data(value.utf8)
+        attributes[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
+        attributes[kSecAttrSynchronizable as String] = false
+        attributes[kSecAttrLabel as String] = "SilentDesk: \(name)"
+        attributes[kSecAttrDescription as String] = "SilentDesk secret"
+        let status = SecItemAdd(attributes as CFDictionary, nil)
+        guard status == errSecSuccess else {
             throw StorageError("The Keychain could not be written (error \(status)).")
         }
     }
