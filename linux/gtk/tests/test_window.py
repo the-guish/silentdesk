@@ -160,7 +160,7 @@ def test_a_failed_round_is_reported_and_the_old_topics_stay(worker):
     win = window(desk, worker)
 
     run_until(lambda: win.last_error is not None and not win.refreshing and win.topics.total == 1)
-    assert win.last_error == "Could not sync Gmail."
+    assert win.last_error == "Could not sync Gmail: Expired."
 
 
 def test_refresh_does_not_start_a_second_round_while_one_runs(worker):

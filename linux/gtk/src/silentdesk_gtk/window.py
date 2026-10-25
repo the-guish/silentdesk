@@ -4,6 +4,7 @@ legacy/docs/specs/sync.md."""
 
 from __future__ import annotations
 
+import sys
 import time
 from collections.abc import Callable
 from datetime import datetime
@@ -210,6 +211,7 @@ class MainWindow(Adw.ApplicationWindow):
 
     def _fail(self, error: BaseException) -> None:
         self.last_error = format.describe(error)
+        print(self.last_error, file=sys.stderr)
         self.toasts.add_toast(Adw.Toast(title=self.last_error, timeout=6))
         self._show()
 

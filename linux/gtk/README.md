@@ -39,6 +39,8 @@ It needs libadwaita 1.5 or newer (Ubuntu 24.04, Debian 13).
 
 `run.sh` creates `.venv` on the system Python (`/usr/bin/python3`) with access to its packages, installs the core into it, and starts the app. If `python3-gi` is installed for another Python, set `SILENTDESK_GTK_PYTHON` to it, then delete `.venv` and run again.
 
+`run.sh` loads `.env` at the repository root when it exists. It holds the variables in [`spec/cli.md`](../../spec/cli.md), such as `SILENTDESK_GOOGLE_CLIENT_ID`. Gmail, Google Tasks and Slack need them.
+
 ## Test
 
 ```sh
