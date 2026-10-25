@@ -22,8 +22,11 @@ public enum API {
         let keyring: any Keyring = settings.testKeyring.map { FileKeyring(path: $0) } ?? SystemKeyring()
         let database = SqlcipherDatabase(path: settings.dataDirectory + "/silentdesk.db", keyring: keyring)
         let http = URLSessionHttp(allowLoopbackHTTP: settings.testBaseURL != nil)
+        let browser: any Browser = settings.testBrowser ? FollowingBrowser(http: http) : SystemBrowser()
+        let oauth = LoopbackOAuth(http: http, browser: browser)
         let connectors: [any Connector] = [
             GitHubWiring.create(settings: settings, database: database, keyring: keyring, http: http),
+            GoogleTasksWiring.create(settings: settings, database: database, keyring: keyring, http: http, oauth: oauth),
             JiraWiring.create(settings: settings, database: database, keyring: keyring, http: http),
         ]
         return DeskWiring.create(connectors: connectors, settings: settings, database: database)

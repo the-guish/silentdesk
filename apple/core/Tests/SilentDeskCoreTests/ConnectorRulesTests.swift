@@ -82,8 +82,24 @@ private func pull(_ id: Int, _ reason: GitHubReason, updated: String, title: Str
     #expect(JiraCredential(email: nil, token: "t").flavor == .dataCenter)
 }
 
+// MARK: Google Tasks
+
+@Test func tasksBecomeTopics() {
+    let task = GoogleTask(
+        taskID: "t1", listID: "l", listTitle: "My Tasks", title: "  ", completed: false, deleted: false, due: nil,
+        origin: nil, url: "https://tasks.google.com/", updated: "2026-10-20T08:00:00.000Z")
+    let topic = TasksRules.topic(task)
+    #expect(topic.title == "Untitled task")
+    #expect(topic.items[0].direction == nil)
+    #expect(TasksRules.isOpen(task))
+    #expect(!TasksRules.isOpen(GoogleTask(
+        taskID: "t2", listID: "l", listTitle: "", title: "Done", completed: true, deleted: false, due: nil, origin: nil,
+        url: "", updated: "")))
+}
+
 // MARK: Credentials
 
 @Test func credentialsHideTheirTokensWhenPrinted() {
+    #expect(!"\(GoogleTasksGrant(accessToken: "a-secret", refreshToken: "r-secret"))".contains("secret"))
     #expect(!"\(JiraCredential(email: "ana@acme.com", token: "jira-secret"))".contains("secret"))
 }
