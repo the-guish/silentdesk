@@ -68,6 +68,31 @@ private func hex(_ data: Data) -> String {
     #expect(String(decoding: data, as: UTF8.self).contains("\n"), "readable by a person")
 }
 
+#if canImport(Security)
+import Security
+
+@Test func theKeychainKeyringRoundTripsASecret() throws {
+    // A build machine's login keychain can be locked. Without prompts the
+    // call fails instead of waiting for a password, and the test steps aside.
+    _ = SecKeychainSetUserInteractionAllowed(false)
+    let keyring = KeychainKeyring(service: "com.silentdesk.tests")
+    let name = "entry-\(UUID().uuidString)"
+    defer { try? keyring.delete(name) }
+    if let failure = caught(StorageError.self, { try keyring.set(name, "first") }) {
+        let unavailable = [errSecInteractionNotAllowed, errSecNotAvailable].map { "(error \($0))" }
+        guard unavailable.contains(where: failure.message.contains) else { throw failure }
+        return
+    }
+    #expect(try keyring.get(name) == "first")
+    try keyring.set(name, "second")
+    #expect(try keyring.get(name) == "second", "set replaces the item")
+    #expect(try keyring.get("never-\(name)") == nil)
+    try keyring.delete(name)
+    try keyring.delete(name)
+    #expect(try keyring.get(name) == nil)
+}
+#endif
+
 // MARK: Database
 
 @Test func theDatabaseIsCreatedEncryptedAndMigrated() throws {

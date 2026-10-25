@@ -9,7 +9,14 @@ import Security
 
 final class KeychainKeyring: Keyring {
     /// The service name every secret is kept under, as in legacy.
-    static let service = "com.silentdesk.app"
+    static let defaultService = "com.silentdesk.app"
+
+    private let service: String
+
+    /// Tests pass their own `service`, so their items stay apart from the app's.
+    init(service: String = KeychainKeyring.defaultService) {
+        self.service = service
+    }
 
     /// The item's identity: one generic password per entry name. The login
     /// keychain is used, not the data-protection keychain, which needs a
@@ -18,7 +25,7 @@ final class KeychainKeyring: Keyring {
     private func query(_ name: String) -> [String: Any] {
         [
             kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: Self.service,
+            kSecAttrService as String: service,
             kSecAttrAccount as String: name,
         ]
     }
