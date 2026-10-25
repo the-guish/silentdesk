@@ -75,3 +75,24 @@ jobs:
         run: swift test --package-path apple/core
       - name: Conformance
         run: uv run spec/runner/conformance.py --pending apple/core/conformance-pending.txt -- apple/core/.build/debug/silentdesk
+
+  security-review:
+    name: Claude security review
+    needs: [spec, linux-core, linux-gtk, apple-core]
+    # Pull requests from forks get no secrets, and the action trusts the code it reads.
+    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 2
+      # No release tags upstream; pinned to a commit of main.
+      - uses: anthropics/claude-code-security-review@0c6a49f1fa56a1d472575da86a94dbc1edb78eda
+        with:
+          claude-api-key: ${{ secrets.CLAUDE_API_KEY }}
+          claude-model: claude-opus-5-5
+          comment-pr: true
