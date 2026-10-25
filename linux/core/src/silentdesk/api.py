@@ -39,7 +39,7 @@ def desk(settings: LocalSettings | None = None) -> Desk:
     settings = settings or LocalSettings.from_environment()
     keyring = FileKeyring(settings.test_keyring) if settings.test_keyring else SecretServiceKeyring()
     database = SqlcipherDatabase(settings.data_dir / "silentdesk.db", keyring)
-    http = HttpsClient()
+    http = HttpsClient(allow_loopback_http=settings.test_base_url is not None)
     browser = SystemBrowser()
     connectors = [
         gmail_wiring.create(settings, database, keyring, http, browser),

@@ -25,8 +25,12 @@ class Http(ABC):
         headers: Mapping[str, str] | None = None,
         params: Mapping[str, str] | None = None,
         json: Any = None,
+        form: Mapping[str, str] | None = None,
     ) -> Response:
-        """Sends one request. Only https URLs, except loopback addresses for tests."""
+        """Sends one request, with a `json` or `form` body if given. Only
+        https URLs, except loopback addresses when tests allow it. Raises
+        NetworkError when the service cannot be reached; error statuses are
+        returned, for each app to interpret."""
 
     @abstractmethod
     async def close(self) -> None: ...

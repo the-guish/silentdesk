@@ -56,10 +56,6 @@ class Topic:
     items: list[Item]
 
 
-class Unsupported(Exception):
-    """The service cannot do this, such as replying to a task."""
-
-
 @dataclass(frozen=True)
 class SyncResult:
     """What one sync found. When `complete` is true, `topics` is everything
