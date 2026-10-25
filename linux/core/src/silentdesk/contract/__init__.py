@@ -7,7 +7,7 @@ abstract classes for behaviour, frozen dataclasses for the data they pass."""
 from .browser import Browser
 from .connector import Connector, Direction, Item, Message, ServiceStatus, SyncResult, Topic
 from .database import Database, StorageError
-from .desk import Desk, TopicView
+from .desk import Desk, TopicQuery, TopicView
 from .errors import (
     AuthError,
     ConnectorError,
@@ -48,6 +48,7 @@ __all__ = [
     "SyncResult",
     "Tokens",
     "Topic",
+    "TopicQuery",
     "TopicView",
     "UnknownItem",
     "UnknownService",
