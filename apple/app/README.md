@@ -21,8 +21,8 @@ It needs macOS 14 or newer. It is a Swift package, not an Xcode project, so it b
 | `Sources/SilentDeskAppModel/Format.swift`, `Services.swift` | How topics read, and what each service asks for and offers |
 | `Sources/SilentDeskAppModel/AppSettings.swift` | The core's settings: the environment, then the app's defaults |
 | `Sources/SilentDeskAppModel/DemoDesk.swift` | Made-up topics, for `--demo` and the screenshots |
-| `Sources/SilentDesk/` | The SwiftUI app; macOS only |
-| `Sources/SilentDesk/ScreenshotTour.swift` | `--screenshots DIR`: saves every screen as a PNG, light and dark, and quits |
+| `Sources/SilentDeskMac/` | The SwiftUI app; macOS only |
+| `Sources/SilentDeskMac/ScreenshotTour.swift` | `--screenshots DIR`: saves every screen as a PNG, light and dark, and quits |
 | `Bundle/Info.plist` | The app bundle's Info.plist |
 | `Scripts/bundle.sh` | Builds `SilentDesk.app`: universal, release, signed ad hoc |
 | `Scripts/make-icon.swift` | Draws the app's icon at build time |
@@ -33,7 +33,7 @@ On a Mac with Xcode 16 or newer:
 
 ```sh
 swift test                      # from this folder
-swift run SilentDesk --demo     # the app over made-up topics
+swift run SilentDeskMac --demo  # the app over made-up topics
 Scripts/bundle.sh               # .build/SilentDesk.app
 ```
 

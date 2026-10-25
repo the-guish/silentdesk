@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Builds SilentDesk.app: a universal release build of the SilentDesk
+# Builds SilentDesk.app: a universal release build of the SilentDeskMac
 # product, wrapped in an app bundle with Bundle/Info.plist and the icon
 # Scripts/make-icon.swift draws, and signed ad hoc.
 #
@@ -14,12 +14,12 @@ build="${BUILD_NUMBER:-1}"
 app="${1:-.build/SilentDesk.app}"
 archs=(--arch arm64 --arch x86_64)
 
-swift build -c release --product SilentDesk "${archs[@]}"
-bin="$(swift build -c release --product SilentDesk "${archs[@]}" --show-bin-path)"
+swift build -c release --product SilentDeskMac "${archs[@]}"
+bin="$(swift build -c release --product SilentDeskMac "${archs[@]}" --show-bin-path)"
 
 rm -rf "$app"
 mkdir -p "$app/Contents/MacOS" "$app/Contents/Frameworks" "$app/Contents/Resources"
-cp "$bin/SilentDesk" "$app/Contents/MacOS/SilentDesk"
+cp "$bin/SilentDeskMac" "$app/Contents/MacOS/SilentDesk"
 sed -e "s/@VERSION@/$version/" -e "s/@BUILD@/$build/" Bundle/Info.plist > "$app/Contents/Info.plist"
 swift Scripts/make-icon.swift "$app/Contents/Resources/AppIcon.icns"
 

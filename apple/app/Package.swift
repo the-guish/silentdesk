@@ -19,11 +19,13 @@ let package = Package(
 )
 
 #if os(macOS)
-// The SwiftUI app. Scripts/bundle.sh wraps it in SilentDesk.app.
-package.products = [.executable(name: "SilentDesk", targets: ["SilentDesk"])]
+// The SwiftUI app. Scripts/bundle.sh wraps it in SilentDesk.app. Not named
+// SilentDesk: macOS's file system ignores case, so its build folder would be
+// the core's `silentdesk` command line's.
+package.products = [.executable(name: "SilentDeskMac", targets: ["SilentDeskMac"])]
 package.targets.append(
     .executableTarget(
-        name: "SilentDesk",
+        name: "SilentDeskMac",
         dependencies: ["SilentDeskAppModel", .product(name: "SilentDeskCore", package: "core")]
     )
 )
