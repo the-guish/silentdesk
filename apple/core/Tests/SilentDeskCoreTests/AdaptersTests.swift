@@ -220,6 +220,103 @@ private func closeSocket(_ descriptor: Int32) {
     #expect(error.message.contains("\(port)"))
 }
 
+// MARK: HTTPS policy
+
+/// Answers every connection on a loopback port with the same canned response,
+/// and records the request lines it received.
+private final class CannedServer: @unchecked Sendable {
+    let port: Int
+    private let descriptor: Int32
+    private let response: [UInt8]
+    private let lock = NSLock()
+    private var stopped = false
+    private var received: [String] = []
+
+    init(response: String) throws {
+        #if canImport(Glibc)
+        let listening = socket(AF_INET, Int32(SOCK_STREAM.rawValue), 0)
+        #else
+        let listening = socket(AF_INET, SOCK_STREAM, 0)
+        #endif
+        var address = sockaddr_in()
+        address.sin_family = sa_family_t(AF_INET)
+        address.sin_addr = in_addr(s_addr: in_addr_t(0x7F00_0001).bigEndian)
+        var size = socklen_t(MemoryLayout<sockaddr_in>.size)
+        let bound = withUnsafeMutablePointer(to: &address) { pointer in
+            pointer.withMemoryRebound(to: sockaddr.self, capacity: 1) {
+                bind(listening, $0, size) == 0 && listen(listening, 4) == 0 && getsockname(listening, $0, &size) == 0
+            }
+        }
+        try #require(bound, "the test server listens on a free loopback port")
+        self.response = Array(response.utf8)
+        descriptor = listening
+        port = Int(UInt16(bigEndian: address.sin_port))
+        Thread { [self] in self.serve() }.start()
+    }
+
+    var requests: [String] {
+        lock.lock()
+        defer { lock.unlock() }
+        return received
+    }
+
+    func stop() {
+        lock.lock()
+        stopped = true
+        lock.unlock()
+    }
+
+    private func serve() {
+        while true {
+            var waiting = pollfd(fd: descriptor, events: Int16(POLLIN), revents: 0)
+            let ready = poll(&waiting, 1, 100)
+            lock.lock()
+            let done = stopped
+            lock.unlock()
+            if done { break }
+            guard ready > 0 else { continue }
+            let client = accept(descriptor, nil, nil)
+            guard client >= 0 else { continue }
+            var buffer = [UInt8](repeating: 0, count: 8192)
+            let count = recv(client, &buffer, buffer.count, 0)
+            if count > 0 {
+                let line = String(decoding: buffer[0..<count], as: UTF8.self).split(whereSeparator: \.isNewline).first.map(String.init) ?? ""
+                lock.lock()
+                received.append(line)
+                lock.unlock()
+            }
+            #if canImport(Glibc)
+            _ = response.withUnsafeBufferPointer { send(client, $0.baseAddress, $0.count, Int32(MSG_NOSIGNAL)) }
+            #else
+            _ = response.withUnsafeBufferPointer { send(client, $0.baseAddress, $0.count, 0) }
+            #endif
+            closeSocket(client)
+        }
+        closeSocket(descriptor)
+    }
+}
+
+@Test func theHttpClientFollowsARedirectThePolicyAllows() async throws {
+    let final = try CannedServer(response: "HTTP/1.1 200 OK\r\nContent-Length: 2\r\nConnection: close\r\n\r\nok")
+    defer { final.stop() }
+    let first = try CannedServer(response: "HTTP/1.1 302 Found\r\nLocation: http://127.0.0.1:\(final.port)/final\r\nContent-Length: 0\r\nConnection: close\r\n\r\n")
+    defer { first.stop() }
+    let response = try await URLSessionHttp(allowLoopbackHTTP: true).request("GET", "http://127.0.0.1:\(first.port)/start")
+    #expect(response.status == 200)
+    #expect(String(decoding: response.body, as: UTF8.self) == "ok")
+    #expect(final.requests == ["GET /final HTTP/1.1"])
+}
+
+@Test func theHttpClientRefusesARedirectAwayFromHttps() async throws {
+    let server = try CannedServer(response: "HTTP/1.1 302 Found\r\nLocation: http://example.invalid/token\r\nContent-Length: 0\r\nConnection: close\r\n\r\n")
+    defer { server.stop() }
+    let http = URLSessionHttp(allowLoopbackHTTP: true)
+    let error = try #require(await caught(ConnectorError.self) { _ = try await http.request("GET", "http://127.0.0.1:\(server.port)/start") })
+    #expect(error.kind == .network)
+    #expect(error.message == "Only https addresses are allowed: http://example.invalid/token")
+    #expect(server.requests == ["GET /start HTTP/1.1"], "the redirect was not followed")
+}
+
 // MARK: OAuth
 
 /// Answers every token request with the same body, and records the requests.
