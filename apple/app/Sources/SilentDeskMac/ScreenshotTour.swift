@@ -62,24 +62,32 @@ struct ScreenshotTour {
         try? await Task.sleep(for: .seconds(seconds))
     }
 
-    /// Saves the window, title bar and toolbar included.
+    /// Saves the window as the window server shows it, with screencapture,
+    /// and as its views draw themselves, which misses the sidebar's
+    /// translucent material. Both while it is unclear which works on CI.
     private func save(_ name: String, _ window: NSWindow?) {
-        guard let window,
-            let view = window.contentView?.superview ?? window.contentView,
-            let bitmap = view.bitmapImageRepForCachingDisplay(in: view.bounds)
-        else {
+        guard let window else {
             log("screenshot \(name): no window")
             return
         }
-        view.cacheDisplay(in: view.bounds, to: bitmap)
-        guard let png = bitmap.representation(using: .png, properties: [:]) else { return }
         let file = folder.appendingPathComponent("\(name).png")
+        let capture = Process()
+        capture.executableURL = URL(fileURLWithPath: "/usr/sbin/screencapture")
+        capture.arguments = ["-x", "-o", "-l", String(window.windowNumber), file.path]
         do {
-            try png.write(to: file)
-            log("screenshot \(name): \(file.path)")
+            try capture.run()
+            capture.waitUntilExit()
+            log("screenshot \(name): screencapture exited \(capture.terminationStatus)")
         } catch {
             log("screenshot \(name): \(error)")
         }
+
+        guard let view = window.contentView?.superview ?? window.contentView,
+            let bitmap = view.bitmapImageRepForCachingDisplay(in: view.bounds)
+        else { return }
+        view.cacheDisplay(in: view.bounds, to: bitmap)
+        guard let png = bitmap.representation(using: .png, properties: [:]) else { return }
+        try? png.write(to: folder.appendingPathComponent("\(name)-drawn.png"))
     }
 }
 
