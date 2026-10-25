@@ -6,16 +6,16 @@ A quiet desktop task tracker for work. It pulls your email, chat messages, issue
 We live in an era of massive information flows. 
 
 
-The recent progress in AI and adoption of agents in organizations is putting an unprecedent stress on our senior members, line managers, IT support and people coordinating work and information in general, with multiple tactical decisions per day.
+The recent progress in AI and adoption of agents in organizations is putting unprecedented stress on our senior members, line managers, IT support and people coordinating work and information in general, with multiple tactical decisions per day.
 
 
-That layer use to handle communication with a finite set of people, and now is facing the same set of people plus the output, as documents, questions, pull requests, from dozen of agents in the organization.
+That layer used to handle communication with a finite set of people, and now is facing the same set of people plus the output, as documents, questions, pull requests, from dozens of agents in the organization.
 
 
 SilentDesk would have been a useful nice-to-have in any of the previous years. Now, having something like it is a must.
 
 
-The only mission of SilentDesk in this world is to protect people's focus time at work, allow them to control the rate and direction of context-switching, get a more productive day and still have an useful brain by the time of loging off.
+The only mission of SilentDesk in this world is to protect people's focus time at work, allow them to control the rate and direction of context-switching, get a more productive day and still have a useful brain by the time of logging off.
 
 
 ## How it works
@@ -23,16 +23,16 @@ The only mission of SilentDesk in this world is to protect people's focus time a
 While most of the work can be classified and prioritized in issue trackers like Jira, companies tend to have more than one product for communications, typically Slack or Microsoft Teams and email.
 
 
-A good portion of the daily energy goes into manually scanning the chat platforms and correlating all of them, detect actions needed and communicate the right person.
+A good portion of the daily energy goes into manually scanning the chat platforms and correlating all of them, detecting actions needed and communicating with the right person.
 
 
-The definitive answer is to put standardized processes and automated workflows, and I cannot stress more the importance of that effort, that is the real answer to handle a bigger volume per head. If you are facing a lot of unstructured untagged information is highly likely a sign your organization needs to automate that information flow.
+The definitive answer is to put standardized processes and automated workflows in place, and I cannot stress more the importance of that effort; that is the real answer to handle a bigger volume per head. If you are facing a lot of unstructured, untagged information, it is highly likely a sign your organization needs to automate that information flow.
 
 
-But no matter the level of automation there will be always a portion that needs manual triage and decisions, mostly for new, non repetitive issues or discovery efforts.
+But no matter the level of automation, there will always be a portion that needs manual triage and decisions, mostly for new, non-repetitive issues or discovery efforts.
 
 
-Silent desk puts everything you need know and potentially take action into a single, minimalist, clean UI, prioritized and sorted ahead of time by your criteria.
+SilentDesk puts everything you need to know and potentially take action on into a single, minimalist, clean UI, prioritized and sorted ahead of time by your criteria.
 
 
 
