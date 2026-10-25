@@ -21,8 +21,10 @@ public enum API {
     public static func desk(settings: LocalSettings = .fromEnvironment()) -> any Desk {
         let keyring: any Keyring = settings.testKeyring.map { FileKeyring(path: $0) } ?? SystemKeyring()
         let database = SqlcipherDatabase(path: settings.dataDirectory + "/silentdesk.db", keyring: keyring)
-        // The connector apps are wired in here, one pull request each.
-        let connectors: [any Connector] = []
+        let http = URLSessionHttp(allowLoopbackHTTP: settings.testBaseURL != nil)
+        let connectors: [any Connector] = [
+            GitHubWiring.create(settings: settings, database: database, keyring: keyring, http: http),
+        ]
         return DeskWiring.create(connectors: connectors, settings: settings, database: database)
     }
 }
