@@ -31,9 +31,9 @@ class GmailApi(ABC):
 
     @abstractmethod
     async def messages(self, token: str, ids: list[str], progress: Callable[[int], None]) -> list[GmailMessage]:
-        """The headers of each message, read at the pace Google allows.
-        Drafts, chats and messages deleted meanwhile are left out. `progress`
-        gets how many were read so far."""
+        """The headers of each message, read at the pace Google allows, in
+        the order of `ids`. Drafts, chats and messages deleted meanwhile are
+        left out. `progress` gets how many were read so far."""
 
     @abstractmethod
     async def original(self, token: str, message_id: str) -> Original:
