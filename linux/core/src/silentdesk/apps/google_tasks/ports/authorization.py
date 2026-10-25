@@ -2,20 +2,12 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from collections.abc import Sequence
-from dataclasses import dataclass, field
 
-
-@dataclass(frozen=True)
-class Grant:
-    access_token: str = field(repr=False)
-    refresh_token: str | None = field(repr=False)
-    # RFC 3339.
-    expires_at: str
-    email: str | None
+from ..domain.tasks import Grant
 
 
 class Authorization(ABC):
-    """Google's OAuth: sign-in through the browser, then token refresh."""
+    """Google sign-in: through the browser, then token refresh."""
 
     @property
     @abstractmethod
@@ -23,11 +15,15 @@ class Authorization(ABC):
         """Whether there is a client ID to sign in with."""
 
     @abstractmethod
-    async def sign_in(self, scopes: Sequence[str]) -> Grant:
-        """Opens Google's sign-in page and waits for the user to finish."""
+    async def sign_in(self, scopes: Sequence[str], required: Sequence[str]) -> Grant:
+        """Opens Google's sign-in page and waits for the user. Raises
+        AuthError unless every `required` scope is granted, with a refresh
+        token."""
 
     @abstractmethod
-    async def refresh(self, refresh_token: str) -> Grant: ...
+    async def access_token(self, refresh_token: str) -> str:
+        """A fresh access token. Raises AuthError when the grant is gone."""
 
     @abstractmethod
-    async def revoke(self, token: str) -> None: ...
+    async def revoke(self, refresh_token: str) -> None:
+        """Ends the grant at Google. Best effort."""

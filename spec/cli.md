@@ -61,8 +61,24 @@ When a sync round fails, the error also lists each failed service, with the kind
 | `SILENTDESK_GOOGLE_CLIENT_ID` | The Google OAuth client that Gmail and Google Tasks sign in with. Unset or empty: those services are not configured. |
 | `SILENTDESK_GOOGLE_CLIENT_SECRET` | That client's secret, if it has one. |
 | `SILENTDESK_TEST_KEYRING` | **Tests only.** A JSON file used instead of the OS credential store; see below. |
-| `SILENTDESK_TEST_BASE_URL` | **Tests only.** Every service's API at `<url>/<service>`, such as `<url>/github`, instead of its real address. Plain `http` is then allowed, to loopback addresses only. |
+| `SILENTDESK_TEST_BASE_URL` | **Tests only.** Every address a core calls at `<url>/<name>` instead of its real host; see below. Plain `http` is then allowed, to loopback addresses only. |
+| `SILENTDESK_TEST_BROWSER` | **Tests only.** `follow`: instead of opening a browser for sign-in, the core requests the sign-in page itself and follows its redirects, as a browser would after the user signs in. |
 | `SILENTDESK_TEST_NOW` | **Tests only.** A fixed time, in RFC 3339, used instead of the clock. |
+
+### Test addresses
+
+With `SILENTDESK_TEST_BASE_URL`, each real host is replaced by `<url>/<name>`, keeping the rest of the path:
+
+| Name | Real host |
+|------|-----------|
+| `github` | `https://api.github.com`, or a GitHub Enterprise Server's `https://<host>/api/v3` |
+| `jira` | The Jira site |
+| `atlassian` | `https://api.atlassian.com/ex/jira` |
+| `google-accounts` | `https://accounts.google.com` |
+| `google-oauth` | `https://oauth2.googleapis.com` |
+| `google-userinfo` | `https://openidconnect.googleapis.com` |
+| `tasks` | `https://tasks.googleapis.com` |
+| `gmail` | `https://gmail.googleapis.com` |
 
 ### Test keyring
 
@@ -142,6 +158,7 @@ Connects one service. Reads the service's fields as one JSON object of strings o
 | Service | Fields |
 |---------|--------|
 | `github` | `token`: a personal access token, required. `server`: a GitHub Enterprise Server host, such as `github.acme.com`; empty or missing for github.com. |
+| `gmail`, `tasks` | None: they sign in through the browser, with the Google client in `SILENTDESK_GOOGLE_CLIENT_ID`. Each has its own grant and refresh token. |
 | `jira` | `site`: the Jira site, such as `acme.atlassian.net` or a Data Center address, required. `token`: an API token (Cloud) or personal access token (Data Center), required. `email`: the account's email for Jira Cloud; empty or missing for Data Center. |
 
 ### `disconnect <service>`
