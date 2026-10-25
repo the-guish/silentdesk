@@ -21,6 +21,9 @@ class TopicView:
     items: list[Item]
     # RFC 3339: the newest item's date.
     updated_at: str
+    # The whole topic can be deleted: its connector says so, or every item
+    # can be.
+    deletable: bool
 
 
 class Desk(ABC):
@@ -58,4 +61,12 @@ class Desk(ABC):
 
     @abstractmethod
     async def delete(self, topic_id: str) -> None:
-        """Deletes a topic in its service, through its connector, and drops it."""
+        """Deletes a deletable topic in its service, through its connector,
+        and drops it. Raises `Unsupported` for one that is not deletable."""
+
+    @abstractmethod
+    async def delete_item(self, topic_id: str, item_key: str) -> None:
+        """Deletes one deletable item of a topic in its service, and drops
+        it; a topic left without items is dropped too. Raises `UnknownItem`
+        for a key the topic does not have, and `Unsupported` for an item
+        that is not deletable."""

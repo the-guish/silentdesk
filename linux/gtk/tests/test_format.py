@@ -12,8 +12,8 @@ NOW = datetime(2026, 10, 24, 12, 0, tzinfo=UTC)
 def topic(
     service: str = "gmail", direction: Direction | None = Direction.INBOUND, author: str | None = "Bo Lind"
 ) -> TopicView:
-    items = [Item("m1", direction, author, None, "2026-10-24T09:00:00Z")]
-    return TopicView("id-1", service, "Invoice for October", items, "2026-10-24T09:00:00Z")
+    items = [Item("m1", direction, author, None, "2026-10-24T09:00:00Z", False)]
+    return TopicView("id-1", service, "Invoice for October", items, "2026-10-24T09:00:00Z", False)
 
 
 def test_ago_reads_like_the_legacy_footer():

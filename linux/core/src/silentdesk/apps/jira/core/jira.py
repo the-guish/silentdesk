@@ -61,5 +61,7 @@ def topic(issue: Issue, account: JiraAccount) -> Topic:
         author=issue.reporter.name if issue.reporter and issue.reporter.name else None,
         url=f"{account.endpoint.site}/browse/{issue.key}",
         date=to_rfc3339(issue.updated),
+        # SilentDesk only reads Jira.
+        deletable=False,
     )
-    return Topic(key=issue.issue_id, title=issue.summary.strip() or issue.key, items=[item])
+    return Topic(key=issue.issue_id, title=issue.summary.strip() or issue.key, items=[item], deletable=False)

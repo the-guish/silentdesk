@@ -18,5 +18,6 @@ def is_open(task: GoogleTask) -> bool:
 
 def topic(task: GoogleTask) -> Topic:
     """One topic per task, with the task as its one item."""
-    item = Item(key=task.task_id, direction=None, author=None, url=task.url, date=task.updated)
-    return Topic(key=task.task_id, title=task.title.strip() or "Untitled task", items=[item])
+    # SilentDesk has read-only access to Google Tasks.
+    item = Item(key=task.task_id, direction=None, author=None, url=task.url, date=task.updated, deletable=False)
+    return Topic(key=task.task_id, title=task.title.strip() or "Untitled task", items=[item], deletable=False)

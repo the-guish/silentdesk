@@ -46,3 +46,7 @@ class GmailApi(ABC):
     @abstractmethod
     async def trash_thread(self, token: str, thread_id: str) -> None:
         """Moves the thread to the trash, where Gmail deletes it after 30 days."""
+
+    @abstractmethod
+    async def trash_message(self, token: str, message_id: str) -> None:
+        """Moves one message to the trash, where Gmail deletes it after 30 days."""

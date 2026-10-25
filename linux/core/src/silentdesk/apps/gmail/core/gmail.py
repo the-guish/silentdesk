@@ -37,10 +37,12 @@ def topic(thread_id: str, messages: Sequence[GmailMessage]) -> Topic:
             author=sender_name(message.sender) or None,
             url=f"https://mail.google.com/mail/#all/{thread_id}",
             date=message.date,
+            # gmail.modify moves any message to the trash.
+            deletable=True,
         )
         for message in ordered
     ]
-    return Topic(key=thread_id, title=ordered[0].subject.strip() or "(no subject)", items=items)
+    return Topic(key=thread_id, title=ordered[0].subject.strip() or "(no subject)", items=items, deletable=True)
 
 
 def sender_name(sender: str) -> str:

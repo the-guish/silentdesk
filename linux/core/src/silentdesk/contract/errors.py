@@ -49,6 +49,10 @@ class UnknownTopic(Exception):
     """No topic has this ID, or its service no longer knows it."""
 
 
+class UnknownItem(Exception):
+    """The topic has no item with this key."""
+
+
 class SyncFailed(Exception):
     """A sync round in which one or more services failed. The others synced."""
 

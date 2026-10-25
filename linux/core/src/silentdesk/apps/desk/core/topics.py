@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Sequence
+from dataclasses import replace
 
-from ....contract import SyncResult, Topic
+from ....contract import Item, SyncResult, Topic
 from ..domain.topics import TopicRecord
 
 
@@ -33,9 +34,29 @@ def _record(topic: Topic, service: str, old: TopicRecord | None, now: str, new_i
         title=topic.title,
         items=list(topic.items),
         created_at=old.created_at if old else now,
-        # RFC 3339 times in UTC sort as text.
-        updated_at=max((item.date for item in topic.items), default=now),
+        updated_at=_newest(topic.items, now),
+        deletable=deletable(topic),
     )
+
+
+def _newest(items: Sequence[Item], default: str) -> str:
+    # RFC 3339 times in UTC sort as text.
+    return max((item.date for item in items), default=default)
+
+
+def deletable(topic: Topic) -> bool:
+    """A topic can be deleted when its connector says so, or when every one
+    of its items can be."""
+    return topic.deletable or (bool(topic.items) and all(item.deletable for item in topic.items))
+
+
+def without_item(record: TopicRecord, item_key: str) -> TopicRecord | None:
+    """The record once one item is deleted, or None when none is left. It
+    stays deletable: the items left are deletable whenever all were."""
+    items = [item for item in record.items if item.key != item_key]
+    if not items:
+        return None
+    return replace(record, items=items, updated_at=_newest(items, record.updated_at))
 
 
 def newest_first(records: Sequence[TopicRecord]) -> list[TopicRecord]:

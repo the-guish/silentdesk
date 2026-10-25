@@ -135,9 +135,10 @@ Takes no arguments. Lists every topic, newest first: by `updatedAt`, then by `id
     "service": "gmail",
     "title": "Invoice for October",
     "items": [
-      {"key": "18c2…", "direction": "inbound", "author": "Ana Ruiz", "url": null, "date": "2026-10-24T09:12:00Z"}
+      {"key": "18c2…", "direction": "inbound", "author": "Ana Ruiz", "url": null, "date": "2026-10-24T09:12:00Z", "deletable": true}
     ],
-    "updatedAt": "2026-10-24T09:12:00Z"
+    "updatedAt": "2026-10-24T09:12:00Z",
+    "deletable": true
   }
 ]
 ```
@@ -153,7 +154,11 @@ Takes no arguments. Lists every topic, newest first: by `updatedAt`, then by `id
 | `items[].author` | string \| null | Who wrote it, as shown to the user. |
 | `items[].url` | string \| null | Opens the item in its own system. |
 | `items[].date` | string | RFC 3339. |
+| `items[].deletable` | boolean | `delete <topic-id> <item-key>` can delete it. |
 | `updatedAt` | string | The newest item's date. |
+| `deletable` | boolean | `delete <topic-id>` can delete the whole topic. |
+
+Each connector says which topics and items the user can delete, as of the last sync: Gmail, every thread and message; GitHub, Jira, Google Tasks and Slack, none, as SilentDesk only reads them. A topic whose items are all deletable is deletable too. The service has the last word: if it refuses, as Slack would for a message past the workspace's deletion window, the command fails with its error.
 
 ### `connect <service>`
 
@@ -190,9 +195,9 @@ A topic's recent messages with their text, oldest first, read live from its serv
 
 Replies in a topic, through its service: for Gmail, to the thread's newest message. The reply is plain text on stdin, written by the user, so it carries no AI notice (core principle 9). Prints `{}` ([schema](schema/empty.json)). An empty reply, or an unknown topic ID, is a usage error; a service that cannot reply fails with `unsupported`.
 
-### `delete <topic-id>`
+### `delete <topic-id> [item-key]`
 
-Deletes a topic in its service, then drops it: for Gmail, the thread moves to the trash, which Gmail empties after 30 days. Prints `{}` ([schema](schema/empty.json)). An unknown topic ID is a usage error; a service that cannot delete fails with `unsupported`.
+Deletes a topic, or with an item key one of its items, in its service, then drops it. For Gmail, the thread or the message moves to the trash, which Gmail empties after 30 days. Deleting a topic's last item drops the topic. Prints `{}` ([schema](schema/empty.json)). An unknown topic ID or item key is a usage error; a topic or item that is not `deletable` fails with `unsupported`.
 
 ## Planned
 

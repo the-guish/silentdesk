@@ -23,3 +23,11 @@ def test_each_service_says_where_it_stands():
         "Not connected · signs in through your browser"
     )
     assert services.describe(ServiceStatus("github", True, False, None)) == "Not connected"
+
+
+def test_deleting_reads_as_the_service_does_it():
+    assert services.deletion("gmail", "item").heading == "Move this message to the trash?"
+    assert services.deletion("gmail", "topic").done == "Moved to the trash"
+    assert services.deletion("jira", "topic") == services.Deletion(
+        "Delete this topic?", "SilentDesk deletes it in Jira.", "Deleted"
+    )

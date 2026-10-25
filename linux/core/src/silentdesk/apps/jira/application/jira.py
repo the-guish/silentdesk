@@ -119,3 +119,6 @@ class Jira(Connector):
 
     async def delete_topic(self, topic_key: str) -> None:
         raise Unsupported(self.service, "SilentDesk cannot delete a Jira issue.")
+
+    async def delete_item(self, topic_key: str, item_key: str) -> None:
+        raise Unsupported(self.service, "SilentDesk cannot delete a Jira issue.")
