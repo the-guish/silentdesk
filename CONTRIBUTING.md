@@ -55,6 +55,9 @@ xvfb-run -a uv run --directory linux/gtk pytest -q
 # apple/core
 swift build --package-path apple/core && swift test --package-path apple/core
 uv run spec/runner/conformance.py --pending apple/core/conformance-pending.txt -- apple/core/.build/debug/silentdesk
+
+# apple/app (the SwiftUI app builds on macOS only; Linux tests its model)
+swift test --package-path apple/app
 ```
 
 - Keep each pull request small and focused on one change.

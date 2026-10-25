@@ -1,0 +1,65 @@
+name: Apple app
+
+# Every push that touches the Apple code builds SilentDesk.app, so any branch
+# has an app to download and try, and screenshots of its screens.
+on:
+  push:
+    paths:
+      - apple/**
+      - .github/workflows/apple-app.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  model-linux:
+    name: Apple app model (Linux)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Install SQLCipher and OpenSSL
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libsqlcipher-dev libssl-dev
+      - run: swift --version
+      - name: Unit tests
+        run: swift test --package-path apple/app
+
+  macos:
+    name: Apple app (macOS)
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - run: swift --version
+      # Builds the SwiftUI app too, which only builds on macOS.
+      - name: Unit tests
+        run: swift test --package-path apple/app
+      - name: Build SilentDesk.app
+        env:
+          BUILD_NUMBER: ${{ github.run_number }}
+        run: apple/app/Scripts/bundle.sh "$RUNNER_TEMP/SilentDesk.app"
+      # ditto keeps the bundle's symlinks, permissions and signature, which
+      # the artifact's own zip would lose.
+      - name: Zip the app
+        run: ditto -c -k --keepParent "$RUNNER_TEMP/SilentDesk.app" "$RUNNER_TEMP/SilentDesk.zip"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: SilentDesk-macOS
+          path: ${{ runner.temp }}/SilentDesk.zip
+          if-no-files-found: error
+      - name: Screenshots
+        timeout-minutes: 5
+        run: |
+          "$RUNNER_TEMP/SilentDesk.app/Contents/MacOS/SilentDesk" --screenshots "$RUNNER_TEMP/screenshots"
+          ls -l "$RUNNER_TEMP/screenshots"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: screenshots
+          path: ${{ runner.temp }}/screenshots
+          if-no-files-found: warn
