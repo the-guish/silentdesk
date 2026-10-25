@@ -209,10 +209,21 @@ def test_deleting_one_message_trashes_it_and_forgets_only_it(tmp_path):
     app, state = connector(tmp_path, api)
     asyncio.run(app.sync())
 
-    asyncio.run(app.delete_item("t1", "b"))
+    left = asyncio.run(app.delete_item("t1", "b"))
 
     assert api.trashed == ["b"]
     assert [m.message_id for m in asyncio.run(state.threads())["t1"]] == ["a"]
+    assert [item.key for item in left.items] == ["a"]
+    assert asyncio.run(app.delete_item("t1", "a")) is None
+
+
+def test_a_thread_left_without_its_first_message_takes_the_next_ones_subject(tmp_path):
+    first = message("a", "t1", "2026-10-01T00:00:00Z", "Invoice")
+    second = message("b", "t1", "2026-10-02T00:00:00Z", "Re: Invoice")
+    app, _ = connector(tmp_path, FakeApi([first, second]))
+    asyncio.run(app.sync())
+
+    assert asyncio.run(app.delete_item("t1", "a")).title == "Re: Invoice"
 
 
 def test_trashing_a_message_posts_to_its_trash_and_a_gone_one_counts_as_done():

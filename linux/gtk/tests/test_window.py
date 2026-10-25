@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import time
+from dataclasses import replace
 from datetime import UTC, datetime
 from functools import cache
 
@@ -84,6 +85,11 @@ class FakeDesk(Desk):
 
     async def delete_item(self, topic_id, item_key):
         self.calls.append(("delete", topic_id, item_key))
+        [old] = [t for t in self.shown if t.id == topic_id]
+        items = [item for item in old.items if item.key != item_key]
+        # Titled from its first item, as Gmail titles a thread.
+        new = replace(old, title=f"From {items[0].key}", items=items, updated_at=items[-1].date)
+        self.shown = [new if t.id == topic_id else t for t in self.shown]
 
     async def delete(self, topic_id):
         self.calls.append(("delete", topic_id))
@@ -180,7 +186,7 @@ def test_a_topic_without_a_conversation_shows_its_items_and_a_reply_box(worker):
 
     assert page.showing == "items"
     assert page.entries == [("Bo · 09:00", "")]
-    assert page.reply_view is not None and page.delete_button is not None
+    assert page.reply_view is not None and page.delete_button.get_visible()
     assert win.navigation.get_visible_page() is page
 
 
@@ -194,7 +200,7 @@ def test_a_slack_topic_shows_its_conversation_and_offers_no_reply(worker):
     run_until(lambda: page.showing == "history")
 
     assert page.entries == [("Bo · 10:00", "Can you check prod?"), ("Ana (you) · 10:05", "On it.")]
-    assert page.reply_view is None and page.delete_button is None
+    assert page.reply_view is None and not page.delete_button.get_visible()
 
 
 def test_a_reply_is_sent_then_its_service_syncs(worker):
@@ -256,14 +262,18 @@ def test_disconnecting_a_service_drops_its_topics(worker):
 
 def test_each_deletable_item_of_a_thread_can_be_deleted_on_its_own(worker):
     desk = FakeDesk()
-    win = started(desk, worker)
-    page = win.open_topic(thread("t", "m1", "m2"))
+    desk.shown.append(thread("t", "m1", "m2"))
+    win = window(desk, worker)
+    run_until(lambda: win.topics.total == 3 and not win.refreshing)
+    page = win.open_topic(next(t for t in win.topics.shown_topics() if t.id == "t"))
     assert sorted(page.item_buttons) == ["m1", "m2"]
 
-    page.delete_item("m2")
+    page.delete_item("m1")
 
-    run_until(lambda: desk.calls == [("delete", "t", "m2")] and len(page.entries) == 1)
-    assert [item.key for item in page.topic.items] == ["m1"]
+    run_until(lambda: desk.calls == [("delete", "t", "m1")] and len(page.entries) == 1)
+    # As the core reports it after the deletion: Gmail retitles a thread.
+    assert [item.key for item in page.topic.items] == ["m2"]
+    assert page.window_title.get_title() == "From m2"
     # One item left: the header's button deletes it, with the topic.
     assert page.item_buttons == {}
     assert win.navigation.get_visible_page() is page
@@ -272,4 +282,4 @@ def test_each_deletable_item_of_a_thread_can_be_deleted_on_its_own(worker):
 def test_a_topic_that_is_not_deletable_offers_no_delete(worker):
     win = started(FakeDesk(), worker)
     page = win.open_topic(topic("9", "PR", "Cy", "2026-10-24T10:00:00Z", service="github"))
-    assert page.delete_button is None and page.item_buttons == {}
+    assert not page.delete_button.get_visible() and page.item_buttons == {}
