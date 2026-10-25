@@ -1,36 +1,36 @@
-"""The application and its main window."""
+"""The application: one desk and one core worker, for one window."""
 
 from __future__ import annotations
 
 import sys
 
-import gi
+from gi.repository import Adw
 from silentdesk import api
 
-gi.require_version("Gtk", "4.0")
-gi.require_version("Adw", "1")
-
-from gi.repository import Adw, Gtk
+from .window import MainWindow
+from .worker import CoreWorker
 
 APP_ID = "com.silentdesk.app"
 
 
-class Window(Adw.ApplicationWindow):
-    def __init__(self, app: Adw.Application) -> None:
-        super().__init__(application=app, title="SilentDesk", default_width=960, default_height=640)
-        core = api.version()
+class Application(Adw.Application):
+    def __init__(self) -> None:
+        super().__init__(application_id=APP_ID)
+        self.worker: CoreWorker | None = None
+        self.connect("activate", self._activate)
+        self.connect("shutdown", self._shutdown)
 
-        page = Adw.StatusPage(
-            icon_name="mail-unread-symbolic",
-            title="No topics yet",
-            description=f"Topics will show here.\nCore {core['version']}, contract {core['contract']}.",
-        )
-        view = Adw.ToolbarView(content=page)
-        view.add_top_bar(Adw.HeaderBar(title_widget=Gtk.Label(label="SilentDesk", css_classes=["title"])))
-        self.set_content(view)
+    def _activate(self, _: Adw.Application) -> None:
+        window = self.get_active_window()
+        if window is None:
+            self.worker = CoreWorker()
+            window = MainWindow(self, api.desk(), self.worker)
+        window.present()
+
+    def _shutdown(self, _: Adw.Application) -> None:
+        if self.worker is not None:
+            self.worker.stop()
 
 
 def main() -> int:
-    app = Adw.Application(application_id=APP_ID)
-    app.connect("activate", lambda app: Window(app).present())
-    return app.run(sys.argv)
+    return Application().run(sys.argv)
