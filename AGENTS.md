@@ -17,6 +17,8 @@ Generated with Claude Code
 
 When more than one tool took part, name them all, separated by commas: `Generated with Claude Code, Codex`. Another tool uses its own name: `Generated with OpenCode`.
 
+The tool that opens the pull request may replace this footer with its own, one with a link. After opening a pull request, read the description back; if the footer changed, edit it and read it back again.
+
 ## Branches
 
 Name branches with one of these prefixes: `feature/` for new work, `fix/` for bug fixes and `docs/` for documentation, such as `docs/secure-apps`.
