@@ -76,15 +76,50 @@ jobs:
       - name: Conformance
         run: uv run spec/runner/conformance.py --pending apple/core/conformance-pending.txt -- apple/core/.build/debug/silentdesk
 
-  security-review:
-    name: Claude security review
+  security-screening:
+    name: Claude security screening
     needs: [spec, linux-core, linux-gtk, apple-core]
     # Pull requests from forks get no secrets, and Claude trusts the code it reads.
     if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-24.04
     permissions:
       contents: read
+      pull-requests: read
+    outputs:
+      touches_security: ${{ fromJSON(steps.screen.outputs.structured_output).touches_security }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      # v1.0.262
+      - id: screen
+        uses: anthropics/claude-code-action@925afb53776cf1a2b738c6bdbed37b4d4000ef13
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          github_token: ${{ github.token }}
+          prompt: |
+            REPO: ${{ github.repository }}
+            PR NUMBER: ${{ github.event.pull_request.number }}
+
+            Read the diff with `gh pr diff` and decide whether it touches security.
+            It does when it changes how the code handles untrusted input, secrets, credentials, the keyring,
+            sign-in, network requests, file paths, processes, permissions, dependencies or CI workflows.
+            Answer true when unsure.
+          claude_args: |
+            --model claude-haiku-5-5
+            --effort low
+            --allowedTools "Read,Grep,Glob,Bash(gh pr diff:*),Bash(gh pr view:*)"
+            --json-schema '{"type":"object","properties":{"touches_security":{"type":"boolean"}},"required":["touches_security"]}'
+
+  security-review:
+    name: Claude security review
+    needs: security-screening
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
       pull-requests: write
+    env:
+      DEPTH: ${{ needs.security-screening.outputs.touches_security == 'true' && 'deep (Fable, extra-high effort)' || 'standard (Opus, medium effort)' }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -107,6 +142,8 @@ jobs:
             Start each inline comment with "**Claude Code Security Review**" on its own line.
             Then post one summary comment with `gh pr comment`, saying "No security issues found" when there are none.
             The summary starts with the heading "## Claude Code Security Review".
+            Its next line is "Review depth: ${{ env.DEPTH }}".
           claude_args: |
-            --model claude-opus-5-5
+            --model ${{ needs.security-screening.outputs.touches_security == 'true' && 'claude-fable-5-1' || 'claude-opus-5-5' }}
+            --effort ${{ needs.security-screening.outputs.touches_security == 'true' && 'xhigh' || 'medium' }}
             --allowedTools "Read,Grep,Glob,mcp__github_inline_comment__create_inline_comment,Bash(gh pr diff:*),Bash(gh pr view:*),Bash(gh pr comment:*)"
