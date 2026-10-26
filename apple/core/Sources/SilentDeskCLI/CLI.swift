@@ -192,6 +192,7 @@ enum Documents {
             "updatedAt": .string(topic.updatedAt),
             "deletable": .bool(topic.deletable),
             "projectId": .string(topic.projectId),
+            "status": topic.status.map { ["name": .string($0.name), "category": .string($0.category?.rawValue)] } ?? .null,
         ]
     }
 
