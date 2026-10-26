@@ -43,8 +43,8 @@ private func state(
     (state(checks: "SUCCESS", review: "APPROVED"), "Approved"),
     (state(checks: "PENDING", review: "APPROVED"), "Approved"),
     (state(review: "CHANGES_REQUESTED"), "Changes Requested"),
-    (state(review: "REVIEW_REQUIRED"), "In review"),
-    (state(), "In review"),
+    (state(review: "REVIEW_REQUIRED"), "In Review"),
+    (state(), "In Review"),
     (state(draft: true, checks: "PENDING"), "Draft"),
     (state(draft: true, review: "REVIEW_REQUIRED"), "Draft"),
 ])
