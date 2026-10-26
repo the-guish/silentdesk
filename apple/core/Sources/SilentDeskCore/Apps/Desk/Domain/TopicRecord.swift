@@ -16,4 +16,6 @@ struct TopicRecord: Sendable, Equatable {
     let deletable: Bool
     /// The user's project for the topic, or nil for Default.
     var projectId: String? = nil
+    /// As the connector reported it at the last sync, or nil.
+    var status: TopicStatus? = nil
 }

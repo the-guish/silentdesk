@@ -38,7 +38,9 @@ enum Topics {
             // RFC 3339 times in UTC sort as text.
             updatedAt: topic.items.map(\.date).max() ?? now,
             deletable: topic.deletable,
-            projectId: old?.projectId)
+            projectId: old?.projectId,
+            // The service owns the status: the last sync's, never an older one.
+            status: topic.status)
     }
 
     /// A topic can be deleted when its connector can delete it at once, or

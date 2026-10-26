@@ -14,6 +14,7 @@ private func record(_ key: String, id: String = "id-\(Int.random(in: 1...1_000_0
 @Test func aCompleteSyncReplacesEverythingButKeepsIDs() {
     var old = record("a", id: "A", date: "2026-10-01T00:00:00Z")
     old.projectId = "P"
+    old.status = TopicStatus(name: "Open", category: .new)
     let gone = record("b", id: "B")
     let result = SyncResult(
         topics: [
@@ -32,6 +33,7 @@ private func record(_ key: String, id: String = "id-\(Int.random(in: 1...1_000_0
     #expect(applied[0].title == "A again")
     #expect(applied[0].projectId == "P", "a changed topic keeps its project")
     #expect(applied[1].projectId == nil, "a new topic starts in Default")
+    #expect(applied[0].status == nil, "the status is the connector's, not kept across syncs")
     #expect(applied[1].id == "new-1")
     #expect(applied[1].createdAt == "2026-10-05T00:00:00Z")
 }
@@ -106,4 +108,19 @@ private func record(_ key: String, id: String = "id-\(Int.random(in: 1...1_000_0
     let projects = Dictionary(uniqueKeysWithValues: try await store.topics().map { ($0.id, $0.projectId) })
     #expect(projects["A"] == .some("P"))
     #expect(projects["B"] == .some(nil), "a project deleted while the service synced leaves its topic in Default")
+}
+
+@Test func theStoreKeepsATopicsStatus() async throws {
+    let folder = try temporaryFolder()
+    let database = SqlcipherDatabase(path: "\(folder)/silentdesk.db", keyring: FileKeyring(path: "\(folder)/keyring.json"))
+    let store = SqlcipherTopicStore(database: database)
+    var review = record("a", id: "A")
+    review.status = TopicStatus(name: "Code Review", category: .inProgress)
+    var triage = record("b", id: "B")
+    triage.status = TopicStatus(name: "Triage", category: nil)
+    try await store.replace("s", with: [review, triage, record("c", id: "C")])
+    let statuses = Dictionary(uniqueKeysWithValues: try await store.topics().map { ($0.id, $0.status) })
+    #expect(statuses["A"] == .some(review.status))
+    #expect(statuses["B"] == .some(triage.status))
+    #expect(statuses["C"] == .some(nil))
 }

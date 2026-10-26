@@ -55,6 +55,19 @@ private func pull(_ id: Int, _ reason: GitHubReason, updated: String, title: Str
     #expect(!JiraRules.isCloudSite("https://jira.acme.com"))
 }
 
+@Test(arguments: [
+    ("To Do", "new", TopicStatus(name: "To Do", category: .new)),
+    ("Code Review", "indeterminate", TopicStatus(name: "Code Review", category: .inProgress)),
+    ("Closed", "done", TopicStatus(name: "Closed", category: .done)),
+    ("Triage", "undefined", TopicStatus(name: "Triage", category: nil)),
+    ("Triage", nil, TopicStatus(name: "Triage", category: nil)),
+    (" In Progress ", "indeterminate", TopicStatus(name: "In Progress", category: .inProgress)),
+    ("", "new", nil),
+] as [(String, String?, TopicStatus?)])
+func jiraStatusesKeepTheirNameAndMapTheirCategory(_ name: String, _ category: String?, _ expected: TopicStatus?) {
+    #expect(JiraRules.status(name, category: category) == expected)
+}
+
 @Test func jiraIssuesBecomeTopics() {
     let account = JiraAccount(
         userID: "acc-ana", userName: "Ana",
@@ -62,9 +75,10 @@ private func pull(_ id: Int, _ reason: GitHubReason, updated: String, title: Str
     let mine = JiraIssue(
         issueID: "1", key: "PAY-1", summary: " Refund ", status: "Open", project: "PAY",
         assignee: JiraUser(id: "acc-ana", name: "Ana"), reporter: JiraUser(id: "acc-bo", name: "Bo"),
-        updated: "2026-10-23T10:00:00.000+0200")
+        updated: "2026-10-23T10:00:00.000+0200", statusCategory: "new")
     let topic = JiraRules.topic(mine, account: account)
     #expect(topic.title == "Refund")
+    #expect(topic.status == TopicStatus(name: "Open", category: .new))
     #expect(topic.key == "1")
     #expect(topic.items[0] == Item(
         key: "PAY-1", direction: .inbound, author: "Bo", url: "https://acme.atlassian.net/browse/PAY-1",
@@ -77,6 +91,7 @@ private func pull(_ id: Int, _ reason: GitHubReason, updated: String, title: Str
     #expect(waiting.items[0].direction == .outbound)
     #expect(waiting.items[0].author == nil)
     #expect(waiting.items[0].date == "")
+    #expect(waiting.status == nil, "an issue without a status name has none")
     #expect(JiraRules.accountLabel(account) == "Ana · acme.atlassian.net")
     #expect(JiraCredential(email: "a@b", token: "t").flavor == .cloud)
     #expect(JiraCredential(email: nil, token: "t").flavor == .dataCenter)

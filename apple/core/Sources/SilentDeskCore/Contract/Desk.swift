@@ -15,10 +15,12 @@ public struct TopicView: Sendable, Equatable {
     public let deletable: Bool
     /// The topic's project, or nil for Default.
     public let projectId: String?
+    /// As its service gave it at the last sync, or nil.
+    public let status: TopicStatus?
 
     public init(
         id: String, service: String, title: String, items: [Item], updatedAt: String, deletable: Bool,
-        projectId: String? = nil
+        projectId: String? = nil, status: TopicStatus? = nil
     ) {
         self.id = id
         self.service = service
@@ -27,6 +29,7 @@ public struct TopicView: Sendable, Equatable {
         self.updatedAt = updatedAt
         self.deletable = deletable
         self.projectId = projectId
+        self.status = status
     }
 }
 

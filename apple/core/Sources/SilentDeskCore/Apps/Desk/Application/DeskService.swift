@@ -37,7 +37,8 @@ final class DeskService: Desk {
         Topics.newestFirst(try await store.topics()).map { record in
             TopicView(
                 id: record.id, service: record.service, title: record.title, items: record.items,
-                updatedAt: record.updatedAt, deletable: Topics.deletable(record), projectId: record.projectId)
+                updatedAt: record.updatedAt, deletable: Topics.deletable(record), projectId: record.projectId,
+                status: record.status)
         }
     }
 
