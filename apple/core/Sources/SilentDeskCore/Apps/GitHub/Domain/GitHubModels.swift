@@ -28,6 +28,15 @@ struct PullRequest: Sendable, Equatable {
     let url: String
     /// RFC 3339: last updated.
     let updated: String
+    var merged = false
+    /// Closed, merged or not.
+    var closed = false
+    /// The checks on its last commit, as GitHub sums them up: SUCCESS,
+    /// PENDING, FAILURE, ERROR or EXPECTED; nil when it has none.
+    var checks: String? = nil
+    /// GitHub's review decision: APPROVED, CHANGES_REQUESTED or
+    /// REVIEW_REQUIRED; nil when the repository needs no review.
+    var review: String? = nil
 }
 
 struct GitHubAccount: Sendable, Equatable {

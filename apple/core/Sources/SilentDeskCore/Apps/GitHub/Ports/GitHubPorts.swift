@@ -6,13 +6,16 @@ struct GitHubMe: Sendable, Equatable {
     let name: String?
 }
 
-/// GitHub's REST API, read-only, with a personal access token.
+/// GitHub's REST and GraphQL APIs, read-only, with a personal access token.
 protocol GitHubAPI: Sendable {
     /// The token's user. Throws an `auth` error when GitHub rejects the token.
     func me(apiBase: String, token: String) async throws -> GitHubMe
 
-    /// Open pull requests matching one search query, given `reason`.
-    func search(apiBase: String, token: String, query: String, reason: GitHubReason) async throws -> [PullRequest]
+    /// The pull requests each search query finds, with its reason, in one
+    /// GraphQL request to `graphqlURL`.
+    func openPullRequests(
+        graphqlURL: String, token: String, queries: [(query: String, reason: GitHubReason)]
+    ) async throws -> [PullRequest]
 }
 
 /// The personal access token, kept in the OS credential store.

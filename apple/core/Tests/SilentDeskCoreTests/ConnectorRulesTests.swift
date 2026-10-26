@@ -26,6 +26,48 @@ private func pull(_ id: Int, _ reason: GitHubReason, updated: String, title: Str
         url: "https://github.com/acme/web/pull/\(id)", updated: updated)
 }
 
+private func state(
+    merged: Bool = false, closed: Bool = false, draft: Bool = false, checks: String? = nil, review: String? = nil
+) -> PullRequest {
+    PullRequest(
+        prID: 1, repo: "acme/web", number: 1, title: "T", reason: .assigned, author: "bo", draft: draft,
+        url: "https://github.com/acme/web/pull/1", updated: "2026-10-23T10:00:00Z", merged: merged, closed: closed,
+        checks: checks, review: review)
+}
+
+@Test(arguments: [
+    (state(merged: true, closed: true, checks: "FAILURE"), "Merged"),
+    (state(closed: true, checks: "FAILURE"), "Closed"),
+    (state(checks: "FAILURE", review: "APPROVED"), "CI Failed"),
+    (state(draft: true, checks: "ERROR"), "CI Failed"),
+    (state(checks: "SUCCESS", review: "APPROVED"), "Approved"),
+    (state(checks: "PENDING", review: "APPROVED"), "Approved"),
+    (state(review: "CHANGES_REQUESTED"), "Changes Requested"),
+    (state(review: "REVIEW_REQUIRED"), "Ready"),
+    (state(), "Ready"),
+    (state(draft: true, checks: "PENDING"), "Draft"),
+    (state(draft: true, review: "REVIEW_REQUIRED"), "Draft"),
+])
+func gitHubTheFirstStatusThatAppliesWins(_ pull: PullRequest, _ name: String) {
+    #expect(GitHubRules.status(pull).name == name)
+}
+
+@Test func gitHubStatusesHaveTheirCategories() {
+    #expect(GitHubRules.status(state(merged: true)).category == .done)
+    #expect(GitHubRules.status(state(draft: true)).category == .new)
+    #expect(GitHubRules.status(state()).category == .inProgress)
+}
+
+@Test(arguments: [
+    ("https://api.github.com", "https://api.github.com/graphql"),
+    ("https://github.acme.com/api/v3", "https://github.acme.com/api/graphql"),
+    ("https://github.acme.com:8443/api/v3", "https://github.acme.com:8443/api/graphql"),
+    ("http://127.0.0.1:5000/github", "http://127.0.0.1:5000/github/graphql"),
+])
+func gitHubGraphQLLivesNextToTheRESTAPI(_ apiBase: String, _ url: String) {
+    #expect(GitHubRules.graphqlURL(apiBase) == url)
+}
+
 @Test func gitHubMergeKeepsTheStrongestReasonAndSortsByUpdate() {
     let found = [
         pull(1, .reviewRequested, updated: "2026-10-01T00:00:00Z"),
