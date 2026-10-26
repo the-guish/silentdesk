@@ -6,7 +6,7 @@ from __future__ import annotations
 from collections.abc import Iterable
 from urllib.parse import urlsplit
 
-from ....contract import AuthError, Direction, Item, Topic
+from ....contract import AuthError, Direction, Item, StatusCategory, Topic, TopicStatus
 from ..domain.github import Endpoint, GitHubAccount, PullRequest, Reason
 
 SERVICE = "github"
@@ -16,10 +16,21 @@ GITHUB_COM = Endpoint(api_base="https://api.github.com", web_base="https://githu
 # Each query must name `is:pr`: GitHub's search rejects queries without a
 # type. `review-requested` includes requests made to the user's teams.
 QUERIES: list[tuple[str, Reason]] = [
-    ("is:pr is:open archived:false review-requested:@me", Reason.REVIEW_REQUESTED),
-    ("is:pr is:open archived:false assignee:@me", Reason.ASSIGNED),
-    ("is:pr is:open archived:false author:@me", Reason.AUTHORED),
+    ("is:pr is:open archived:false review-requested:@me sort:updated-desc", Reason.REVIEW_REQUESTED),
+    ("is:pr is:open archived:false assignee:@me sort:updated-desc", Reason.ASSIGNED),
+    ("is:pr is:open archived:false author:@me sort:updated-desc", Reason.AUTHORED),
 ]
+
+# Each chip's category. See docs/specs/integrations/github/github-status.md.
+STATUS_CATEGORIES = {
+    "Merged": StatusCategory.DONE,
+    "Closed": StatusCategory.DONE,
+    "CI Failed": StatusCategory.IN_PROGRESS,
+    "Approved": StatusCategory.IN_PROGRESS,
+    "Changes Requested": StatusCategory.IN_PROGRESS,
+    "Ready": StatusCategory.IN_PROGRESS,
+    "Draft": StatusCategory.NEW,
+}
 
 
 def endpoint_for_server(server: str | None) -> Endpoint:
@@ -41,6 +52,33 @@ def endpoint_for_server(server: str | None) -> Endpoint:
         return GITHUB_COM
     web_base = f"https://{host}" + (f":{port}" if port else "")
     return Endpoint(api_base=f"{web_base}/api/v3", web_base=web_base)
+
+
+def graphql_url(api_base: str) -> str:
+    """GitHub's GraphQL API, next to its REST API: /graphql on github.com,
+    /api/graphql on GitHub Enterprise Server."""
+    if api_base.endswith("/api/v3"):
+        return api_base.removesuffix("/v3") + "/graphql"
+    return f"{api_base}/graphql"
+
+
+def status(pull: PullRequest) -> TopicStatus:
+    """The pull request's chip: the first that applies wins."""
+    if pull.merged:
+        name = "Merged"
+    elif pull.closed:
+        name = "Closed"
+    elif pull.checks in ("FAILURE", "ERROR"):
+        name = "CI Failed"
+    elif pull.review == "APPROVED":
+        name = "Approved"
+    elif pull.review == "CHANGES_REQUESTED":
+        name = "Changes Requested"
+    elif not pull.draft:
+        name = "Ready"
+    else:
+        name = "Draft"
+    return TopicStatus(name, STATUS_CATEGORIES[name])
 
 
 def host(endpoint: Endpoint) -> str:
@@ -77,5 +115,9 @@ def topic(pull: PullRequest) -> Topic:
         deletable=False,
     )
     return Topic(
-        key=str(pull.pr_id), title=pull.title.strip() or f"{pull.repo}#{pull.number}", items=[item], deletable=False
+        key=str(pull.pr_id),
+        title=pull.title.strip() or f"{pull.repo}#{pull.number}",
+        items=[item],
+        deletable=False,
+        status=status(pull),
     )
