@@ -15,6 +15,24 @@ class Direction(enum.StrEnum):
     OUTBOUND = "outbound"
 
 
+class StatusCategory(enum.StrEnum):
+    """Where a status stands, the same for every service."""
+
+    NEW = "new"
+    IN_PROGRESS = "inProgress"
+    DONE = "done"
+
+
+@dataclass(frozen=True)
+class TopicStatus:
+    """The status a service gives a topic, such as a Jira issue's. See
+    docs/specs/topic-status.md."""
+
+    # As the service writes it, such as "Code Review".
+    name: str
+    category: StatusCategory | None
+
+
 @dataclass(frozen=True)
 class ServiceStatus:
     """What the user needs to know about one service."""
@@ -61,6 +79,8 @@ class Topic:
     # trashing a Gmail thread. When this is false but every item is
     # deletable, the desk deletes the topic item by item instead.
     deletable: bool
+    # None for a service that gives its topics no status.
+    status: TopicStatus | None = None
 
 
 @dataclass(frozen=True)

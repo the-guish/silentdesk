@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from ....contract import Item
+from ....contract import Item, TopicStatus
 
 
 @dataclass(frozen=True)
@@ -25,3 +25,5 @@ class TopicRecord:
     deletable: bool
     # The user's project for the topic, or None for Default.
     project_id: str | None = None
+    # As the connector reported it at the last sync, or None.
+    status: TopicStatus | None = None

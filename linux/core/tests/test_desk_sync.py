@@ -27,6 +27,7 @@ from silentdesk.contract import (
     SyncFailed,
     SyncResult,
     Topic,
+    TopicStatus,
     UnknownItem,
     UnknownProject,
     UnknownService,
@@ -178,7 +179,7 @@ def test_new_topics_get_an_id_and_their_newest_items_date():
 def test_a_changed_topic_keeps_its_id_and_a_removed_one_goes():
     first = SyncResult(
         [
-            thread("t1", "Invoice", email("m1", "2026-10-01T09:00:00Z")),
+            replace(thread("t1", "Invoice", email("m1", "2026-10-01T09:00:00Z")), status=TopicStatus("Open", None)),
             thread("t2", "Lunch?", email("m2", "2026-10-01T10:00:00Z")),
         ],
         [],
@@ -197,6 +198,7 @@ def test_a_changed_topic_keeps_its_id_and_a_removed_one_goes():
     assert list(by_key(store)) == ["t1"]
     assert by_key(store)["t1"].id == "id-1"
     assert by_key(store)["t1"].title == "Re: Invoice"
+    assert by_key(store)["t1"].status is None, "the status is the connector's, not kept across syncs"
 
 
 def test_a_complete_result_drops_every_topic_it_does_not_list():

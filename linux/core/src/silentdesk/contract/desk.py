@@ -6,7 +6,7 @@ from abc import ABC, abstractmethod
 from collections.abc import Mapping
 from dataclasses import dataclass
 
-from .connector import Item, Message, ServiceStatus
+from .connector import Item, Message, ServiceStatus, TopicStatus
 
 
 @dataclass(frozen=True)
@@ -26,6 +26,8 @@ class TopicView:
     deletable: bool
     # The topic's project, or None for Default.
     project_id: str | None = None
+    # As its service gave it at the last sync, or None.
+    status: TopicStatus | None = None
 
 
 @dataclass(frozen=True)

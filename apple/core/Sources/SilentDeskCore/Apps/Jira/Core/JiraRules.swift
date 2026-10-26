@@ -57,6 +57,19 @@ enum JiraRules {
             // SilentDesk only reads Jira.
             deletable: false)
         let summary = issue.summary.trimmingCharacters(in: .whitespacesAndNewlines)
-        return Topic(key: issue.issueID, title: summary.isEmpty ? issue.key : summary, items: [item], deletable: false)
+        return Topic(
+            key: issue.issueID, title: summary.isEmpty ? issue.key : summary, items: [item], deletable: false,
+            status: status(issue.status, category: issue.statusCategory))
+    }
+
+    /// Jira's status categories, by statusCategory.key. See
+    /// docs/specs/topic-status.md.
+    static let categories: [String: StatusCategory] = ["new": .new, "indeterminate": .inProgress, "done": .done]
+
+    /// The issue's status, or nil when Jira gave it no name.
+    static func status(_ name: String, category: String?) -> TopicStatus? {
+        let name = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !name.isEmpty else { return nil }
+        return TopicStatus(name: name, category: category.flatMap { categories[$0] })
     }
 }
