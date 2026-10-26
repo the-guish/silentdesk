@@ -21,6 +21,13 @@ private let now = Format.parse("2026-10-25T15:00:00Z")!
     #expect(Format.parse(nil) == nil)
 }
 
+// The core writes milliseconds without their trailing zeros (RFC3339.format).
+@Test(arguments: [("2026-10-25T15:00:00.1Z", 0.1), ("2026-10-25T15:00:00.12Z", 0.12), ("2026-10-25T15:00:00.123Z", 0.123)])
+func datesParseFractionsOfAnyLength(_ text: String, _ seconds: Double) throws {
+    let date = try #require(Format.parse(text))
+    #expect(abs(date.timeIntervalSince(now) - seconds) < 0.0005)
+}
+
 @Test func agoCountsMinutesHoursThenDays() {
     #expect(Format.ago(nil, now: now) == "just now")
     #expect(Format.ago("2026-10-25T14:59:30Z", now: now) == "just now")
