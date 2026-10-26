@@ -55,11 +55,10 @@ final class GitHubConnector: Connector {
         guard let account = try await state.load(), let token = try credentials.token() else {
             throw ConnectorError.auth(service, "GitHub is not connected.")
         }
-        var found: [PullRequest] = []
+        let found: [PullRequest]
         do {
-            for (query, reason) in GitHubRules.queries {
-                found += try await api.search(apiBase: apiBase(account.endpoint), token: token, query: query, reason: reason)
-            }
+            found = try await api.openPullRequests(
+                graphqlURL: GitHubRules.graphqlURL(apiBase(account.endpoint)), token: token, queries: GitHubRules.queries)
         } catch let error as ConnectorError where error.kind == .auth {
             // Expired or revoked: forget the token, keep the topics.
             try credentials.deleteToken()

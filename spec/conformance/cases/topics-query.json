@@ -14,84 +14,127 @@
       }
     },
     {
-      "path": "/github/search/issues",
-      "query": {
-        "q": "is:pr is:open archived:false review-requested:@me"
-      },
-      "status": 200,
+      "method": "POST",
+      "path": "/github/graphql",
       "body": {
-        "items": [
-          {
-            "id": 11,
-            "number": 4,
-            "title": "Add retries",
-            "html_url": "https://github.com/acme/web/pull/4",
-            "repository_url": "https://api.github.com/repos/acme/web",
-            "user": {
-              "login": "bo"
-            },
-            "draft": false,
-            "updated_at": "2026-10-23T09:00:00Z"
-          }
-        ]
-      }
-    },
-    {
-      "path": "/github/search/issues",
-      "query": {
-        "q": "is:pr is:open archived:false assignee:@me"
-      },
-      "status": 200,
-      "body": {
-        "items": [
-          {
-            "id": 11,
-            "number": 4,
-            "title": "Add retries",
-            "html_url": "https://github.com/acme/web/pull/4",
-            "repository_url": "https://api.github.com/repos/acme/web",
-            "user": {
-              "login": "bo"
-            },
-            "draft": false,
-            "updated_at": "2026-10-23T09:00:00Z"
+        "data": {
+          "reviewRequested": {
+            "nodes": [
+              {
+                "databaseId": 11,
+                "number": 4,
+                "title": "Add retries",
+                "url": "https://github.com/acme/web/pull/4",
+                "updatedAt": "2026-10-23T09:00:00Z",
+                "isDraft": false,
+                "state": "OPEN",
+                "merged": false,
+                "reviewDecision": null,
+                "author": {
+                  "login": "bo"
+                },
+                "repository": {
+                  "nameWithOwner": "acme/web"
+                },
+                "commits": {
+                  "nodes": [
+                    {
+                      "commit": {
+                        "statusCheckRollup": null
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
           },
-          {
-            "id": 12,
-            "number": 5,
-            "title": "Fix login",
-            "html_url": "https://github.com/acme/web/pull/5",
-            "repository_url": "https://api.github.com/repos/acme/web",
-            "user": {
-              "login": "bo"
-            },
-            "draft": false,
-            "updated_at": "2026-10-22T09:00:00Z"
+          "assigned": {
+            "nodes": [
+              {
+                "databaseId": 11,
+                "number": 4,
+                "title": "Add retries",
+                "url": "https://github.com/acme/web/pull/4",
+                "updatedAt": "2026-10-23T09:00:00Z",
+                "isDraft": false,
+                "state": "OPEN",
+                "merged": false,
+                "reviewDecision": null,
+                "author": {
+                  "login": "bo"
+                },
+                "repository": {
+                  "nameWithOwner": "acme/web"
+                },
+                "commits": {
+                  "nodes": [
+                    {
+                      "commit": {
+                        "statusCheckRollup": null
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "databaseId": 12,
+                "number": 5,
+                "title": "Fix login",
+                "url": "https://github.com/acme/web/pull/5",
+                "updatedAt": "2026-10-22T09:00:00Z",
+                "isDraft": false,
+                "state": "OPEN",
+                "merged": false,
+                "reviewDecision": null,
+                "author": {
+                  "login": "bo"
+                },
+                "repository": {
+                  "nameWithOwner": "acme/web"
+                },
+                "commits": {
+                  "nodes": [
+                    {
+                      "commit": {
+                        "statusCheckRollup": null
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "authored": {
+            "nodes": [
+              {
+                "databaseId": 13,
+                "number": 9,
+                "title": "",
+                "url": "https://github.com/acme/api/pull/9",
+                "updatedAt": "2026-10-24T08:00:00Z",
+                "isDraft": false,
+                "state": "OPEN",
+                "merged": false,
+                "reviewDecision": null,
+                "author": {
+                  "login": "ana"
+                },
+                "repository": {
+                  "nameWithOwner": "acme/api"
+                },
+                "commits": {
+                  "nodes": [
+                    {
+                      "commit": {
+                        "statusCheckRollup": null
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
           }
-        ]
-      }
-    },
-    {
-      "path": "/github/search/issues",
-      "query": {
-        "q": "is:pr is:open archived:false author:@me"
-      },
-      "status": 200,
-      "body": {
-        "items": [
-          {
-            "id": 13,
-            "number": 9,
-            "title": "",
-            "html_url": "https://github.com/acme/api/pull/9",
-            "repository_url": "https://api.github.com/repos/acme/api",
-            "user": {
-              "login": "ana"
-            },
-            "draft": false,
-            "updated_at": "2026-10-24T08:00:00Z"
-          }
-        ]
+        }
       }
     }
   ],
@@ -144,7 +187,10 @@
             "$any": "array"
           },
           "projectId": null,
-          "status": null,
+          "status": {
+            "name": "Ready",
+            "category": "inProgress"
+          },
           "updatedAt": {
             "$any": "string"
           },
@@ -172,7 +218,10 @@
             "$any": "array"
           },
           "projectId": null,
-          "status": null,
+          "status": {
+            "name": "Ready",
+            "category": "inProgress"
+          },
           "updatedAt": {
             "$any": "string"
           },
@@ -200,7 +249,10 @@
             "$any": "array"
           },
           "projectId": null,
-          "status": null,
+          "status": {
+            "name": "Ready",
+            "category": "inProgress"
+          },
           "updatedAt": {
             "$any": "string"
           },
@@ -247,7 +299,10 @@
             "$any": "array"
           },
           "projectId": null,
-          "status": null,
+          "status": {
+            "name": "Ready",
+            "category": "inProgress"
+          },
           "updatedAt": {
             "$any": "string"
           },
@@ -263,7 +318,10 @@
             "$any": "array"
           },
           "projectId": null,
-          "status": null,
+          "status": {
+            "name": "Ready",
+            "category": "inProgress"
+          },
           "updatedAt": {
             "$any": "string"
           },
@@ -293,7 +351,10 @@
             "$any": "array"
           },
           "projectId": null,
-          "status": null,
+          "status": {
+            "name": "Ready",
+            "category": "inProgress"
+          },
           "updatedAt": {
             "$any": "string"
           },
@@ -324,7 +385,10 @@
             "$any": "array"
           },
           "projectId": null,
-          "status": null,
+          "status": {
+            "name": "Ready",
+            "category": "inProgress"
+          },
           "updatedAt": {
             "$any": "string"
           },
@@ -352,7 +416,10 @@
             "$any": "array"
           },
           "projectId": null,
-          "status": null,
+          "status": {
+            "name": "Ready",
+            "category": "inProgress"
+          },
           "updatedAt": {
             "$any": "string"
           },
@@ -380,7 +447,10 @@
             "$any": "array"
           },
           "projectId": null,
-          "status": null,
+          "status": {
+            "name": "Ready",
+            "category": "inProgress"
+          },
           "updatedAt": {
             "$any": "string"
           },
@@ -396,7 +466,10 @@
             "$any": "array"
           },
           "projectId": null,
-          "status": null,
+          "status": {
+            "name": "Ready",
+            "category": "inProgress"
+          },
           "updatedAt": {
             "$any": "string"
           },
@@ -437,7 +510,10 @@
             "$any": "array"
           },
           "projectId": null,
-          "status": null,
+          "status": {
+            "name": "Ready",
+            "category": "inProgress"
+          },
           "updatedAt": {
             "$any": "string"
           },
@@ -453,7 +529,10 @@
             "$any": "array"
           },
           "projectId": null,
-          "status": null,
+          "status": {
+            "name": "Ready",
+            "category": "inProgress"
+          },
           "updatedAt": {
             "$any": "string"
           },
@@ -469,7 +548,10 @@
             "$any": "array"
           },
           "projectId": null,
-          "status": null,
+          "status": {
+            "name": "Ready",
+            "category": "inProgress"
+          },
           "updatedAt": {
             "$any": "string"
           },
@@ -499,7 +581,10 @@
             "$any": "array"
           },
           "projectId": null,
-          "status": null,
+          "status": {
+            "name": "Ready",
+            "category": "inProgress"
+          },
           "updatedAt": {
             "$any": "string"
           },
@@ -515,7 +600,10 @@
             "$any": "array"
           },
           "projectId": null,
-          "status": null,
+          "status": {
+            "name": "Ready",
+            "category": "inProgress"
+          },
           "updatedAt": {
             "$any": "string"
           },
@@ -531,7 +619,10 @@
             "$any": "array"
           },
           "projectId": null,
-          "status": null,
+          "status": {
+            "name": "Ready",
+            "category": "inProgress"
+          },
           "updatedAt": {
             "$any": "string"
           },
@@ -573,7 +664,10 @@
             "$any": "array"
           },
           "projectId": null,
-          "status": null,
+          "status": {
+            "name": "Ready",
+            "category": "inProgress"
+          },
           "updatedAt": {
             "$any": "string"
           },
@@ -589,7 +683,10 @@
             "$any": "array"
           },
           "projectId": null,
-          "status": null,
+          "status": {
+            "name": "Ready",
+            "category": "inProgress"
+          },
           "updatedAt": {
             "$any": "string"
           },
@@ -605,7 +702,10 @@
             "$any": "array"
           },
           "projectId": null,
-          "status": null,
+          "status": {
+            "name": "Ready",
+            "category": "inProgress"
+          },
           "updatedAt": {
             "$any": "string"
           },

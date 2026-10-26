@@ -1,5 +1,5 @@
 /// Rules about GitHub: which server, which pull requests, and their topics.
-/// See docs/specs/integrations/github.md.
+/// See docs/specs/integrations/github/github.md.
 
 import Foundation
 
@@ -11,10 +11,40 @@ enum GitHubRules {
     /// Each query must name `is:pr`: GitHub's search rejects queries without a
     /// type. `review-requested` includes requests made to the user's teams.
     static let queries: [(query: String, reason: GitHubReason)] = [
-        ("is:pr is:open archived:false review-requested:@me", .reviewRequested),
-        ("is:pr is:open archived:false assignee:@me", .assigned),
-        ("is:pr is:open archived:false author:@me", .authored),
+        ("is:pr is:open archived:false review-requested:@me sort:updated-desc", .reviewRequested),
+        ("is:pr is:open archived:false assignee:@me sort:updated-desc", .assigned),
+        ("is:pr is:open archived:false author:@me sort:updated-desc", .authored),
     ]
+
+    /// Each chip's category. See docs/specs/integrations/github/github-status.md.
+    static let statusCategories: [String: StatusCategory] = [
+        "Merged": .done,
+        "Closed": .done,
+        "CI Failed": .inProgress,
+        "Approved": .inProgress,
+        "Changes Requested": .inProgress,
+        "Ready": .inProgress,
+        "Draft": .new,
+    ]
+
+    /// GitHub's GraphQL API, next to its REST API: /graphql on github.com,
+    /// /api/graphql on GitHub Enterprise Server.
+    static func graphqlURL(_ apiBase: String) -> String {
+        apiBase.hasSuffix("/api/v3") ? String(apiBase.dropLast("/v3".count)) + "/graphql" : apiBase + "/graphql"
+    }
+
+    /// The pull request's chip: the first that applies wins.
+    static func status(_ pull: PullRequest) -> TopicStatus {
+        let name =
+            if pull.merged { "Merged" }
+            else if pull.closed { "Closed" }
+            else if pull.checks == "FAILURE" || pull.checks == "ERROR" { "CI Failed" }
+            else if pull.review == "APPROVED" { "Approved" }
+            else if pull.review == "CHANGES_REQUESTED" { "Changes Requested" }
+            else if !pull.draft { "Ready" }
+            else { "Draft" }
+        return TopicStatus(name: name, category: statusCategories[name])
+    }
 
     /// No server means github.com. Otherwise a GitHub Enterprise Server host,
     /// such as github.acme.com; plain http is refused.
@@ -77,6 +107,6 @@ enum GitHubRules {
         let title = pull.title.trimmingCharacters(in: .whitespacesAndNewlines)
         return Topic(
             key: String(pull.prID), title: title.isEmpty ? "\(pull.repo)#\(pull.number)" : title, items: [item],
-            deletable: false)
+            deletable: false, status: status(pull))
     }
 }

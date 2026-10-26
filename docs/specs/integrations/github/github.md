@@ -39,11 +39,12 @@ The trade-off: a fine-grained token covers a single organization. Users across s
 ## Syncing
 
 - **Automatic,** at startup, every 2 minutes and on window focus. See `docs/specs/sync.md`.
-- **Fetching:** three `GET /search/issues` queries, each `is:pr is:open archived:false <qualifier>`, sorted by last update, 50 per query.
+- **Fetching:** one GraphQL request runs three searches, each `is:pr is:open archived:false <qualifier> sort:updated-desc`, 50 per search. It goes to `POST /graphql`, or `POST /api/graphql` on GitHub Enterprise Server.
   - GitHub's search now rejects queries that do not name a type, so each one starts with `is:pr`.
   - Results are merged by pull request ID and sorted by last update.
+- **Status:** the same request reads each pull request's state, review decision and checks. They give its chip: see [github-status.md](github-status.md).
 - **Stored per pull request:** repository (`owner/name`), number, reason, direction, draft flag, author login, URL and last-updated date. The title becomes the topic title.
-- **Not fetched:** descriptions, diffs, comments and reviews.
+- **Not fetched:** descriptions, diffs, comments and the text of reviews.
 - **Re-sync:** a pull request already stored keeps its topic. Pull requests that are merged, closed, or no longer involve the user are removed with their topics. Other services' topics are untouched.
 - **401 on sync:** the token is deleted and the user is asked to connect again. Topics stay.
 
@@ -60,8 +61,7 @@ The trade-off: a fine-grained token covers a single organization. Users across s
 ## Risks and next steps
 
 - **Not yet tested against a real account.** This development sandbox's network proxy replaces GitHub credentials with its own and blocks `/search`, so connecting and syncing must be checked on a normal machine.
-- **Search rate limit:** 30 requests per minute for authenticated users. A sync uses 3.
+- **Rate limit:** a sync sends one GraphQL request, which costs a few points of GitHub's hourly GraphQL budget.
 - **Next:**
-  - show review state and checks (needs a per-PR call);
   - open a pull request in the browser from its URL;
   - link a pull request to the Jira issue its title or branch names (e.g. `PAY-412`).
