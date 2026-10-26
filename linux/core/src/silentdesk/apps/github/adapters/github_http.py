@@ -80,18 +80,20 @@ class GitHubHttpApi(GitHubApi):
         variables: dict[str, Any] = {reason.value: query for query, reason in queries}
         variables["first"] = PER_QUERY
         found = await self._send("POST", graphql_url, token, {"query": PULL_REQUESTS, "variables": variables})
+        # GitHub can answer with data and errors at once, such as for a
+        # repository the token cannot read. Its pull requests come back
+        # empty, and the others still count. Only a missing search fails the
+        # sync, as dropping it would drop its pull requests' topics.
         errors = found.get("errors") if isinstance(found, dict) else None
-        if errors:
-            message = errors[0].get("message") if isinstance(errors[0], dict) else None
-            raise RemoteError(SERVICE, f"GitHub answered: {message or 'an error'}.", 200)
         data = found.get("data") if isinstance(found, dict) else None
-        if not isinstance(data, dict):
-            raise NetworkError(SERVICE, "GitHub's search answer could not be read.")
         pulls = []
         for _, reason in queries:
-            search = data.get(reason.value)
+            search = data.get(reason.value) if isinstance(data, dict) else None
             nodes = search.get("nodes") if isinstance(search, dict) else None
             if not isinstance(nodes, list):
+                if isinstance(errors, list) and errors:
+                    message = errors[0].get("message") if isinstance(errors[0], dict) else None
+                    raise RemoteError(SERVICE, f"GitHub answered: {message or 'an error'}.", 200)
                 raise NetworkError(SERVICE, "GitHub's search answer could not be read.")
             # A search for pull requests can still hold an empty node, as for
             # a repository the token cannot read.

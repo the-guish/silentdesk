@@ -1,0 +1,134 @@
+{
+  "description": "a GraphQL answer with errors keeps the pull requests it returns",
+  "env": {
+    "SILENTDESK_TEST_KEYRING": "{home}/keyring.json",
+    "SILENTDESK_TEST_BASE_URL": "{server}",
+    "SILENTDESK_TEST_NOW": "2026-10-24T12:00:00Z"
+  },
+  "http": [
+    {
+      "path": "/github/user",
+      "body": {
+        "login": "ana",
+        "name": "Ana Ruiz"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/github/graphql",
+      "body": {
+        "data": {
+          "reviewRequested": {
+            "nodes": []
+          },
+          "assigned": {
+            "nodes": [
+              null
+            ]
+          },
+          "authored": {
+            "nodes": [
+              {
+                "databaseId": 13,
+                "number": 9,
+                "title": "Add retries",
+                "url": "https://github.com/acme/api/pull/9",
+                "updatedAt": "2026-10-24T08:00:00Z",
+                "isDraft": true,
+                "state": "OPEN",
+                "merged": false,
+                "reviewDecision": null,
+                "author": {
+                  "login": "ana"
+                },
+                "repository": {
+                  "nameWithOwner": "acme/api"
+                },
+                "commits": {
+                  "nodes": [
+                    {
+                      "commit": {
+                        "statusCheckRollup": null
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        "errors": [
+          {
+            "type": "FORBIDDEN",
+            "message": "Resource not accessible by personal access token"
+          }
+        ]
+      }
+    }
+  ],
+  "steps": [
+    {
+      "args": [
+        "connect",
+        "github"
+      ],
+      "stdin": {
+        "token": "ghp_test"
+      },
+      "exit": 0,
+      "schema": "status.json",
+      "stdout": {
+        "service": "github",
+        "configured": true,
+        "connected": true,
+        "account": "ana · github.com"
+      }
+    },
+    {
+      "args": [
+        "sync",
+        "github"
+      ],
+      "exit": 0,
+      "schema": "sync.json",
+      "stdout": {
+        "lastSynced": {
+          "$any": "string"
+        }
+      }
+    },
+    {
+      "args": [
+        "topics"
+      ],
+      "exit": 0,
+      "schema": "topics.json",
+      "stdout": [
+        {
+          "id": {
+            "$any": "string"
+          },
+          "service": "github",
+          "title": "Add retries",
+          "items": [
+            {
+              "key": "13",
+              "direction": "outbound",
+              "author": "ana",
+              "url": "https://github.com/acme/api/pull/9",
+              "date": "2026-10-24T08:00:00Z",
+              "deletable": false
+            }
+          ],
+          "projectId": null,
+          "status": {
+            "name": "Draft",
+            "category": "new"
+          },
+          "updatedAt": "2026-10-24T08:00:00Z",
+          "deletable": false
+        }
+      ]
+    }
+  ]
+}
