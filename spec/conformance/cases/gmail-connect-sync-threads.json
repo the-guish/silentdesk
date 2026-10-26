@@ -257,22 +257,26 @@
       }
     },
     {
-      "path": "/gmail/gmail/v1/users/me/messages/m3",
-      "query": {
-        "format": "metadata"
-      }
-    },
-    {
-      "path": "/gmail/gmail/v1/users/me/messages/m2",
-      "query": {
-        "format": "metadata"
-      }
-    },
-    {
-      "path": "/gmail/gmail/v1/users/me/messages/m1",
-      "query": {
-        "format": "metadata"
-      }
+      "any_order": [
+        {
+          "path": "/gmail/gmail/v1/users/me/messages/m3",
+          "query": {
+            "format": "metadata"
+          }
+        },
+        {
+          "path": "/gmail/gmail/v1/users/me/messages/m2",
+          "query": {
+            "format": "metadata"
+          }
+        },
+        {
+          "path": "/gmail/gmail/v1/users/me/messages/m1",
+          "query": {
+            "format": "metadata"
+          }
+        }
+      ]
     }
   ]
 }

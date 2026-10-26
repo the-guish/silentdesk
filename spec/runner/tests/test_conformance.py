@@ -50,6 +50,40 @@ def test_arrays_compare_in_order():
     assert conformance.mismatches([1], [1, 2]) == ["$: expected 1 items, got 2"]
 
 
+def sent(*paths: str, query: dict | None = None) -> list[dict]:
+    return [{"method": "GET", "path": p, "query": query or {}, "headers": {}, "body": None} for p in paths]
+
+
+@pytest.mark.parametrize(
+    ("expected", "actual", "problems"),
+    [
+        ([{"path": "/a"}, {"path": "/b"}], sent("/a", "/b"), []),
+        (
+            [{"path": "/a"}, {"path": "/b"}],
+            sent("/b", "/a"),
+            ["request 1 (GET /b): expected GET /a", "request 2 (GET /a): expected GET /b"],
+        ),
+        ([{"any_order": [{"path": "/a"}, {"path": "/b"}]}], sent("/b", "/a"), []),
+        ([{"path": "/t"}, {"any_order": [{"path": "/a"}, {"path": "/b"}]}], sent("/t", "/a", "/b"), []),
+        (
+            [{"path": "/t"}, {"any_order": [{"path": "/a"}, {"path": "/b"}]}],
+            sent("/a", "/t", "/b"),
+            ["request 1 (GET /a): expected GET /t", "request 2 (GET /t): expected GET /a or GET /b"],
+        ),
+        ([{"any_order": [{"path": "/a"}, {"path": "/a"}]}], sent("/a", "/a"), []),
+        ([{"any_order": [{"path": "/a"}, {"path": "/b"}]}], sent("/a", "/a"), ["request 2 (GET /a): expected GET /b"]),
+        ([{"any_order": [{"path": "/a"}, {"path": "/b"}]}], sent("/a"), ["sent 1 requests, expected 2: ['GET /a']"]),
+        (
+            [{"any_order": [{"path": "/a", "query": {"f": "x"}}]}],
+            sent("/a", query={"f": "y"}),
+            ["request 1 (GET /a): query f is 'y', expected 'x'"],
+        ),
+    ],
+)
+def test_requests_come_in_order_but_a_group_in_any_order(expected, actual, problems):
+    assert conformance.request_mismatches(expected, actual) == problems
+
+
 def test_case_passes():
     assert conformance.run_case(case(ERROR, expected=ANY_ERROR), STUB) == []
 
