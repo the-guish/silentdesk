@@ -1,0 +1,217 @@
+{
+  "description": "a project name that is empty, taken, All or Default, ignoring case, is a usage error, as is an unknown project ID",
+  "env": {
+    "SILENTDESK_TEST_KEYRING": "{home}/keyring.json"
+  },
+  "steps": [
+    {
+      "args": [
+        "project",
+        "add",
+        "Acme"
+      ],
+      "exit": 0,
+      "schema": "project.json",
+      "stdout": {
+        "id": {
+          "$any": "string"
+        },
+        "name": "Acme"
+      },
+      "capture": {
+        "acme": [
+          "id"
+        ]
+      }
+    },
+    {
+      "args": [
+        "project",
+        "add",
+        "   "
+      ],
+      "exit": 2,
+      "schema": "error.json",
+      "stdout": {
+        "error": {
+          "kind": "usage",
+          "message": {
+            "$any": "string"
+          }
+        }
+      }
+    },
+    {
+      "args": [
+        "project",
+        "add",
+        "ACME"
+      ],
+      "exit": 2,
+      "schema": "error.json",
+      "stdout": {
+        "error": {
+          "kind": "usage",
+          "message": {
+            "$any": "string"
+          }
+        }
+      }
+    },
+    {
+      "args": [
+        "project",
+        "add",
+        "all"
+      ],
+      "exit": 2,
+      "schema": "error.json",
+      "stdout": {
+        "error": {
+          "kind": "usage",
+          "message": {
+            "$any": "string"
+          }
+        }
+      }
+    },
+    {
+      "args": [
+        "project",
+        "add",
+        "Default"
+      ],
+      "exit": 2,
+      "schema": "error.json",
+      "stdout": {
+        "error": {
+          "kind": "usage",
+          "message": {
+            "$any": "string"
+          }
+        }
+      }
+    },
+    {
+      "args": [
+        "project",
+        "add",
+        "Beta"
+      ],
+      "exit": 0,
+      "schema": "project.json",
+      "stdout": {
+        "id": {
+          "$any": "string"
+        },
+        "name": "Beta"
+      }
+    },
+    {
+      "args": [
+        "project",
+        "rename",
+        "{capture.acme}",
+        "beta"
+      ],
+      "exit": 2,
+      "schema": "error.json",
+      "stdout": {
+        "error": {
+          "kind": "usage",
+          "message": {
+            "$any": "string"
+          }
+        }
+      }
+    },
+    {
+      "args": [
+        "project",
+        "rename",
+        "no-such-project",
+        "Gamma"
+      ],
+      "exit": 2,
+      "schema": "error.json",
+      "stdout": {
+        "error": {
+          "kind": "usage",
+          "message": {
+            "$any": "string"
+          }
+        }
+      }
+    },
+    {
+      "args": [
+        "project",
+        "delete",
+        "no-such-project"
+      ],
+      "exit": 2,
+      "schema": "error.json",
+      "stdout": {
+        "error": {
+          "kind": "usage",
+          "message": {
+            "$any": "string"
+          }
+        }
+      }
+    },
+    {
+      "args": [
+        "project"
+      ],
+      "exit": 2,
+      "schema": "error.json",
+      "stdout": {
+        "error": {
+          "kind": "usage",
+          "message": {
+            "$any": "string"
+          }
+        }
+      }
+    },
+    {
+      "args": [
+        "project",
+        "archive",
+        "{capture.acme}"
+      ],
+      "exit": 2,
+      "schema": "error.json",
+      "stdout": {
+        "error": {
+          "kind": "usage",
+          "message": {
+            "$any": "string"
+          }
+        }
+      }
+    },
+    {
+      "args": [
+        "projects"
+      ],
+      "exit": 0,
+      "schema": "projects.json",
+      "stdout": [
+        {
+          "id": {
+            "$any": "string"
+          },
+          "name": "Acme"
+        },
+        {
+          "id": {
+            "$any": "string"
+          },
+          "name": "Beta"
+        }
+      ]
+    }
+  ]
+}

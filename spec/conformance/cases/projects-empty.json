@@ -1,0 +1,12 @@
+{
+  "description": "a new install has no projects: Default is not one",
+  "args": [
+    "projects"
+  ],
+  "env": {
+    "SILENTDESK_TEST_KEYRING": "{home}/keyring.json"
+  },
+  "exit": 0,
+  "schema": "projects.json",
+  "stdout": []
+}

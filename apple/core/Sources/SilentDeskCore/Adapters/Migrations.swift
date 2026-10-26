@@ -132,5 +132,20 @@ UPDATE desk_topics SET deletable = 1 WHERE service = 'gmail';
 UPDATE desk_items SET deletable = 1 WHERE topic_id IN (SELECT id FROM desk_topics WHERE service = 'gmail');
 """#
         ),
+        Migration(
+            number: 7,
+            name: "0007_projects",
+            sql: #"""
+-- desk: projects the user groups topics in. A topic without a project is in
+-- Default, which is no row here.
+CREATE TABLE desk_projects (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL UNIQUE COLLATE NOCASE
+);
+
+-- Deleting a project moves its topics back to Default.
+ALTER TABLE desk_topics ADD COLUMN project_id TEXT REFERENCES desk_projects (id) ON DELETE SET NULL;
+"""#
+        ),
     ]
 }

@@ -1,4 +1,5 @@
 /// The desk's tables: desk_topics, desk_items and desk_values (spec/sql/).
+/// Projects are not in this core yet; a topic keeps the one it has.
 final class SqlcipherTopicStore: TopicStore {
     static let lastSyncedName = "last_synced"
 
@@ -10,7 +11,7 @@ final class SqlcipherTopicStore: TopicStore {
 
     func topics() async throws -> [TopicRecord] {
         try database.transaction { db in
-            let topics = try db.query("SELECT id, service, key, title, created_at, updated_at, deletable FROM desk_topics")
+            let topics = try db.query("SELECT id, service, key, title, created_at, updated_at, deletable, project_id FROM desk_topics")
             let rows = try db.query(
                 "SELECT topic_id, key, direction, author, url, date, deletable FROM desk_items ORDER BY topic_id, position")
             var items: [String: [Item]] = [:]
@@ -34,7 +35,8 @@ final class SqlcipherTopicStore: TopicStore {
                     items: items[id] ?? [],
                     createdAt: row[4].string ?? "",
                     updatedAt: row[5].string ?? "",
-                    deletable: row[6].bool)
+                    deletable: row[6].bool,
+                    projectId: row[7].string)
             }
         }
     }
@@ -45,11 +47,14 @@ final class SqlcipherTopicStore: TopicStore {
             try db.execute("DELETE FROM desk_topics WHERE service = ?", [.text(service)])
             for record in records {
                 try db.execute(
-                    "INSERT INTO desk_topics (id, service, key, title, created_at, updated_at, deletable)"
-                        + " VALUES (?, ?, ?, ?, ?, ?, ?)",
+                    // A project deleted while the service synced leaves its
+                    // topics in Default.
+                    "INSERT INTO desk_topics (id, service, key, title, created_at, updated_at, deletable, project_id)"
+                        + " VALUES (?, ?, ?, ?, ?, ?, ?, (SELECT id FROM desk_projects WHERE id = ?))",
                     [
                         .text(record.id), .text(service), .text(record.key), .text(record.title),
                         .text(record.createdAt), .text(record.updatedAt), .bool(record.deletable),
+                        .text(record.projectId),
                     ])
                 for (position, item) in record.items.enumerated() {
                     try db.execute(

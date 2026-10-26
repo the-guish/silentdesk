@@ -10,6 +10,7 @@
       "service",
       "title",
       "items",
+      "projectId",
       "updatedAt",
       "deletable"
     ],
@@ -73,6 +74,12 @@
             }
           }
         }
+      },
+      "projectId": {
+        "type": [
+          "string",
+          "null"
+        ]
       },
       "updatedAt": {
         "type": "string",
