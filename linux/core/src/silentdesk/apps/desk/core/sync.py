@@ -1,4 +1,4 @@
-"""Sync rounds. See legacy/docs/specs/sync.md."""
+"""Sync rounds. See spec/sync.md."""
 
 from __future__ import annotations
 

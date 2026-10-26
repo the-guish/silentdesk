@@ -1,5 +1,5 @@
 """Rules about Jira: sites, the search, dates and topics.
-See legacy/docs/specs/integrations/jira.md."""
+See spec/integrations/jira.md."""
 
 from __future__ import annotations
 

@@ -11,6 +11,9 @@ This folder defines that behaviour without depending on either language. Each co
 
 | Path | What it is |
 |------|------------|
+| [`core.md`](core.md) | The core principles. Every change follows them |
+| [`sync.md`](sync.md) | When the cores sync, and in what order |
+| [`integrations/`](integrations) | What each connector shows and does |
 | [`cli.md`](cli.md) | Commands, output, errors and exit codes |
 | [`schema/`](schema) | JSON Schema for every command's output |
 | [`storage.md`](storage.md) | The shared SQLite database (not decided yet) |
