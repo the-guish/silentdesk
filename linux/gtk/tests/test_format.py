@@ -91,3 +91,19 @@ def test_a_chip_names_the_status_or_shows_a_dash():
 )
 def test_every_chip_takes_the_widest_ones_width_up_to_a_quarter_of_the_queue(widths, queue_width, expected):
     assert format.chip_width(widths, queue_width) == expected
+
+
+def item(key: str, url: str | None) -> Item:
+    return Item(key, Direction.INBOUND, "Bo", url, "2026-10-24T09:00:00Z", False)
+
+
+@pytest.mark.parametrize(
+    ("items", "url"),
+    [
+        ([item("1", "https://a/1"), item("2", "https://a/2")], "https://a/2"),
+        ([item("1", "https://a/1"), item("2", None)], "https://a/1"),
+        ([item("1", None)], None),
+    ],
+)
+def test_a_topic_opens_at_its_newest_item_with_a_link(items, url):
+    assert format.topic_url(TopicView("id", "gmail", "T", items, "2026-10-24T09:00:00Z", False)) == url

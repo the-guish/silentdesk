@@ -223,6 +223,27 @@ def test_every_row_starts_with_a_status_chip_of_one_width(worker):
     win.close()
 
 
+def test_each_row_ends_with_a_link_to_its_topic_in_its_service(worker):
+    desk = FakeDesk()
+    linked = topic("j1", "Fix the login timeout", "Bo", "2026-10-24T10:00:00Z", "jira")
+    desk.shown = [
+        replace(linked, items=[replace(linked.items[0], url="https://acme.atlassian.net/browse/PAY-1")]),
+        topic("t1", "Renew passport", "Ana", "2026-10-24T08:00:00Z", "tasks"),
+    ]
+    win = window(desk, worker)
+    win.present()
+    run_until(lambda: win.topics.shown == 3 and not win.refreshing and win.topics.view.allocated > 0)
+
+    rows = {row.get_first_child().get_next_sibling().get_next_sibling().get_first_child().get_label(): row
+            for row in (slot.get_parent() for slot in win.topics.slots) if row and row.get_mapped()}  # fmt: skip
+    links = {title: row.get_last_child() for title, row in rows.items()}
+    assert links["Fix the login timeout"].get_sensitive()
+    assert links["Fix the login timeout"].get_tooltip_text() == "Open in Jira"
+    assert not links["Renew passport"].get_sensitive(), "a topic without a link has no button to press"
+    run_until(lambda: len({link.get_width() for link in links.values()}) == 1)
+    win.close()
+
+
 def test_search_narrows_the_list(worker):
     win = window(FakeDesk(), worker)
     run_until(lambda: win.topics.shown == 2 and not win.refreshing)

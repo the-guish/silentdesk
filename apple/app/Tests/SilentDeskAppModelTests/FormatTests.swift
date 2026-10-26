@@ -127,3 +127,17 @@ func everyChipTakesTheWidestOnesWidthUpToAQuarterOfTheQueue(_ widths: [Double], 
     #expect(!Format.matches(TopicView(
         id: "2", service: "jira", title: "Fix login", items: [], updatedAt: "2026-10-25T15:00:00Z", deletable: false), "review"))
 }
+
+@Test func aTopicOpensAtItsNewestItemWithALink() {
+    func topic(_ urls: [String?]) -> TopicView {
+        TopicView(
+            id: "1", service: "gmail", title: "T",
+            items: urls.enumerated().map { index, url in
+                Item(key: "\(index)", direction: .inbound, author: "Bo", url: url, date: "2026-10-25T15:00:00Z", deletable: false)
+            },
+            updatedAt: "2026-10-25T15:00:00Z", deletable: false)
+    }
+    #expect(Format.topicURL(topic(["https://a/1", "https://a/2"])) == "https://a/2")
+    #expect(Format.topicURL(topic(["https://a/1", nil])) == "https://a/1")
+    #expect(Format.topicURL(topic([nil])) == nil)
+}
