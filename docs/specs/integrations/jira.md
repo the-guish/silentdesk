@@ -44,7 +44,7 @@ The token crosses from the UI to the backend once, when the user submits it. Aft
 ## What is stored
 
 In the encrypted vault, per issue:
-- issue ID and key, direction, status, project;
+- issue ID and key, direction, status with its category, project;
 - assignee and reporter display names;
 - browse URL and the last-updated date.
 

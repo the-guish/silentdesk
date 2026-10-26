@@ -130,7 +130,7 @@ The query is one JSON object on stdin, such as `{"text": "invoice", "services": 
 
 | Field | Type | A topic matches when |
 |-------|------|----------------------|
-| `text` | string | Each of its words is in the title, the service's name, an item's author or an item's key, ignoring case. The service names are `Gmail`, `GitHub`, `Jira`, `Slack` and `Google Tasks`. |
+| `text` | string | Each of its words is in the title, the service's name, the status's name, an item's author or an item's key, ignoring case. The service names are `Gmail`, `GitHub`, `Jira`, `Slack` and `Google Tasks`. |
 | `projects` | array of strings | Its project is one of these project IDs. `default` stands for Default. |
 | `services` | array of strings | Its service is one of these, such as `gmail`. |
 | `people` | array of strings | One of these people wrote one of its items, by `author`. |
@@ -151,6 +151,7 @@ A topic is listed when it matches every field in the query. An array matches a t
       {"key": "18c2…", "direction": "inbound", "author": "Ana Ruiz", "url": null, "date": "2026-10-24T09:12:00Z", "deletable": true}
     ],
     "projectId": null,
+    "status": null,
     "updatedAt": "2026-10-24T09:12:00Z",
     "deletable": true
   }
@@ -170,6 +171,9 @@ A topic is listed when it matches every field in the query. An array matches a t
 | `items[].date` | string | RFC 3339. |
 | `items[].deletable` | boolean | `delete <topic-id> <item-key>` can delete it. |
 | `projectId` | string \| null | The topic's project, or `null` for Default. |
+| `status` | object \| null | The status the topic's service gives it, or `null` when the service reports none. See [topic-status.md](topic-status.md). |
+| `status.name` | string | As the service writes it, such as `In Progress`. |
+| `status.category` | `new` \| `inProgress` \| `done` \| null | Where the status stands. |
 | `updatedAt` | string | The newest item's date. |
 | `deletable` | boolean | `delete <topic-id>` can delete the whole topic. |
 
