@@ -74,7 +74,9 @@ class GitHub(Connector):
             # Expired or revoked: forget the token, keep the topics.
             self.credentials.delete_token()
             raise AuthError(self.service, "GitHub rejected the token. Connect again.") from error
-        return SyncResult([github.topic(pull) for pull in github.merge(found)], removed=[], complete=True)
+        # A partial answer updates what it found and keeps the other topics.
+        topics = [github.topic(pull) for pull in github.merge(found.pulls)]
+        return SyncResult(topics, removed=[], complete=found.complete)
 
     async def reply(self, topic_key: str, body: str) -> None:
         raise Unsupported(self.service, "SilentDesk cannot reply to a pull request.")

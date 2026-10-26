@@ -6,6 +6,13 @@ struct GitHubMe: Sendable, Equatable {
     let name: String?
 }
 
+/// The pull requests the searches found. Not complete when GitHub could not
+/// read some of them, such as for a repository behind SAML.
+struct GitHubFound: Sendable, Equatable {
+    let pulls: [PullRequest]
+    let complete: Bool
+}
+
 /// GitHub's REST and GraphQL APIs, read-only, with a personal access token.
 protocol GitHubAPI: Sendable {
     /// The token's user. Throws an `auth` error when GitHub rejects the token.
@@ -15,7 +22,7 @@ protocol GitHubAPI: Sendable {
     /// GraphQL request to `graphqlURL`.
     func openPullRequests(
         graphqlURL: String, token: String, queries: [(query: String, reason: GitHubReason)]
-    ) async throws -> [PullRequest]
+    ) async throws -> GitHubFound
 }
 
 /// The personal access token, kept in the OS credential store.

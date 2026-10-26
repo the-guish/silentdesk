@@ -46,6 +46,7 @@ The trade-off: a fine-grained token covers a single organization. Users across s
 - **Stored per pull request:** repository (`owner/name`), number, reason, direction, draft flag, author login, URL and last-updated date. The title becomes the topic title.
 - **Not fetched:** descriptions, diffs, comments and the text of reviews.
 - **Re-sync:** a pull request already stored keeps its topic. Pull requests that are merged, closed, or no longer involve the user are removed with their topics. Other services' topics are untouched.
+- **A partial answer:** GitHub can answer with errors next to its data, such as for a repository behind SAML. The sync then updates the pull requests it read and keeps the other topics. A search missing from the answer fails the sync.
 - **401 on sync:** the token is deleted and the user is asked to connect again. Topics stay.
 
 ## Disconnecting
