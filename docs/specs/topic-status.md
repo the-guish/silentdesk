@@ -50,4 +50,3 @@ Every row of the queue starts with a chip, left of the avatar. The chip names th
 
 - A Status filter in the filter bar, with a `status` query field.
 - Acting on the chip, such as moving a Jira issue to another status.
-- The chip in the macOS app.
