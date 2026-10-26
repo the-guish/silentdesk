@@ -17,7 +17,7 @@ CSS = """
 /* A topic's status, first in its row (docs/specs/topic-status.md). */
 .status-chip {
     border-radius: 999px;
-    padding: 2px 8px;
+    padding: 6px 10px;
     font-weight: bold;
     background-color: alpha(currentColor, 0.1);
 }
