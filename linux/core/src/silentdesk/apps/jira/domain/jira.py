@@ -62,3 +62,5 @@ class Issue:
     reporter: JiraUser | None
     # As Jira writes it, such as 2026-10-23T10:00:00.000+0200; None when absent.
     updated: str | None
+    # The status's statusCategory.key: new, indeterminate or done.
+    status_category: str | None = None

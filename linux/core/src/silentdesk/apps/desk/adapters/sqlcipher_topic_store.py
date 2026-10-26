@@ -6,7 +6,7 @@ from __future__ import annotations
 from collections import defaultdict
 from collections.abc import Sequence
 
-from ....contract import Database, Direction, Item, Project
+from ....contract import Database, Direction, Item, Project, StatusCategory, TopicStatus
 from ..domain.topics import TopicRecord
 from ..ports.topic_store import TopicStore
 
@@ -20,7 +20,8 @@ class SqlcipherTopicStore(TopicStore):
     async def topics(self) -> list[TopicRecord]:
         with self.database.transaction() as db:
             topics = db.execute(
-                "SELECT id, service, key, title, created_at, updated_at, deletable, project_id FROM desk_topics"
+                "SELECT id, service, key, title, created_at, updated_at, deletable, project_id, status_name,"
+                " status_category FROM desk_topics"
             ).fetchall()
             rows = db.execute(
                 "SELECT topic_id, key, direction, author, url, date, deletable FROM desk_items"
@@ -32,8 +33,19 @@ class SqlcipherTopicStore(TopicStore):
                 Item(key, Direction(direction) if direction else None, author, url, date, bool(deletable))
             )
         return [
-            TopicRecord(id, service, key, title, items[id], created_at, updated_at, bool(deletable), project_id)
-            for id, service, key, title, created_at, updated_at, deletable, project_id in topics
+            TopicRecord(
+                id,
+                service,
+                key,
+                title,
+                items[id],
+                created_at,
+                updated_at,
+                bool(deletable),
+                project_id,
+                TopicStatus(status_name, StatusCategory(category) if category else None) if status_name else None,
+            )
+            for id, service, key, title, created_at, updated_at, deletable, project_id, status_name, category in topics
         ]
 
     async def replace(self, service: str, records: Sequence[TopicRecord]) -> None:
@@ -43,10 +55,22 @@ class SqlcipherTopicStore(TopicStore):
             # A project deleted while the service synced leaves its topics
             # in Default.
             db.executemany(
-                "INSERT INTO desk_topics (id, service, key, title, created_at, updated_at, deletable, project_id)"
-                " VALUES (?, ?, ?, ?, ?, ?, ?, (SELECT id FROM desk_projects WHERE id = ?))",
+                "INSERT INTO desk_topics (id, service, key, title, created_at, updated_at, deletable, project_id,"
+                " status_name, status_category)"
+                " VALUES (?, ?, ?, ?, ?, ?, ?, (SELECT id FROM desk_projects WHERE id = ?), ?, ?)",
                 [
-                    (r.id, service, r.key, r.title, r.created_at, r.updated_at, r.deletable, r.project_id)
+                    (
+                        r.id,
+                        service,
+                        r.key,
+                        r.title,
+                        r.created_at,
+                        r.updated_at,
+                        r.deletable,
+                        r.project_id,
+                        r.status.name if r.status else None,
+                        r.status.category if r.status else None,
+                    )
                     for r in records
                 ],
             )

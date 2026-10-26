@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import stat
+from dataclasses import replace
 
 import pytest
 
@@ -17,7 +18,7 @@ from silentdesk.apps.gmail.adapters.sqlcipher_state_store import SqlcipherStateS
 from silentdesk.apps.gmail.domain.state import GmailState
 from silentdesk.apps.google_tasks.adapters.sqlcipher_state_store import SqlcipherStateStore as TasksStateStore
 from silentdesk.apps.google_tasks.domain.state import GoogleState
-from silentdesk.contract import Direction, Item, StorageError
+from silentdesk.contract import Direction, Item, StatusCategory, StorageError, TopicStatus
 
 
 @pytest.fixture
@@ -87,19 +88,25 @@ def test_topic_store_keeps_topics_and_their_items_in_order(database):
     store = SqlcipherTopicStore(database)
     gmail = [record("1", "gmail", "t1", "2026-10-02T00:00:00Z", "2026-10-03T00:00:00Z")]
     tasks = [record("2", "tasks", "k1", "2026-10-04T00:00:00Z")]
-    later = record("3", "gmail", "t2", "2026-10-05T00:00:00Z", deletable=True)
+    later = replace(
+        record("3", "gmail", "t2", "2026-10-05T00:00:00Z", deletable=True),
+        status=TopicStatus("In Progress", StatusCategory.IN_PROGRESS),
+    )
+    nameless = replace(record("4", "jira", "j1", "2026-10-06T00:00:00Z"), status=TopicStatus("Triage", None))
 
     asyncio.run(store.replace("gmail", gmail))
     asyncio.run(store.replace("tasks", tasks))
     asyncio.run(store.replace("gmail", [later]))
+    asyncio.run(store.replace("jira", [nameless]))
 
     stored = {r.id: r for r in asyncio.run(store.topics())}
-    assert sorted(stored) == ["2", "3"]
+    assert sorted(stored) == ["2", "3", "4"]
     assert stored["2"] == tasks[0]
     assert stored["3"] == later
+    assert stored["4"] == nameless
     with database.transaction() as db:
         # Topic 1's items went with it.
-        assert db.execute("SELECT count(*) FROM desk_items").fetchone() == (2,)
+        assert db.execute("SELECT count(*) FROM desk_items").fetchone() == (3,)
 
 
 def test_topic_store_keeps_when_topics_last_changed(database):
@@ -129,7 +136,8 @@ def test_the_topics_command_prints_camel_case_json_newest_first(tmp_path, monkey
     settings = LocalSettings(tmp_path / "data", test_keyring=tmp_path / "keyring.json")
     database = SqlcipherDatabase(settings.data_dir / "silentdesk.db", FileKeyring(settings.test_keyring))
     store = SqlcipherTopicStore(database)
-    asyncio.run(store.replace("gmail", [record("1", "gmail", "old", "2026-10-01T00:00:00Z")]))
+    review = TopicStatus("Code Review", StatusCategory.IN_PROGRESS)
+    asyncio.run(store.replace("gmail", [replace(record("1", "gmail", "old", "2026-10-01T00:00:00Z"), status=review)]))
     asyncio.run(store.replace("tasks", [record("2", "tasks", "new", "2026-10-09T00:00:00Z")]))
     monkeypatch.setattr(api.LocalSettings, "from_environment", classmethod(lambda cls: settings))
 
@@ -137,6 +145,7 @@ def test_the_topics_command_prints_camel_case_json_newest_first(tmp_path, monkey
 
     assert code == cli.EXIT_OK
     assert [topic["id"] for topic in document] == ["2", "1"]
+    assert document[1]["status"] == {"name": "Code Review", "category": "inProgress"}
     assert document[0] == {
         "id": "2",
         "service": "tasks",
@@ -152,6 +161,7 @@ def test_the_topics_command_prints_camel_case_json_newest_first(tmp_path, monkey
             }
         ],
         "projectId": None,
+        "status": None,
         "updatedAt": "2026-10-09T00:00:00Z",
         "deletable": False,
     }

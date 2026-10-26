@@ -6,7 +6,7 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from urllib.parse import urlsplit
 
-from ....contract import AuthError, Direction, Item, Topic
+from ....contract import AuthError, Direction, Item, StatusCategory, Topic, TopicStatus
 from ..domain.jira import Issue, JiraAccount
 
 SERVICE = "jira"
@@ -64,4 +64,22 @@ def topic(issue: Issue, account: JiraAccount) -> Topic:
         # SilentDesk only reads Jira.
         deletable=False,
     )
-    return Topic(key=issue.issue_id, title=issue.summary.strip() or issue.key, items=[item], deletable=False)
+    return Topic(
+        key=issue.issue_id,
+        title=issue.summary.strip() or issue.key,
+        items=[item],
+        deletable=False,
+        status=status(issue.status, issue.status_category),
+    )
+
+
+# Jira's status categories, by statusCategory.key. See
+# docs/specs/topic-status.md.
+CATEGORIES = {"new": StatusCategory.NEW, "indeterminate": StatusCategory.IN_PROGRESS, "done": StatusCategory.DONE}
+
+
+def status(name: str, category: str | None) -> TopicStatus | None:
+    """The issue's status, or None when Jira gave it no name."""
+    if not name.strip():
+        return None
+    return TopicStatus(name.strip(), CATEGORIES.get(category or ""))
