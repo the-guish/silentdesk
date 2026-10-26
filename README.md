@@ -33,6 +33,10 @@ It was built for you, and its top mission is to protect your focus time by letti
 - **Your data stays with you.** SilentDesk talks directly to Gmail, Slack, GitHub, Jira and Google Tasks from your computer. No middleman server, no telemetry.
 - **Built for work.** Your data and credentials never go anywhere but your company's own services. The code is fully auditable, and every release ships as a signed binary.
 
+## Status
+
+SilentDesk is under development. The current focus is GitHub: its pull requests and their status. Work on the other connectors comes later.
+
 ## Run the apps
 
 On a Mac:
