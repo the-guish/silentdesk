@@ -1,6 +1,6 @@
 """The filter bar's state: the values each filter offers and has chosen, its
 labels, and the query it makes for the core. Pure, so it is tested without a
-display. See spec/filters.md."""
+display. See docs/specs/filters.md."""
 
 from __future__ import annotations
 

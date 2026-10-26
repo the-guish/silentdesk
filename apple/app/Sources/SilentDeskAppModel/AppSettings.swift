@@ -5,7 +5,7 @@
 ///     defaults write com.silentdesk.app SILENTDESK_GOOGLE_CLIENT_ID "…"
 ///
 /// The environment wins over the defaults. Only these variables are read
-/// from the defaults; the test variables of spec/cli.md stay in the
+/// from the defaults; the test variables of docs/specs/cli.md stay in the
 /// environment.
 
 import Foundation

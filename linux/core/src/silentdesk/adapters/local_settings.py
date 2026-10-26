@@ -31,7 +31,7 @@ class LocalSettings(Settings):
         self._google_client_secret = google_client_secret
         self._slack_client_id = slack_client_id
         self._slack_redirect_port = slack_redirect_port
-        # For tests only, see spec/cli.md: a file that replaces the OS
+        # For tests only, see docs/specs/cli.md: a file that replaces the OS
         # credential store, and a fake server that replaces every service.
         self.test_keyring = test_keyring
         self.test_base_url = test_base_url.rstrip("/") if test_base_url else None
@@ -41,7 +41,7 @@ class LocalSettings(Settings):
 
     @classmethod
     def from_environment(cls, environ: Mapping[str, str] = os.environ) -> LocalSettings:
-        """The XDG data folder and the SILENTDESK_* variables in spec/cli.md.
+        """The XDG data folder and the SILENTDESK_* variables in docs/specs/cli.md.
         Empty variables count as unset."""
 
         def variable(name: str) -> str | None:

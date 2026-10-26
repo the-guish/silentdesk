@@ -1,5 +1,5 @@
 """Errors apps raise to each other and to the interfaces. Each connector
-error has a `kind`, which the CLI reports as the error kind in spec/cli.md."""
+error has a `kind`, which the CLI reports as the error kind in docs/specs/cli.md."""
 
 from __future__ import annotations
 

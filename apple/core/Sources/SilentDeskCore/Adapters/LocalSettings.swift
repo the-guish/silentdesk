@@ -13,7 +13,7 @@ public struct LocalSettings: Settings {
     public let googleClientSecret: String?
     public let slackClientID: String?
     public let slackRedirectPort: Int
-    /// For tests only, see spec/cli.md: a file that replaces the OS credential
+    /// For tests only, see docs/specs/cli.md: a file that replaces the OS credential
     /// store, and a fake server that replaces every service.
     public let testKeyring: String?
     public let testBaseURL: String?
@@ -45,7 +45,7 @@ public struct LocalSettings: Settings {
         self.testBrowser = testBrowser
     }
 
-    /// The data folder and the SILENTDESK_* variables in spec/cli.md. Empty
+    /// The data folder and the SILENTDESK_* variables in docs/specs/cli.md. Empty
     /// variables count as unset.
     public static func fromEnvironment(_ environment: [String: String] = ProcessInfo.processInfo.environment) -> LocalSettings {
         func variable(_ name: String) -> String? {
@@ -66,7 +66,7 @@ public struct LocalSettings: Settings {
     }
 
     /// $XDG_DATA_HOME/silentdesk when set, as on Linux; otherwise the
-    /// platform's place for an app's data (spec/storage.md).
+    /// platform's place for an app's data (docs/specs/storage.md).
     static func dataDirectory(_ environment: [String: String]) -> String {
         if let xdg = environment["XDG_DATA_HOME"], !xdg.isEmpty {
             return trimTrailingSlashes(xdg) + "/silentdesk"

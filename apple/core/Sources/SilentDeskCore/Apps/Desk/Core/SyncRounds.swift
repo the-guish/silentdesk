@@ -1,4 +1,4 @@
-/// Sync rounds. See spec/sync.md.
+/// Sync rounds. See docs/specs/sync.md.
 enum SyncRounds {
     /// Gmail goes last, because its first sync can take minutes.
     static let order = ["tasks", "github", "jira", "slack", "gmail"]
