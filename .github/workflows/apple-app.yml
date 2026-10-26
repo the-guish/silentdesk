@@ -1,0 +1,42 @@
+name: Apple app
+
+# Every push that touches the Apple code tests the app's model on Linux and
+# macOS.
+on:
+  push:
+    paths:
+      - apple/**
+      - .github/workflows/apple-app.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  model-linux:
+    name: Apple app model (Linux)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Install SQLCipher and OpenSSL
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libsqlcipher-dev libssl-dev
+      - run: swift --version
+      - name: Unit tests
+        run: swift test --package-path apple/app
+
+  macos:
+    name: Apple app (macOS)
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - run: swift --version
+      - name: Build
+        run: swift build --package-path apple/app
+      - name: Unit tests
+        run: swift test --package-path apple/app
