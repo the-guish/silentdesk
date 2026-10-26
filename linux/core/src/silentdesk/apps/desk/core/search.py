@@ -32,6 +32,8 @@ def check(query: TopicQuery) -> None:
 def search_text(record: TopicRecord) -> str:
     """Everything a search matches against, lowercased."""
     parts = [record.title, SERVICE_NAMES.get(record.service, record.service)]
+    if record.status:
+        parts.append(record.status.name)
     parts += [part for item in record.items for part in (item.author, item.key) if part]
     return "\n".join(parts).lower()
 
