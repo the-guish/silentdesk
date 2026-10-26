@@ -1,6 +1,6 @@
 """The filter bar over the queue: Project and Service, then the filters the
 user adds with the + button. Its state and rules are in `filters.py`. See
-spec/filters.md."""
+docs/specs/filters.md."""
 
 from __future__ import annotations
 

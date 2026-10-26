@@ -32,7 +32,7 @@ Tokens never reach the webview.
 
 ## Syncing
 
-- **Automatic,** at startup, every 2 minutes and on window focus. See `spec/sync.md`.
+- **Automatic,** at startup, every 2 minutes and on window focus. See `docs/specs/sync.md`.
 - **Fetching:** two `search.messages` queries sorted by time:
   - `to:me` finds direct messages sent to the user;
   - `from:<@me>` finds messages the user sent.

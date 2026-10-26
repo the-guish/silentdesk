@@ -1,6 +1,6 @@
 # SilentDesk core for Apple platforms
 
-SilentDesk's core logic, in Swift, with the `silentdesk` command line from [spec/cli.md](../../spec/cli.md). The SwiftUI app in [`../app`](../app) will use it through the `SilentDeskCore` library only.
+SilentDesk's core logic, in Swift, with the `silentdesk` command line from [docs/specs/cli.md](../../docs/specs/cli.md). The SwiftUI app in [`../app`](../app) will use it through the `SilentDeskCore` library only.
 
 It needs Swift 6: Xcode 16 or newer on macOS, or the toolchain from [swift.org/install](https://www.swift.org/install/) on Linux. SQLCipher comes from [Zetetic's Swift package](https://github.com/sqlcipher/SQLCipher.swift) on Apple platforms, and from the distribution on Linux, with OpenSSL for hashing (`apt install libsqlcipher-dev libssl-dev` on Ubuntu), so the core builds and runs there too and can be developed without a Mac; CI builds it on both.
 
@@ -12,7 +12,7 @@ swift test                            # unit tests
 
 | Path | What it is |
 |------|------------|
-| `Sources/CSQLCipher/`, `Sources/COpenSSL/` | The distribution's SQLCipher and OpenSSL, as system libraries, for the Linux build ([spec/storage.md](../../spec/storage.md)) |
+| `Sources/CSQLCipher/`, `Sources/COpenSSL/` | The distribution's SQLCipher and OpenSSL, as system libraries, for the Linux build ([docs/specs/storage.md](../../docs/specs/storage.md)) |
 | `Sources/SilentDeskCore/API.swift` | The public API: one function per command, and the wiring of every app |
 | `Sources/SilentDeskCore/Contract/` | Protocols and data the apps expose to each other and to `API` |
 | `Sources/SilentDeskCore/Support/` | JSON, RFC 3339 dates and encodings on Foundation, SHA-256 on CryptoKit or OpenSSL, and two async primitives |
