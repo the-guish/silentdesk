@@ -62,6 +62,7 @@ class DeskService(Desk):
                         record.updated_at,
                         deletable,
                         record.project_id,
+                        record.status,
                     )
                 )
         return views

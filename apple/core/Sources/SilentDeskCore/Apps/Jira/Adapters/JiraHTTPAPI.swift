@@ -47,7 +47,8 @@ final class JiraHTTPAPI: JiraAPI {
             project: fields["project"]?["key"]?.string ?? "",
             assignee: user(fields["assignee"]),
             reporter: user(fields["reporter"]),
-            updated: fields["updated"]?.string)
+            updated: fields["updated"]?.string,
+            statusCategory: fields["status"]?["statusCategory"]?["key"]?.string)
     }
 
     private func get(_ url: String, _ credential: JiraCredential, params: [(String, String)] = []) async throws -> JSON {

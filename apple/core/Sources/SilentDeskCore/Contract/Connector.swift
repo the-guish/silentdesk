@@ -7,6 +7,26 @@ public enum Direction: String, Sendable, Equatable {
     case outbound
 }
 
+/// Where a status stands, the same for every service.
+public enum StatusCategory: String, Sendable, Equatable {
+    case new
+    case inProgress
+    case done
+}
+
+/// The status a service gives a topic, such as a Jira issue's. See
+/// docs/specs/topic-status.md.
+public struct TopicStatus: Sendable, Equatable {
+    /// As the service writes it, such as "Code Review".
+    public let name: String
+    public let category: StatusCategory?
+
+    public init(name: String, category: StatusCategory?) {
+        self.name = name
+        self.category = category
+    }
+}
+
 /// What the user needs to know about one service.
 public struct ServiceStatus: Sendable, Equatable {
     public let service: String
@@ -63,12 +83,15 @@ public struct Topic: Sendable, Equatable {
     /// trashing a Gmail thread. When this is false but every item is
     /// deletable, the desk deletes the topic item by item instead.
     public let deletable: Bool
+    /// nil for a service that gives its topics no status.
+    public let status: TopicStatus?
 
-    public init(key: String, title: String, items: [Item], deletable: Bool) {
+    public init(key: String, title: String, items: [Item], deletable: Bool, status: TopicStatus? = nil) {
         self.key = key
         self.title = title
         self.items = items
         self.deletable = deletable
+        self.status = status
     }
 }
 
