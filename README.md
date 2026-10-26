@@ -23,7 +23,7 @@ SilentDesk puts everything you need to know about or act on into one clean, mini
 It was built for you, and its top mission is to protect your focus time by letting you control the rate and direction of context switching.
 
 <p align="center">
-  <img src="silentdesk/docs/assets/3-items-reply-light.png" alt="Screenshot of three topic items" />
+  <img src="docs/assets/3-items-reply-light.png" alt="Screenshot of three topic items" />
 </p>
 
 ## How it's built
