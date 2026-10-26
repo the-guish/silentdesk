@@ -1,6 +1,6 @@
 # SilentDesk — Topic status
 
-A topic can carry the status its service gives it, such as a Jira issue's `In Progress`. Both apps show it as a chip, first in each row of the queue.
+A topic can carry the status its service gives it, such as a Jira issue's `In Progress`. Both apps show it as a chip, first in every row of the queue.
 
 ## Which services report one
 
@@ -32,20 +32,19 @@ The search matches the status's name, as it matches the title and the people.
 
 ## The chip
 
-The queue shows the status as a chip, first in the row, left of the avatar.
+Every row of the queue starts with a chip, left of the avatar. The chip names the topic's status, or shows a dash when the topic has none.
 
 ```
 [ In Progress ] (A) Fix the login timeout                 09:12
 [ Code Review ] (B) Add the export button                  Oct 24
-[             ] (C) Invoice for October                    Oct 23
+[      —      ] (C) Invoice for October                    Oct 23
 ```
 
 - **Look:** the name in small text, inside a rounded chip, coloured by the category: grey for `new`, blue for `inProgress`, green for `done`. A null category is grey.
+- **No status:** a topic without one gets a fainter grey chip with a dash, `—`.
 - **Action:** none yet. A click on the chip opens the topic, as a click elsewhere on the row does.
-- **Width:** every chip in the queue has the same width, so every title starts at the same place. The width fits the widest name among all the topics, shown or not. It is at most a quarter of the queue's width. A longer name ends with an ellipsis, and its tooltip shows it whole.
+- **Width:** every chip in the queue has the same width, so every title starts at the same place. The width fits the widest name among all the topics, shown or not, and at least the dash. It is at most a quarter of the queue's width. A longer name ends with an ellipsis, and its tooltip shows it whole.
 - **Resizing:** the width is worked out again on each refresh, and when the queue's width changes.
-- **No status:** a topic without one gets an empty space of the chip's width.
-- **No status at all:** when no topic has a status, the queue has no chip column and no space for it.
 
 ## Planned
 

@@ -63,15 +63,20 @@ def test_errors_read_as_one_line():
 @pytest.mark.parametrize(
     ("status", "classes"),
     [
-        (None, []),
+        (None, ["status-chip", "status-none"]),
         (TopicStatus("To Do", StatusCategory.NEW), ["status-chip", "status-new"]),
         (TopicStatus("Code Review", StatusCategory.IN_PROGRESS), ["status-chip", "status-in-progress"]),
         (TopicStatus("Closed", StatusCategory.DONE), ["status-chip", "status-done"]),
         (TopicStatus("Triage", None), ["status-chip", "status-new"]),
     ],
 )
-def test_a_chip_is_coloured_by_its_category_and_absent_without_a_status(status, classes):
+def test_a_chip_is_coloured_by_its_category_and_fainter_without_a_status(status, classes):
     assert format.chip_classes(status) == classes
+
+
+def test_a_chip_names_the_status_or_shows_a_dash():
+    assert format.chip_label(TopicStatus("Code Review", StatusCategory.IN_PROGRESS)) == "Code Review"
+    assert format.chip_label(None) == "—"
 
 
 @pytest.mark.parametrize(

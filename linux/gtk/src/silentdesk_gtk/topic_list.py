@@ -42,7 +42,7 @@ class TopicList:
     `matching`, or all of them when it is None. Rebuilding the store costs
     far more than filtering it, so a new search only changes `matching`.
 
-    Each row starts with its topic's status chip. Every chip has one width,
+    Every row starts with its topic's status chip. Every chip has one width,
     worked out from every topic's status rather than from the rows on
     screen, which a list view measures alone (docs/specs/topic-status.md)."""
 
@@ -50,7 +50,7 @@ class TopicList:
         self.now = now
         self.matching: set[str] | None = None
         self.chip_width = 0
-        # The natural width of each status, as a chip draws it.
+        # The natural width of each status, as a chip draws it, and the dash's.
         self.chip_widths: list[int] = []
         self.chip_probe = Gtk.Label(css_classes=["status-chip", "caption"])
         # The list view makes only as many rows as it shows, and reuses them.
@@ -67,7 +67,8 @@ class TopicList:
         self.view.add_css_class("navigation-sidebar")
 
     def set_topics(self, topics: list[TopicView]) -> None:
-        self.chip_widths = [self._natural_width(topic.status.name) for topic in topics if topic.status]
+        names = {format.NO_STATUS, *(topic.status.name for topic in topics if topic.status)}
+        self.chip_widths = [self._natural_width(name) for name in names]
         self._resize_chips(self.view.allocated)
         self.store.splice(0, self.store.get_n_items(), [TopicObject(topic) for topic in topics])
 
@@ -82,8 +83,7 @@ class TopicList:
         return GLib.SOURCE_REMOVE
 
     def _size(self, slot: Adw.Clamp) -> None:
-        """A slot of the chip's width, or none when no topic has a status."""
-        slot.set_visible(self.chip_width > 0)
+        """A slot of the chip's width."""
         slot.set_maximum_size(max(self.chip_width, 1))
         slot.set_tightening_threshold(max(self.chip_width, 1))
         slot.set_size_request(self.chip_width, -1)
@@ -130,7 +130,7 @@ class TopicList:
         slot, avatar, text, date = list(_children(item.get_child()))
         title, subtitle = list(_children(text))
         chip = slot.get_child()
-        chip.set_label(topic.status.name if topic.status else "")
+        chip.set_label(format.chip_label(topic.status))
         chip.set_tooltip_text(topic.status.name if topic.status else None)
         chip.set_css_classes(["caption", *format.chip_classes(topic.status)])
         name, icon = format.avatar(topic)

@@ -27,6 +27,10 @@ CSS = """
 .status-chip.status-done {
     background-color: alpha(@green_4, 0.3);
 }
+.status-chip.status-none {
+    background-color: alpha(currentColor, 0.05);
+    color: alpha(currentColor, 0.55);
+}
 """
 
 _installed = False

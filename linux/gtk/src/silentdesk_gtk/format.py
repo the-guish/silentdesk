@@ -112,20 +112,25 @@ CHIP_CATEGORIES = {
 }
 # The chip column takes at most this share of the queue's width.
 CHIP_SHARE = 0.25
+# The chip of a topic without a status.
+NO_STATUS = "—"
+
+
+def chip_label(status: TopicStatus | None) -> str:
+    return status.name if status else NO_STATUS
 
 
 def chip_classes(status: TopicStatus | None) -> list[str]:
-    """The CSS classes of a topic's chip: none for a topic without a
-    status, which leaves an empty space."""
+    """The CSS classes of a topic's chip, fainter for a topic without a
+    status."""
     if status is None:
-        return []
+        return ["status-chip", "status-none"]
     return ["status-chip", CHIP_CATEGORIES.get(status.category, "status-new")]
 
 
 def chip_width(widths: list[int], queue_width: int) -> int:
     """One width for every chip: the widest one's, at most a share of the
-    queue's width. 0, no column at all, when no topic has a status. A queue
-    not laid out yet, of width 0, sets no limit."""
+    queue's width. A queue not laid out yet, of width 0, sets no limit."""
     widest = max(widths, default=0)
     if queue_width <= 0:
         return widest
