@@ -4,7 +4,8 @@ A quiet desktop task tracker for work. It pulls your email, chat messages, issue
 
 ## Why I created it
 
-We live in an era of massive information flows, and that just went off the charts with the advent of a more powerful AI in 2026.
+We live in an era of massive information flows, and those flows went off the charts in 2026 with the arrival of more powerful AI.
+
 
 By the numbers:
 - Across 718 companies using AI coding agents, code review time rose 49% while finished work didn't increase ([Harvard study](https://www.techradar.com/pro/ai-agents-are-great-at-writing-new-code-but-then-the-human-bottleneck-slows-everything-down)).
@@ -12,17 +13,14 @@ By the numbers:
 - Managers now average 12.1 direct reports, up from 10.9 a year earlier ([Gallup](https://www.gallup.com/workplace/700718/span-control-optimal-team-size-managers.aspx)).
 
 
-But more importantly, take five minutes to think about how many more messages and quick decisions land on you each day compared to last year. You probably won’t need any other number.
-
+But more importantly, take five minutes to think about how many more messages and quick decisions land on you each day compared to last year. You probably won't need any other number.
 
 ## How it works
 
+SilentDesk puts everything you need to know about or act on into one clean, minimal UI, sorted and prioritized ahead of time by your rules.
 
-SilentDesk puts everything you need to know and potentially take action on into a single, minimalist, clean UI, prioritized and sorted ahead of time by your criteria.
 
-
-It has been built for you and its top mission is to protect your focus time, allowing you to control the rate and direction of context-switching.
-
+It was built for you, and its top mission is to protect your focus time by letting you control the rate and direction of context switching.
 
 ## How it's built
 
@@ -30,7 +28,6 @@ It has been built for you and its top mission is to protect your focus time, all
 - **Open source under Apache 2.0.** You can always fork it and build it yourself. The Mac App Store version may cost a small fee, but this repo is free to clone and change however you like.
 - **Your data stays with you.** SilentDesk talks directly to Gmail, Slack, GitHub, Jira and Google Tasks from your computer. No middleman server, no telemetry.
 - **Built for work.** Your data and credentials never go anywhere but your company's own services. The code is fully auditable, and every release ships as a signed binary.
-
 
 ## License
 
