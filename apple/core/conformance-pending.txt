@@ -1,28 +1,2 @@
 # Conformance cases this core does not pass yet, one name per line.
 # See spec/conformance/README.md.
-services-configured
-services-empty-client-id
-services-unconfigured
-services-connected
-disconnect-forgets-the-sign-in
-sync-not-connected
-jira-cloud-connect-sync-topics
-jira-connect-rejected-token
-jira-data-center
-jira-scoped-token-gateway
-jira-site-must-use-https
-tasks-connect-access-denied
-tasks-connect-not-configured
-tasks-connect-scope-not-granted
-tasks-connect-sync-topics
-tasks-disconnect-revokes
-tasks-sync-grant-revoked
-gmail-connect-sync-threads
-gmail-reply-and-delete
-gmail-sync-new-messages-only
-slack-connect-scope-not-granted
-slack-connect-sync-conversations
-slack-is-read-only
-slack-sync-token-revoked
-slack-history
-gmail-delete-one-message

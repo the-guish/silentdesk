@@ -314,13 +314,17 @@
       "path": "/gmail/gmail/v1/users/me/messages"
     },
     {
-      "path": "/gmail/gmail/v1/users/me/messages/m3"
-    },
-    {
-      "path": "/gmail/gmail/v1/users/me/messages/m2"
-    },
-    {
-      "path": "/gmail/gmail/v1/users/me/messages/m1"
+      "any_order": [
+        {
+          "path": "/gmail/gmail/v1/users/me/messages/m3"
+        },
+        {
+          "path": "/gmail/gmail/v1/users/me/messages/m2"
+        },
+        {
+          "path": "/gmail/gmail/v1/users/me/messages/m1"
+        }
+      ]
     },
     {
       "method": "POST",
