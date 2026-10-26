@@ -24,7 +24,7 @@ enum Topics {
     }
 
     /// The record for a topic as its connector reports it, keeping the old
-    /// record's ID and creation time.
+    /// record's ID, creation time and project.
     static func record(
         _ topic: Topic, service: String, old: TopicRecord?, now: String, newID: () -> String
     ) -> TopicRecord {
@@ -37,7 +37,8 @@ enum Topics {
             createdAt: old?.createdAt ?? now,
             // RFC 3339 times in UTC sort as text.
             updatedAt: topic.items.map(\.date).max() ?? now,
-            deletable: topic.deletable)
+            deletable: topic.deletable,
+            projectId: old?.projectId)
     }
 
     /// A topic can be deleted when its connector can delete it at once, or

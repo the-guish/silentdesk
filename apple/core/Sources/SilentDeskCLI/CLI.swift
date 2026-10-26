@@ -191,6 +191,7 @@ enum Documents {
             "items": .array(topic.items.map(item)),
             "updatedAt": .string(topic.updatedAt),
             "deletable": .bool(topic.deletable),
+            "projectId": .string(topic.projectId),
         ]
     }
 
