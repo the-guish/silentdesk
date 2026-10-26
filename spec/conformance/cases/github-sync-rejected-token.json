@@ -14,7 +14,8 @@
       }
     },
     {
-      "path": "/github/search/issues",
+      "method": "POST",
+      "path": "/github/graphql",
       "status": 401,
       "body": {
         "message": "Bad credentials"
