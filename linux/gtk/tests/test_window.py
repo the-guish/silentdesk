@@ -16,8 +16,10 @@ from silentdesk.contract import (
     Message,
     Project,
     ServiceStatus,
+    StatusCategory,
     SyncFailed,
     TopicQuery,
+    TopicStatus,
     TopicView,
     Unsupported,
 )
@@ -189,6 +191,36 @@ def test_the_window_syncs_on_start_and_shows_the_topics(worker):
     assert [t.title for t in win.topics.shown_topics()] == ["Lunch?", "Invoice for October"]
     assert win.stack.get_visible_child_name() == "list"
     assert win.window_title.get_subtitle() == "Updated 2 min ago"
+
+
+def test_status_chips_come_first_with_one_width_and_go_when_no_topic_has_one(worker):
+    desk = FakeDesk()
+    review = TopicStatus("Code Review", StatusCategory.IN_PROGRESS)
+    desk.shown = [
+        replace(topic("j1", "Fix the login timeout", "Bo", "2026-10-24T10:00:00Z", "jira"), status=review),
+        replace(topic("j2", "Add the export", "Cy", "2026-10-24T09:00:00Z", "jira"), status=TopicStatus("Open", None)),
+        topic("g1", "Invoice for October", "Ana", "2026-10-24T08:00:00Z"),
+    ]
+    win = window(desk, worker)
+    # Laid out on screen, as only a shown window is.
+    win.present()
+    # The fake desk's sync adds a fourth topic, Lunch?, without a status.
+    run_until(lambda: win.topics.shown == 4 and not win.refreshing and win.topics.view.allocated > 0)
+
+    rows = {chip.get_label(): chip for chip in (slot.get_child() for slot in win.topics.slots) if chip.get_mapped()}
+    assert set(rows) == {"Code Review", "Open", ""}
+    assert win.topics.chip_width == max(win.topics.chip_widths) > 0
+    # Every slot has the chip's width, so every title starts at the same place.
+    run_until(lambda: {chip.get_parent().get_width() for chip in rows.values()} == {win.topics.chip_width})
+    assert rows["Code Review"].has_css_class("status-in-progress")
+    assert not rows[""].has_css_class("status-chip"), "a topic without a status gets an empty space"
+
+    desk.shown = [topic("g1", "Invoice for October", "Ana", "2026-10-24T08:00:00Z")]
+    win.activate_action("win.refresh")
+    run_until(lambda: win.topics.shown == 2 and not win.refreshing)
+    assert win.topics.chip_width == 0
+    assert not any(slot.get_visible() for slot in win.topics.slots), "no topic has a status: no column"
+    win.close()
 
 
 def test_search_narrows_the_list(worker):

@@ -2,7 +2,8 @@
 
 from datetime import UTC, datetime, timedelta, timezone
 
-from silentdesk.contract import Direction, Item, TopicView
+import pytest
+from silentdesk.contract import Direction, Item, StatusCategory, TopicStatus, TopicView
 
 from silentdesk_gtk import format
 
@@ -57,3 +58,31 @@ def test_errors_read_as_one_line():
     assert format.describe(ValueError("Bad.")) == "Bad."
     failed = SyncFailed([("tasks", AuthError("tasks", "Not configured.")), ("gmail", RemoteError("gmail", "Quota."))])
     assert format.describe(failed) == "Could not sync Google Tasks: Not configured. Could not sync Gmail: Quota."
+
+
+@pytest.mark.parametrize(
+    ("status", "classes"),
+    [
+        (None, []),
+        (TopicStatus("To Do", StatusCategory.NEW), ["status-chip", "status-new"]),
+        (TopicStatus("Code Review", StatusCategory.IN_PROGRESS), ["status-chip", "status-in-progress"]),
+        (TopicStatus("Closed", StatusCategory.DONE), ["status-chip", "status-done"]),
+        (TopicStatus("Triage", None), ["status-chip", "status-new"]),
+    ],
+)
+def test_a_chip_is_coloured_by_its_category_and_absent_without_a_status(status, classes):
+    assert format.chip_classes(status) == classes
+
+
+@pytest.mark.parametrize(
+    ("widths", "queue_width", "expected"),
+    [
+        ([], 800, 0),
+        ([61, 88, 70], 800, 88),
+        ([61, 88, 70], 200, 50),
+        ([61, 88], 0, 88),
+        ([300], 1000, 250),
+    ],
+)
+def test_every_chip_takes_the_widest_ones_width_up_to_a_quarter_of_the_queue(widths, queue_width, expected):
+    assert format.chip_width(widths, queue_width) == expected
