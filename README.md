@@ -36,3 +36,25 @@ It was built for you, and its top mission is to protect your focus time by letti
 ## License
 
 Apache License 2.0. See [LICENSE](LICENSE), [NOTICE](NOTICE) and [AUTHORS](AUTHORS).
+
+## Run the apps
+
+The Mac app lives on a branch for now:
+
+```sh
+git clone https://github.com/the-guish/silentdesk.git
+cd silentdesk && git checkout claude/beautiful-gauss-ozhaaa
+cd apple/app
+swift run SilentDeskMac --demo     # quick look over made-up data
+Scripts/bundle.sh                  # builds .build/SilentDesk.app
+open .build/SilentDesk.app         # the real app
+```
+
+The Linux app is on `main`. It needs [uv](https://docs.astral.sh/uv/) and libadwaita 1.5 or newer (Ubuntu 24.04, Debian 13). It has no demo mode.
+
+```sh
+sudo apt-get install gir1.2-adw-1 gir1.2-gtk-4.0 python3-gi   # GTK, libadwaita and PyGObject
+git clone https://github.com/the-guish/silentdesk.git
+cd silentdesk/linux/gtk
+./run.sh                           # the real app
+```
