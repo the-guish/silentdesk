@@ -62,6 +62,6 @@ The trade-off: a fine-grained token covers a single organization. Users across s
 - **Not yet tested against a real account.** This development sandbox's network proxy replaces GitHub credentials with its own and blocks `/search`, so connecting and syncing must be checked on a normal machine.
 - **Search rate limit:** 30 requests per minute for authenticated users. A sync uses 3.
 - **Next:**
-  - show review state and checks (needs a per-PR call);
+  - show each pull request's status: see [github-status.md](github-status.md);
   - open a pull request in the browser from its URL;
   - link a pull request to the Jira issue its title or branch names (e.g. `PAY-412`).
