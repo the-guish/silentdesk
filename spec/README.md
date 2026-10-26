@@ -17,6 +17,7 @@ This folder and [`docs/specs`](../docs/specs) define that behaviour without depe
 | [`docs/specs/cli.md`](../docs/specs/cli.md) | Commands, output, errors and exit codes |
 | [`schema/`](schema) | JSON Schema for every command's output |
 | [`docs/specs/filters.md`](../docs/specs/filters.md) | The filter bar both apps show over the topics |
+| [`docs/specs/topic-status.md`](../docs/specs/topic-status.md) | The status a service gives a topic, and its chip in the queue |
 | [`docs/specs/storage.md`](../docs/specs/storage.md) | The shared SQLite database (not decided yet) |
 | [`conformance/`](conformance) | The test cases, as data |
 | [`runner/`](runner) | Runs the cases against any core's `silentdesk` |

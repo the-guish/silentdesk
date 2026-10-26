@@ -11,6 +11,7 @@
       "title",
       "items",
       "projectId",
+      "status",
       "updatedAt",
       "deletable"
     ],
@@ -80,6 +81,31 @@
           "string",
           "null"
         ]
+      },
+      "status": {
+        "type": [
+          "object",
+          "null"
+        ],
+        "required": [
+          "name",
+          "category"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "category": {
+            "enum": [
+              "new",
+              "inProgress",
+              "done",
+              null
+            ]
+          }
+        }
       },
       "updatedAt": {
         "type": "string",

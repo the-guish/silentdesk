@@ -23,7 +23,10 @@
             "fields": {
               "summary": "Refund fails for EUR",
               "status": {
-                "name": "In Progress"
+                "name": "In Progress",
+                "statusCategory": {
+                  "key": "indeterminate"
+                }
               },
               "project": {
                 "key": "PAY"
@@ -45,7 +48,10 @@
             "fields": {
               "summary": "",
               "status": {
-                "name": "In Progress"
+                "name": "In Progress",
+                "statusCategory": {
+                  "key": "indeterminate"
+                }
               },
               "project": {
                 "key": "WEB"
@@ -117,6 +123,10 @@
             }
           ],
           "projectId": null,
+          "status": {
+            "name": "In Progress",
+            "category": "inProgress"
+          },
           "updatedAt": "2026-10-24T09:30:00Z",
           "deletable": false
         },
@@ -137,6 +147,10 @@
             }
           ],
           "projectId": null,
+          "status": {
+            "name": "In Progress",
+            "category": "inProgress"
+          },
           "updatedAt": "2026-10-23T08:00:00Z",
           "deletable": false
         }
