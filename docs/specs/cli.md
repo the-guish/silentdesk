@@ -171,7 +171,7 @@ A topic is listed when it matches every field in the query. An array matches a t
 | `items[].date` | string | RFC 3339. |
 | `items[].deletable` | boolean | `delete <topic-id> <item-key>` can delete it. |
 | `projectId` | string \| null | The topic's project, or `null` for Default. |
-| `status` | object \| null | The status the topic's service gives it, or `null` when the service reports none. See [topic-status.md](topic-status.md). |
+| `status` | object \| null | The status given by the topic's service, or `null` when the service reports none. See [topic-status.md](topic-status.md). |
 | `status.name` | string | As the service writes it, such as `In Progress`. |
 | `status.category` | `new` \| `inProgress` \| `done` \| null | Where the status stands. |
 | `updatedAt` | string | The newest item's date. |
