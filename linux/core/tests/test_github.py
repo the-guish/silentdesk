@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+from dataclasses import replace
 
 import httpx
 import pytest
@@ -18,7 +19,15 @@ from silentdesk.apps.github.application.github import GitHub
 from silentdesk.apps.github.core import github
 from silentdesk.apps.github.domain.github import PullRequest, Reason
 from silentdesk.apps.github.ports.github_api import GitHubApi, Me
-from silentdesk.contract import AuthError, Direction, NetworkError, RemoteError, Unsupported
+from silentdesk.contract import (
+    AuthError,
+    Direction,
+    NetworkError,
+    RemoteError,
+    StatusCategory,
+    TopicStatus,
+    Unsupported,
+)
 
 
 def pull(pr_id: int, reason: Reason = Reason.REVIEW_REQUESTED, updated: str = "2026-10-23T10:00:00Z", title="Fix"):
@@ -63,6 +72,53 @@ def test_a_pull_request_is_a_topic_with_one_item():
     assert (topic.key, topic.title) == ("7", "acme/web#7")
     [item] = topic.items
     assert (item.key, item.direction, item.author) == ("7", Direction.OUTBOUND, "ana")
+    assert topic.status == TopicStatus("Ready", StatusCategory.IN_PROGRESS)
+
+
+def state(**fields) -> PullRequest:
+    return replace(pull(1), **fields)
+
+
+@pytest.mark.parametrize(
+    ("pull_request", "name"),
+    [
+        (state(merged=True, closed=True, checks="FAILURE"), "Merged"),
+        (state(closed=True, checks="FAILURE"), "Closed"),
+        (state(checks="FAILURE", review="APPROVED"), "CI Failed"),
+        (state(checks="ERROR", draft=True), "CI Failed"),
+        (state(checks="SUCCESS", review="APPROVED"), "Approved"),
+        (state(checks="PENDING", review="APPROVED"), "Approved"),
+        (state(review="CHANGES_REQUESTED"), "Changes Requested"),
+        (state(review="REVIEW_REQUIRED"), "Ready"),
+        (state(), "Ready"),
+        (state(draft=True, checks="PENDING"), "Draft"),
+        (state(draft=True, review="REVIEW_REQUIRED"), "Draft"),
+    ],
+)
+def test_the_first_status_that_applies_wins(pull_request, name):
+    assert github.status(pull_request).name == name
+
+
+@pytest.mark.parametrize(
+    ("name", "category"),
+    [("Merged", StatusCategory.DONE), ("Closed", StatusCategory.DONE), ("Draft", StatusCategory.NEW)]
+    + [(n, StatusCategory.IN_PROGRESS) for n in ("CI Failed", "Approved", "Changes Requested", "Ready")],
+)
+def test_each_status_has_its_category(name, category):
+    assert github.STATUS_CATEGORIES[name] == category
+
+
+@pytest.mark.parametrize(
+    ("api_base", "url"),
+    [
+        ("https://api.github.com", "https://api.github.com/graphql"),
+        ("https://github.acme.com/api/v3", "https://github.acme.com/api/graphql"),
+        ("https://github.acme.com:8443/api/v3", "https://github.acme.com:8443/api/graphql"),
+        ("http://127.0.0.1:5000/github", "http://127.0.0.1:5000/github/graphql"),
+    ],
+)
+def test_graphql_lives_next_to_the_rest_api(api_base, url):
+    assert github.graphql_url(api_base) == url
 
 
 ANA = Me("ana", "Ana Ruiz")
@@ -78,11 +134,11 @@ class FakeApi(GitHubApi):
             raise self._me
         return self._me
 
-    async def search(self, api_base, token, query, reason):
-        self.calls.append(("search", api_base, query))
+    async def open_pull_requests(self, api_base, token, queries):
+        self.calls.append(("pulls", api_base, list(queries)))
         if isinstance(self.found, Exception):
             raise self.found
-        return [p for p in self.found if p.reason == reason]
+        return list(self.found)
 
 
 @pytest.fixture
@@ -116,14 +172,14 @@ def test_connect_needs_a_token(tmp_path, keyring):
         asyncio.run(connector(tmp_path, keyring, FakeApi()).connect({}))
 
 
-def test_sync_runs_the_three_queries_and_returns_every_pull_request(tmp_path, keyring):
+def test_sync_sends_the_three_queries_at_once_and_returns_every_pull_request(tmp_path, keyring):
     api = FakeApi(found=[pull(1), pull(2, Reason.AUTHORED, "2026-10-24T00:00:00Z")])
     app = connector(tmp_path, keyring, api)
     asyncio.run(app.connect({"token": "t"}))
 
     result = asyncio.run(app.sync())
 
-    assert [call[2] for call in api.calls if call[0] == "search"] == [query for query, _ in github.QUERIES]
+    assert [call[2] for call in api.calls if call[0] == "pulls"] == [github.QUERIES]
     assert result.complete and [t.key for t in result.topics] == ["2", "1"]
 
 
@@ -150,24 +206,29 @@ def http_api(handler) -> GitHubHttpApi:
     return GitHubHttpApi(HttpsClient(transport=httpx.MockTransport(handler)))
 
 
-def test_the_http_adapter_sends_the_token_and_reads_search_results():
+def test_the_http_adapter_sends_one_graphql_query_and_reads_every_search():
     seen = []
 
     def handler(request: httpx.Request) -> httpx.Response:
         seen.append(request)
-        item = {
-            "id": 9,
+        node = {
+            "databaseId": 9,
             "number": 4,
             "title": "Add retries",
-            "html_url": "https://github.com/acme/web/pull/4",
-            "repository_url": "https://api.github.com/repos/acme/web",
-            "user": {"login": "bo"},
-            "draft": True,
-            "updated_at": "2026-10-24T09:00:00Z",
+            "url": "https://github.com/acme/web/pull/4",
+            "updatedAt": "2026-10-24T09:00:00Z",
+            "isDraft": False,
+            "state": "OPEN",
+            "merged": False,
+            "reviewDecision": "CHANGES_REQUESTED",
+            "author": {"login": "bo"},
+            "repository": {"nameWithOwner": "acme/web"},
+            "commits": {"nodes": [{"commit": {"statusCheckRollup": {"state": "SUCCESS"}}}]},
         }
-        return httpx.Response(200, json={"items": [item]})
+        data = {"reviewRequested": {"nodes": []}, "assigned": {"nodes": [node, {}]}, "authored": {"nodes": []}}
+        return httpx.Response(200, json={"data": data})
 
-    [found] = asyncio.run(http_api(handler).search("https://api.github.com", "t", "is:pr", Reason.ASSIGNED))
+    [found] = asyncio.run(http_api(handler).open_pull_requests("https://api.github.com/graphql", "t", github.QUERIES))
 
     assert found == PullRequest(
         9,
@@ -176,14 +237,25 @@ def test_the_http_adapter_sends_the_token_and_reads_search_results():
         "Add retries",
         Reason.ASSIGNED,
         "bo",
-        True,
+        False,
         "https://github.com/acme/web/pull/4",
         "2026-10-24T09:00:00Z",
+        checks="SUCCESS",
+        review="CHANGES_REQUESTED",
     )
-    request = seen[0]
+    [request] = seen
+    assert (request.method, str(request.url)) == ("POST", "https://api.github.com/graphql")
     assert request.headers["Authorization"] == "Bearer t"
-    assert request.headers["X-GitHub-Api-Version"] == "2022-11-28"
-    assert dict(request.url.params) == {"q": "is:pr", "sort": "updated", "order": "desc", "per_page": "50"}
+    variables = json.loads(request.content)["variables"]
+    assert variables == {"first": 50} | {reason.value: query for query, reason in github.QUERIES}
+
+
+def test_graphql_errors_are_reported():
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, json={"data": None, "errors": [{"message": "Resource protected by SAML."}]})
+
+    with pytest.raises(RemoteError, match="Resource protected by SAML"):
+        asyncio.run(http_api(handler).open_pull_requests("https://api.github.com/graphql", "t", github.QUERIES))
 
 
 @pytest.mark.parametrize(

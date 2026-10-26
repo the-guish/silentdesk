@@ -37,6 +37,15 @@ class PullRequest:
     url: str
     # RFC 3339: last updated.
     updated: str
+    merged: bool = False
+    # Closed, merged or not.
+    closed: bool = False
+    # The checks on its last commit, as GitHub sums them up: SUCCESS,
+    # PENDING, FAILURE, ERROR or EXPECTED; None when it has none.
+    checks: str | None = None
+    # GitHub's review decision: APPROVED, CHANGES_REQUESTED or
+    # REVIEW_REQUIRED; None when the repository needs no review.
+    review: str | None = None
 
 
 @dataclass(frozen=True)

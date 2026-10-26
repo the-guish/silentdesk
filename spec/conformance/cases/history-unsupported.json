@@ -14,46 +14,47 @@
       }
     },
     {
-      "path": "/github/search/issues",
-      "query": {
-        "q": "is:pr is:open archived:false review-requested:@me"
-      },
-      "status": 200,
+      "method": "POST",
+      "path": "/github/graphql",
       "body": {
-        "items": [
-          {
-            "id": 11,
-            "number": 4,
-            "title": "Add retries",
-            "html_url": "https://github.com/acme/web/pull/4",
-            "repository_url": "https://api.github.com/repos/acme/web",
-            "user": {
-              "login": "bo"
-            },
-            "draft": false,
-            "updated_at": "2026-10-23T09:00:00Z"
+        "data": {
+          "reviewRequested": {
+            "nodes": [
+              {
+                "databaseId": 11,
+                "number": 4,
+                "title": "Add retries",
+                "url": "https://github.com/acme/web/pull/4",
+                "updatedAt": "2026-10-23T09:00:00Z",
+                "isDraft": false,
+                "state": "OPEN",
+                "merged": false,
+                "reviewDecision": null,
+                "author": {
+                  "login": "bo"
+                },
+                "repository": {
+                  "nameWithOwner": "acme/web"
+                },
+                "commits": {
+                  "nodes": [
+                    {
+                      "commit": {
+                        "statusCheckRollup": null
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "assigned": {
+            "nodes": []
+          },
+          "authored": {
+            "nodes": []
           }
-        ]
-      }
-    },
-    {
-      "path": "/github/search/issues",
-      "query": {
-        "q": "is:pr is:open archived:false assignee:@me"
-      },
-      "status": 200,
-      "body": {
-        "items": []
-      }
-    },
-    {
-      "path": "/github/search/issues",
-      "query": {
-        "q": "is:pr is:open archived:false author:@me"
-      },
-      "status": 200,
-      "body": {
-        "items": []
+        }
       }
     }
   ],

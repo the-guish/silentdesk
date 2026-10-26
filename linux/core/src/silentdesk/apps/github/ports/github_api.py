@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from collections.abc import Sequence
 from dataclasses import dataclass
 
 from ..domain.github import PullRequest, Reason
@@ -14,12 +15,16 @@ class Me:
 
 
 class GitHubApi(ABC):
-    """GitHub's REST API, read-only, with a personal access token."""
+    """GitHub's REST and GraphQL APIs, read-only, with a personal access
+    token."""
 
     @abstractmethod
     async def me(self, api_base: str, token: str) -> Me:
         """The token's user. Raises AuthError when GitHub rejects the token."""
 
     @abstractmethod
-    async def search(self, api_base: str, token: str, query: str, reason: Reason) -> list[PullRequest]:
-        """Open pull requests matching one search query, given `reason`."""
+    async def open_pull_requests(
+        self, graphql_url: str, token: str, queries: Sequence[tuple[str, Reason]]
+    ) -> list[PullRequest]:
+        """The pull requests each search query finds, with its reason, in one
+        GraphQL request to `graphql_url`."""

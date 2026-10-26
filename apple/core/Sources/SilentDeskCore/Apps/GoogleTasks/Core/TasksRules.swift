@@ -1,4 +1,4 @@
-/// Rules about Google Tasks. See docs/specs/integrations/google-tasks.md.
+/// Rules about Google Tasks. See docs/specs/integrations/google-tasks/google-tasks.md.
 
 import Foundation
 
