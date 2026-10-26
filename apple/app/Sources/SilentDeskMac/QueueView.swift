@@ -10,6 +10,9 @@ struct QueueView: View {
     let app: AppState
     @Environment(\.openSettings) private var openSettings
 
+    /// The queue's width, which caps the chips'.
+    @State private var queueWidth: CGFloat = 0
+
     init(app: AppState) {
         self.app = app
     }
@@ -55,9 +58,17 @@ struct QueueView: View {
 
     private var sidebar: some View {
         @Bindable var queue = queue
+        let chipWidth = StatusChip.width(for: queue.topics, queueWidth: queueWidth)
         return List(selection: $queue.selection) {
             ForEach(queue.shown, id: \.id) { topic in
-                TopicRow(topic: topic)
+                TopicRow(topic: topic, chipWidth: chipWidth)
+            }
+        }
+        .background {
+            GeometryReader { geometry in
+                Color.clear
+                    .onAppear { queueWidth = geometry.size.width }
+                    .onChange(of: geometry.size.width) { _, width in queueWidth = width }
             }
         }
         .overlay {
@@ -108,12 +119,14 @@ struct QueueView: View {
     }
 }
 
-/// One topic in the queue: who wrote last, the title, and when.
+/// One topic in the queue: its status, who wrote last, the title, and when.
 struct TopicRow: View {
     let topic: TopicView
+    let chipWidth: CGFloat
 
     var body: some View {
         HStack(spacing: 10) {
+            StatusChip(status: topic.status, width: chipWidth)
             AvatarView(
                 name: Format.avatarName(topic), symbol: topic.service == "tasks" ? "checkmark.square" : "person.fill",
                 size: 30)
@@ -132,6 +145,49 @@ struct TopicRow: View {
                 .monospacedDigit()
         }
         .padding(.vertical, 4)
+    }
+}
+
+/// A topic's status, first in its row, or a fainter dash without one.
+/// Every chip has one width, so every title starts at the same place
+/// (docs/specs/topic-status.md).
+struct StatusChip: View {
+    let status: TopicStatus?
+    let width: CGFloat
+
+    static let font = NSFont.boldSystemFont(ofSize: NSFont.preferredFont(forTextStyle: .caption1).pointSize)
+    static let horizontalPadding: CGFloat = 10
+
+    /// The widest chip among every topic, shown or not, and the dash, capped
+    /// by the queue's width.
+    static func width(for topics: [TopicView], queueWidth: CGFloat) -> CGFloat {
+        let names = Set(topics.compactMap(\.status?.name)).union([Format.noStatus])
+        let widths = names.map { name in
+            Double((name as NSString).size(withAttributes: [.font: font]).width.rounded(.up) + 2 * horizontalPadding)
+        }
+        return CGFloat(Format.chipWidth(widths, queueWidth: Double(queueWidth)))
+    }
+
+    var body: some View {
+        Text(Format.chipLabel(status))
+            .font(Font(Self.font))
+            .lineLimit(1)
+            .truncationMode(.tail)
+            .foregroundStyle(status == nil ? .secondary : .primary)
+            .padding(.horizontal, Self.horizontalPadding)
+            .padding(.vertical, 6)
+            .frame(width: width)
+            .background(Capsule().fill(fill))
+            .help(status?.name ?? "")
+    }
+
+    private var fill: Color {
+        guard let status else { return .primary.opacity(0.05) }
+        switch status.category {
+        case .inProgress: return .blue.opacity(0.25)
+        case .done: return .green.opacity(0.25)
+        case .new, nil: return .primary.opacity(0.1)
+        }
     }
 }
 

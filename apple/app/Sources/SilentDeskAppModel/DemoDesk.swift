@@ -46,7 +46,13 @@ public actor DemoDesk: Desk {
             TopicView(
                 id: "demo-jira-ops", service: "jira", title: "OPS-142 Rotate the staging certificates",
                 items: [item("OPS-142", .inbound, "Priya Shah", day + 30, url: "https://example.atlassian.net")],
-                updatedAt: at(day + 30), deletable: false),
+                updatedAt: at(day + 30), deletable: false,
+                status: TopicStatus(name: "Waiting for Customer", category: .inProgress)),
+            TopicView(
+                id: "demo-jira-login", service: "jira", title: "PAY-412 Fix the login timeout on slow networks",
+                items: [item("PAY-412", .outbound, "Ben Carter", 2 * day, url: "https://example.atlassian.net")],
+                updatedAt: at(2 * day), deletable: false,
+                status: TopicStatus(name: "To Do", category: .new)),
             TopicView(
                 id: "demo-gmail-invoice", service: "gmail", title: "Invoice 2026-10 from Acme Cloud",
                 items: [

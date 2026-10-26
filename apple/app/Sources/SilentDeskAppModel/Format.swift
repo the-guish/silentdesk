@@ -103,10 +103,30 @@ public enum Format {
     /// Everything a search matches against, lowercased.
     public static func searchText(_ topic: TopicView) -> String {
         var parts = [topic.title, serviceName(topic.service)]
+        if let status = topic.status {
+            parts.append(status.name)
+        }
         for item in topic.items {
             parts += [item.author, item.key].compactMap { $0 }
         }
         return parts.joined(separator: "\n").lowercased()
+    }
+
+    /// The chip of a topic without a status (docs/specs/topic-status.md).
+    public static let noStatus = "—"
+    /// The chip column takes at most this share of the queue's width.
+    public static let chipShare = 0.25
+
+    /// What a topic's chip shows: its status, or a dash.
+    public static func chipLabel(_ status: TopicStatus?) -> String {
+        status?.name ?? noStatus
+    }
+
+    /// One width for every chip: the widest one's, at most a share of the
+    /// queue's width. A queue not laid out yet, of width 0, sets no limit.
+    public static func chipWidth(_ widths: [Double], queueWidth: Double) -> Double {
+        let widest = widths.max() ?? 0
+        return queueWidth > 0 ? min(widest, (queueWidth * chipShare).rounded(.down)) : widest
     }
 
     /// Whether every word of the query is in the topic.
