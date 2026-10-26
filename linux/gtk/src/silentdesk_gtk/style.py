@@ -14,6 +14,23 @@ CSS = """
 .reply-entry textview text {
     background: none;
 }
+/* A topic's status, first in its row (docs/specs/topic-status.md). */
+.status-chip {
+    border-radius: 999px;
+    padding: 6px 10px;
+    font-weight: bold;
+    background-color: alpha(currentColor, 0.1);
+}
+.status-chip.status-in-progress {
+    background-color: alpha(@blue_3, 0.3);
+}
+.status-chip.status-done {
+    background-color: alpha(@green_4, 0.3);
+}
+.status-chip.status-none {
+    background-color: alpha(currentColor, 0.05);
+    color: alpha(currentColor, 0.55);
+}
 """
 
 _installed = False
