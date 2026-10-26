@@ -56,7 +56,14 @@ def _issue(value: Any) -> Issue:
         assignee=_user(fields.get("assignee")),
         reporter=_user(fields.get("reporter")),
         updated=fields.get("updated") if isinstance(fields.get("updated"), str) else None,
+        status_category=_status_category(status),
     )
+
+
+def _status_category(status: Any) -> str | None:
+    category = status.get("statusCategory") if isinstance(status, dict) else None
+    key = category.get("key") if isinstance(category, dict) else None
+    return key if isinstance(key, str) else None
 
 
 class JiraHttpApi(JiraApi):

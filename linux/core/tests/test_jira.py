@@ -19,7 +19,7 @@ from silentdesk.apps.jira.application.jira import Jira
 from silentdesk.apps.jira.core import jira
 from silentdesk.apps.jira.domain.jira import Credential, Endpoint, Flavor, Issue, JiraAccount, JiraUser
 from silentdesk.apps.jira.ports.jira_api import JiraApi
-from silentdesk.contract import AuthError, Direction, RemoteError
+from silentdesk.contract import AuthError, Direction, RemoteError, StatusCategory, TopicStatus
 
 SITE = "https://acme.atlassian.net"
 ANA = JiraUser("acc-ana", "Ana Ruiz")
@@ -52,7 +52,15 @@ def test_jira_dates_become_rfc3339_in_utc(text, utc):
 
 def issue(key: str, assignee: JiraUser | None, summary: str = "Fix login") -> Issue:
     return Issue(
-        key.lower(), key, summary, "To Do", "PAY", assignee, JiraUser("acc-bo", "Bo"), "2026-10-23T10:00:00.000+0200"
+        key.lower(),
+        key,
+        summary,
+        "To Do",
+        "PAY",
+        assignee,
+        JiraUser("acc-bo", "Bo"),
+        "2026-10-23T10:00:00.000+0200",
+        status_category="new",
     )
 
 
@@ -64,6 +72,24 @@ def test_an_issue_is_inbound_when_assigned_to_the_user():
     assert (waiting.title, waiting.items[0].direction) == ("PAY-2", Direction.OUTBOUND)
     assert waiting.items[0].url == f"{SITE}/browse/PAY-2"
     assert waiting.items[0].date == "2026-10-23T08:00:00Z"
+    assert mine.status == TopicStatus("To Do", StatusCategory.NEW)
+
+
+@pytest.mark.parametrize(
+    ("name", "category", "expected"),
+    [
+        ("To Do", "new", TopicStatus("To Do", StatusCategory.NEW)),
+        ("Code Review", "indeterminate", TopicStatus("Code Review", StatusCategory.IN_PROGRESS)),
+        ("Closed", "done", TopicStatus("Closed", StatusCategory.DONE)),
+        ("Triage", "undefined", TopicStatus("Triage", None)),
+        ("Triage", None, TopicStatus("Triage", None)),
+        (" In Progress ", "indeterminate", TopicStatus("In Progress", StatusCategory.IN_PROGRESS)),
+        ("", "new", None),
+        ("  ", None, None),
+    ],
+)
+def test_an_issue_status_keeps_its_name_and_maps_its_category(name, category, expected):
+    assert jira.status(name, category) == expected
 
 
 class FakeApi(JiraApi):

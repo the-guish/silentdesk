@@ -39,6 +39,8 @@ def record(topic: Topic, service: str, old: TopicRecord | None, now: str, new_id
         updated_at=max((item.date for item in topic.items), default=now),
         deletable=topic.deletable,
         project_id=old.project_id if old else None,
+        # The service owns the status: the last sync's, never an older one.
+        status=topic.status,
     )
 
 

@@ -8,7 +8,7 @@ import pytest
 
 from silentdesk.apps.desk.core.search import check, matches
 from silentdesk.apps.desk.domain.topics import TopicRecord
-from silentdesk.contract import Direction, InvalidQuery, Item, TopicQuery
+from silentdesk.contract import Direction, InvalidQuery, Item, StatusCategory, TopicQuery, TopicStatus
 
 INVOICE = TopicRecord(
     "1",
@@ -37,6 +37,13 @@ TASK = TopicRecord(
         (INVOICE, True, TopicQuery(text="GMAIL"), True),
         (INVOICE, True, TopicQuery(text="m2"), True),
         (INVOICE, True, TopicQuery(text="invoice cy"), False),
+        (
+            replace(INVOICE, status=TopicStatus("Code Review", StatusCategory.IN_PROGRESS)),
+            True,
+            TopicQuery(text="review"),
+            True,
+        ),
+        (INVOICE, True, TopicQuery(text="review"), False),
         (TASK, False, TopicQuery(text="google tasks"), True),
         (INVOICE, True, TopicQuery(services=frozenset({"gmail", "github"})), True),
         (TASK, False, TopicQuery(services=frozenset({"gmail"})), False),
