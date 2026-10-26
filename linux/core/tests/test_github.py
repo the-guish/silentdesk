@@ -72,7 +72,7 @@ def test_a_pull_request_is_a_topic_with_one_item():
     assert (topic.key, topic.title) == ("7", "acme/web#7")
     [item] = topic.items
     assert (item.key, item.direction, item.author) == ("7", Direction.OUTBOUND, "ana")
-    assert topic.status == TopicStatus("Ready", StatusCategory.IN_PROGRESS)
+    assert topic.status == TopicStatus("In review", StatusCategory.IN_PROGRESS)
 
 
 def state(**fields) -> PullRequest:
@@ -89,8 +89,8 @@ def state(**fields) -> PullRequest:
         (state(checks="SUCCESS", review="APPROVED"), "Approved"),
         (state(checks="PENDING", review="APPROVED"), "Approved"),
         (state(review="CHANGES_REQUESTED"), "Changes Requested"),
-        (state(review="REVIEW_REQUIRED"), "Ready"),
-        (state(), "Ready"),
+        (state(review="REVIEW_REQUIRED"), "In review"),
+        (state(), "In review"),
         (state(draft=True, checks="PENDING"), "Draft"),
         (state(draft=True, review="REVIEW_REQUIRED"), "Draft"),
     ],
@@ -102,7 +102,7 @@ def test_the_first_status_that_applies_wins(pull_request, name):
 @pytest.mark.parametrize(
     ("name", "category"),
     [("Merged", StatusCategory.DONE), ("Closed", StatusCategory.DONE), ("Draft", StatusCategory.NEW)]
-    + [(n, StatusCategory.IN_PROGRESS) for n in ("CI Failed", "Approved", "Changes Requested", "Ready")],
+    + [(n, StatusCategory.IN_PROGRESS) for n in ("CI Failed", "Approved", "Changes Requested", "In review")],
 )
 def test_each_status_has_its_category(name, category):
     assert github.STATUS_CATEGORIES[name] == category
