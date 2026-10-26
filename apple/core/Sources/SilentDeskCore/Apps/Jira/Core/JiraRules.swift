@@ -1,5 +1,5 @@
 /// Rules about Jira: sites, the search, dates and topics.
-/// See spec/integrations/jira.md.
+/// See docs/specs/integrations/jira.md.
 
 import Foundation
 

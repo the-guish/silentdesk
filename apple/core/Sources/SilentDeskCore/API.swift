@@ -1,4 +1,4 @@
-/// The core's public API: one function per command in spec/cli.md.
+/// The core's public API: one function per command in docs/specs/cli.md.
 ///
 /// The CLI and the apps use only this. Everything it returns is plain data,
 /// shaped as the contract describes. It is also where the apps are wired
@@ -7,7 +7,7 @@
 import Foundation
 
 public enum API {
-    /// The version of spec/cli.md this core implements.
+    /// The version of docs/specs/cli.md this core implements.
     public static let contract = 1
     /// This core's own version.
     public static let coreVersion = "0.1.0"

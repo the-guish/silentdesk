@@ -1,7 +1,7 @@
 import Foundation
 import SilentDeskCore
 
-/// `silentdesk`: the JSON command line specified in spec/cli.md. Each command
+/// `silentdesk`: the JSON command line specified in docs/specs/cli.md. Each command
 /// is a thin wrapper around the matching function in `API`.
 public enum CLI {
     public static let exitOK: Int32 = 0

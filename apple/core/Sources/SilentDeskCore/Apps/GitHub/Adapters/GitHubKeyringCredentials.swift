@@ -1,5 +1,5 @@
 final class GitHubKeyringCredentials: GitHubCredentials {
-    /// The keyring entry, as in legacy. See spec/storage.md.
+    /// The keyring entry, as in legacy. See docs/specs/storage.md.
     static let name = "github-token"
 
     private let keyring: any Keyring

@@ -1,5 +1,5 @@
 final class TasksKeyringCredentials: TasksCredentials {
-    /// The keyring entry per service, as in legacy. See spec/storage.md.
+    /// The keyring entry per service, as in legacy. See docs/specs/storage.md.
     static let names = ["tasks": "google-tasks-refresh-token"]
 
     private let keyring: any Keyring

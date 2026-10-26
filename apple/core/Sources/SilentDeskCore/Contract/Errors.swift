@@ -1,5 +1,5 @@
 /// Errors apps raise to each other and to the interfaces. Each connector
-/// error has a `kind`, which the CLI reports as the error kind in spec/cli.md.
+/// error has a `kind`, which the CLI reports as the error kind in docs/specs/cli.md.
 
 /// A failure in one connector, or below any one app, as in the HTTPS client.
 public struct ConnectorError: Error, Sendable, Equatable {

@@ -1,4 +1,4 @@
-"""The SQLCipher database. See spec/storage.md."""
+"""The SQLCipher database. See docs/specs/storage.md."""
 
 from __future__ import annotations
 

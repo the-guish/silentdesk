@@ -1,6 +1,6 @@
 """Projects on screen: the topic screen's project button, which moves the
 topic, and the Projects dialog, which renames and deletes them. See
-spec/filters.md."""
+docs/specs/filters.md."""
 
 from __future__ import annotations
 

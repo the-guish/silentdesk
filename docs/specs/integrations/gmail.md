@@ -31,7 +31,7 @@ Tokens never reach the webview. The UI only sees the connection status and topic
 
 ## Syncing
 
-- **Automatic,** at startup, every 2 minutes and on window focus. See `spec/sync.md`.
+- **Automatic,** at startup, every 2 minutes and on window focus. See `docs/specs/sync.md`.
 - **What it fetches:** every message in the Inbox, excluding drafts and chat messages.
 - **Per message:** `Subject`, labels and the internal date.
   - `SENT` label → outbound; anything else → inbound.
