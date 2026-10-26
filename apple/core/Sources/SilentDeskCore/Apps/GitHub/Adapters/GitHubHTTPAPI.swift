@@ -71,16 +71,17 @@ final class GitHubHTTPAPI: GitHubAPI {
         }
         let found = try await send(
             "POST", graphqlURL, token: token, json: ["query": .string(Self.pullRequests), "variables": .object(variables)])
-        if let errors = found["errors"]?.array, let first = errors.first {
-            throw ConnectorError.remote(
-                service, "GitHub answered: \(first["message"]?.string ?? "an error").", status: 200)
-        }
-        guard found["data"]?.object != nil else {
-            throw ConnectorError.network(service, "GitHub's search answer could not be read.")
-        }
+        // GitHub can answer with data and errors at once, such as for a
+        // repository the token cannot read. Its pull requests come back
+        // empty, and the others still count. Only a missing search fails the
+        // sync, as dropping it would drop its pull requests' topics.
         var pulls: [PullRequest] = []
         for (_, reason) in queries {
             guard let nodes = found["data"]?[reason.rawValue]?["nodes"]?.array else {
+                if let first = found["errors"]?.array?.first {
+                    throw ConnectorError.remote(
+                        service, "GitHub answered: \(first["message"]?.string ?? "an error").", status: 200)
+                }
                 throw ConnectorError.network(service, "GitHub's search answer could not be read.")
             }
             // A search for pull requests can still hold an empty node, as for
