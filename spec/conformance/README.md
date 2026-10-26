@@ -50,6 +50,8 @@ A reply with `redirect` sends a 302 to that address instead, after replacing `{q
 
 `requests`, if given, lists the requests the core must send, in order, and no others. Each names its `method` and `path`; its `query` and `headers` must be present in the request sent, and its `body`, if given, is compared as `stdout` is.
 
+A core may send some requests concurrently, such as Gmail's message reads. A case lists them in one `{"any_order": [...]}` entry. They come next, in any order. Each one is paired with the expected request of the same `method` and `path`.
+
 ## How stdout is compared
 
 - Objects must have exactly the expected keys; key order does not matter.
