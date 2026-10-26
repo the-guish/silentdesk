@@ -1,6 +1,6 @@
 # SilentDesk — Topic status
 
-A topic can carry the status its service gives it, such as a Jira issue's `In Progress`. Both apps show it as a chip, first in every row of the queue.
+A topic has a status given by its service, such as `In Progress` for a Jira issue. Both apps show it as a chip, first in every row of the queue.
 
 ## Which services report one
 
