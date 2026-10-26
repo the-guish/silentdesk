@@ -382,16 +382,20 @@
       "path": "/gmail/gmail/v1/users/me/messages"
     },
     {
-      "method": "GET",
-      "path": "/gmail/gmail/v1/users/me/messages/m3"
-    },
-    {
-      "method": "GET",
-      "path": "/gmail/gmail/v1/users/me/messages/m2"
-    },
-    {
-      "method": "GET",
-      "path": "/gmail/gmail/v1/users/me/messages/m1"
+      "any_order": [
+        {
+          "method": "GET",
+          "path": "/gmail/gmail/v1/users/me/messages/m3"
+        },
+        {
+          "method": "GET",
+          "path": "/gmail/gmail/v1/users/me/messages/m2"
+        },
+        {
+          "method": "GET",
+          "path": "/gmail/gmail/v1/users/me/messages/m1"
+        }
+      ]
     },
     {
       "method": "POST",
