@@ -72,3 +72,18 @@ private func record(_ key: String, id: String = "id-\(Int.random(in: 1...1_000_0
     #expect(SyncRounds.roundOrder(["gmail", "zulip", "github", "tasks"]) == ["tasks", "github", "gmail", "zulip"])
     #expect(SyncRounds.roundOrder([]) == [])
 }
+
+@Test func aTopicOfAServiceNoLongerWiredIsAnUnknownService() async throws {
+    let folder = try temporaryFolder()
+    let database = SqlcipherDatabase(path: "\(folder)/silentdesk.db", keyring: FileKeyring(path: "\(folder)/keyring.json"))
+    let store = SqlcipherTopicStore(database: database)
+    let left = TopicRecord(
+        id: "T", service: "gone", key: "k", title: "t", items: [item("i", "2026-10-01T00:00:00Z", deletable: true)],
+        createdAt: "2026-09-01T00:00:00Z", updatedAt: "2026-10-01T00:00:00Z", deletable: true)
+    try await store.replace("gone", with: [left])
+    let desk = DeskService(connectors: [], store: store, clock: FixedClock("2026-10-05T00:00:00Z"))
+    await #expect(throws: UnknownService.self) { try await desk.history(topicID: "T") }
+    await #expect(throws: UnknownService.self) { try await desk.reply(topicID: "T", body: "hi") }
+    await #expect(throws: UnknownService.self) { try await desk.delete(topicID: "T") }
+    await #expect(throws: UnknownService.self) { try await desk.deleteItem(topicID: "T", itemKey: "i") }
+}

@@ -9,7 +9,7 @@ import Glibc
 import Darwin
 #endif
 
-private func temporaryFolder() throws -> String {
+func temporaryFolder() throws -> String {
     let folder = FileManager.default.temporaryDirectory.appendingPathComponent("silentdesk-tests-\(UUID().uuidString)").path
     try FileManager.default.createDirectory(atPath: folder, withIntermediateDirectories: true)
     return folder

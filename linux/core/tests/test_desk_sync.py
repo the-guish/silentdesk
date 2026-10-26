@@ -9,7 +9,10 @@ from itertools import count
 
 import pytest
 
+from silentdesk.adapters.file_keyring import FileKeyring
+from silentdesk.adapters.sqlcipher_database import SqlcipherDatabase
 from silentdesk.apps.desk.adapters.clocks import FixedClock
+from silentdesk.apps.desk.adapters.sqlcipher_topic_store import SqlcipherTopicStore
 from silentdesk.apps.desk.application.desk import DeskService
 from silentdesk.apps.desk.core.sync import round_order
 from silentdesk.apps.desk.domain.topics import TopicRecord
@@ -221,6 +224,24 @@ def test_syncing_an_unknown_service_is_an_error():
     service, _ = desk()
     with pytest.raises(UnknownService, match="Unknown service 'zulip'"):
         asyncio.run(service.sync("zulip"))
+
+
+@pytest.mark.parametrize(
+    "operation",
+    [
+        lambda desk: desk.history("T"),
+        lambda desk: desk.reply("T", "hi"),
+        lambda desk: desk.delete("T"),
+        lambda desk: desk.delete_item("T", "i"),
+    ],
+    ids=["history", "reply", "delete", "delete_item"],
+)
+def test_a_topic_of_a_service_no_longer_wired_is_an_unknown_service(tmp_path, operation):
+    store = SqlcipherTopicStore(SqlcipherDatabase(tmp_path / "silentdesk.db", FileKeyring(tmp_path / "keyring.json")))
+    left = TopicRecord("T", "gone", "k", "t", [email("i", NOW, deletable=True)], NOW, NOW, deletable=True)
+    asyncio.run(store.replace("gone", [left]))
+    with pytest.raises(UnknownService, match="Unknown service 'gone'"):
+        asyncio.run(operation(DeskService([], store, FixedClock(NOW))))
 
 
 def synced(*found: Topic) -> tuple[DeskService, MemoryTopicStore, list[str]]:
