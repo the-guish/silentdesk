@@ -13,10 +13,12 @@ A pull request shows one chip. The first row that applies wins.
 | 3 | CI Failed | A check on its last commit failed. | `inProgress` |
 | 4 | Approved | A reviewer approved it. | `inProgress` |
 | 5 | Changes Requested | A reviewer asked for changes. | `inProgress` |
-| 6 | Ready | It is ready for review. | `inProgress` |
+| 6 | In review | It is not a draft. | `inProgress` |
 | 7 | Draft | It is a draft. | `new` |
 
 The order follows the pull request's life, from its end back to its start. Merged and Closed come first because they end it. CI Failed comes next because a failed check blocks a pull request at any stage.
+
+"In review" says that no reviewer has decided yet. The comments may still hold objections, even with no change requested.
 
 ## Where the status comes from
 
@@ -29,7 +31,7 @@ One GraphQL request per sync runs the three searches and reads what each chip ne
 | `commits(last: 1)` → `statusCheckRollup.state` | `FAILURE` or `ERROR` | CI Failed |
 | `reviewDecision` | `APPROVED` | Approved |
 | `reviewDecision` | `CHANGES_REQUESTED` | Changes Requested |
-| `isDraft` | `false` | Ready |
+| `isDraft` | `false` | In review |
 | `isDraft` | `true` | Draft |
 
 The query goes to `https://api.github.com/graphql`, or to `https://<host>/api/graphql` on GitHub Enterprise Server.
