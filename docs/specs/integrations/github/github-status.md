@@ -20,7 +20,7 @@ The order follows the pull request's life, from its end back to its start. Merge
 
 ## Where the status comes from
 
-One GraphQL query per sync reads every pull request in the queue. It replaces the three searches.
+One GraphQL request per sync runs the three searches and reads what each chip needs.
 
 | GraphQL field | Value | Chip |
 |---------------|-------|------|
