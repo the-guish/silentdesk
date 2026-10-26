@@ -1,14 +1,2 @@
 # Conformance cases this core does not pass yet, one name per line.
 # See spec/conformance/README.md.
-services-configured
-services-empty-client-id
-services-unconfigured
-services-connected
-disconnect-forgets-the-sign-in
-sync-not-connected
-tasks-connect-scope-not-granted
-tasks-sync-grant-revoked
-gmail-connect-sync-threads
-gmail-reply-and-delete
-gmail-sync-new-messages-only
-gmail-delete-one-message
