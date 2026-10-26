@@ -135,3 +135,8 @@ def chip_width(widths: list[int], queue_width: int) -> int:
     if queue_width <= 0:
         return widest
     return min(widest, int(queue_width * CHIP_SHARE))
+
+
+def topic_url(topic: TopicView) -> str | None:
+    """Where the topic opens in its service: its newest item with a link."""
+    return next((item.url for item in reversed(topic.items) if item.url), None)

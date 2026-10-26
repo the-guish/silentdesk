@@ -129,6 +129,11 @@ public enum Format {
         return queueWidth > 0 ? min(widest, (queueWidth * chipShare).rounded(.down)) : widest
     }
 
+    /// Where the topic opens in its service: its newest item with a link.
+    public static func topicURL(_ topic: TopicView) -> String? {
+        topic.items.reversed().lazy.compactMap(\.url).first
+    }
+
     /// Whether every word of the query is in the topic.
     public static func matches(_ topic: TopicView, _ query: String) -> Bool {
         let text = searchText(topic)

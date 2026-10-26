@@ -119,10 +119,12 @@ struct QueueView: View {
     }
 }
 
-/// One topic in the queue: its status, who wrote last, the title, and when.
+/// One topic in the queue: its status, who wrote last, the title, when,
+/// and a button that opens it in its service.
 struct TopicRow: View {
     let topic: TopicView
     let chipWidth: CGFloat
+    @Environment(\.openURL) private var openURL
 
     var body: some View {
         HStack(spacing: 10) {
@@ -143,8 +145,28 @@ struct TopicRow: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .monospacedDigit()
+            link
         }
         .padding(.vertical, 4)
+    }
+}
+
+extension TopicRow {
+    /// Opens the topic in its service, without opening the topic screen. A
+    /// topic without a link keeps the button's space, so the dates line up.
+    @ViewBuilder
+    fileprivate var link: some View {
+        let url = Format.topicURL(topic).flatMap(URL.init(string:))
+        Button {
+            if let url { openURL(url) }
+        } label: {
+            Label("Open in \(Format.serviceName(topic.service))", systemImage: "arrow.up.forward.square")
+                .labelStyle(.iconOnly)
+        }
+        .buttonStyle(.borderless)
+        .help("Open in \(Format.serviceName(topic.service))")
+        .opacity(url == nil ? 0 : 1)
+        .disabled(url == nil)
     }
 }
 

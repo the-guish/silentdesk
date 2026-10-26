@@ -117,17 +117,20 @@ class TopicList:
         title = Gtk.Label(xalign=0, ellipsize=Pango.EllipsizeMode.END)
         subtitle = Gtk.Label(xalign=0, ellipsize=Pango.EllipsizeMode.END, css_classes=["dim-label", "caption"])
         date = Gtk.Label(valign=Gtk.Align.CENTER, css_classes=["dim-label", "caption", "numeric"])
+        # Opens the topic in its service, without opening the topic screen.
+        link = Gtk.Button(icon_name="adw-external-link-symbolic", valign=Gtk.Align.CENTER, css_classes=["flat"])
+        link.connect("clicked", lambda _: self._open(item.get_item().topic))
         text = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, hexpand=True)
         text.append(title)
         text.append(subtitle)
         row = Gtk.Box(spacing=12, margin_top=6, margin_bottom=6, margin_start=6, margin_end=6)
-        for widget in (slot, avatar, text, date):
+        for widget in (slot, avatar, text, date, link):
             row.append(widget)
         item.set_child(row)
 
     def _bind(self, factory: Gtk.SignalListItemFactory, item: Gtk.ListItem) -> None:
         topic = item.get_item().topic
-        slot, avatar, text, date = list(_children(item.get_child()))
+        slot, avatar, text, date, link = list(_children(item.get_child()))
         title, subtitle = list(_children(text))
         chip = slot.get_child()
         chip.set_label(format.chip_label(topic.status))
@@ -139,6 +142,15 @@ class TopicList:
         title.set_label(topic.title)
         subtitle.set_label(format.subtitle(topic))
         date.set_label(format.short_date(topic.updated_at, self.now()))
+        # A topic without a link keeps the button's space, so the dates line up.
+        url = format.topic_url(topic)
+        link.set_sensitive(url is not None)
+        link.set_opacity(1 if url else 0)
+        link.set_tooltip_text(f"Open in {format.service_name(topic.service)}" if url else None)
+
+    def _open(self, topic: TopicView) -> None:
+        if url := format.topic_url(topic):
+            Gtk.UriLauncher(uri=url).launch(self.view.get_root(), None, None)
 
 
 def _children(widget: Gtk.Widget):
