@@ -67,10 +67,9 @@ class GitHub(Connector):
         token = self.credentials.token()
         if account is None or token is None:
             raise AuthError(self.service, "GitHub is not connected.")
-        found = []
         try:
-            for query, reason in github.QUERIES:
-                found += await self.api.search(self.api_base(account.endpoint), token, query, reason)
+            url = github.graphql_url(self.api_base(account.endpoint))
+            found = await self.api.open_pull_requests(url, token, github.QUERIES)
         except AuthError as error:
             # Expired or revoked: forget the token, keep the topics.
             self.credentials.delete_token()
