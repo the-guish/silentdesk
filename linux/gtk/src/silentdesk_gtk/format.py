@@ -5,7 +5,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from silentdesk.contract import ConnectorError, Direction, SyncFailed, TopicView
+from silentdesk.contract import ConnectorError, Direction, StatusCategory, SyncFailed, TopicStatus, TopicView
 
 SERVICE_NAMES = {"gmail": "Gmail", "github": "GitHub", "jira": "Jira", "slack": "Slack", "tasks": "Google Tasks"}
 
@@ -102,3 +102,36 @@ def describe(error: BaseException) -> str:
     if isinstance(error, ConnectorError) and error.service:
         return f"{service_name(error.service)}: {error}"
     return str(error) or type(error).__name__
+
+
+# The chip's colour, by the status's category (docs/specs/topic-status.md).
+CHIP_CATEGORIES = {
+    StatusCategory.NEW: "status-new",
+    StatusCategory.IN_PROGRESS: "status-in-progress",
+    StatusCategory.DONE: "status-done",
+}
+# The chip column takes at most this share of the queue's width.
+CHIP_SHARE = 0.25
+# The chip of a topic without a status.
+NO_STATUS = "—"
+
+
+def chip_label(status: TopicStatus | None) -> str:
+    return status.name if status else NO_STATUS
+
+
+def chip_classes(status: TopicStatus | None) -> list[str]:
+    """The CSS classes of a topic's chip, fainter for a topic without a
+    status."""
+    if status is None:
+        return ["status-chip", "status-none"]
+    return ["status-chip", CHIP_CATEGORIES.get(status.category, "status-new")]
+
+
+def chip_width(widths: list[int], queue_width: int) -> int:
+    """One width for every chip: the widest one's, at most a share of the
+    queue's width. A queue not laid out yet, of width 0, sets no limit."""
+    widest = max(widths, default=0)
+    if queue_width <= 0:
+        return widest
+    return min(widest, int(queue_width * CHIP_SHARE))
