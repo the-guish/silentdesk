@@ -209,6 +209,7 @@
             }
           ],
           "projectId": null,
+          "status": null,
           "updatedAt": "2025-10-24T12:46:40Z",
           "deletable": false
         },
@@ -237,6 +238,7 @@
             }
           ],
           "projectId": null,
+          "status": null,
           "updatedAt": "2025-10-24T11:23:20Z",
           "deletable": false
         }
