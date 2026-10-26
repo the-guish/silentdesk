@@ -50,6 +50,8 @@ struct JiraIssue: Sendable, Equatable {
     let reporter: JiraUser?
     /// As Jira writes it, such as 2026-10-23T10:00:00.000+0200; nil when absent.
     let updated: String?
+    /// The status's statusCategory.key: new, indeterminate or done.
+    var statusCategory: String? = nil
 }
 
 extension JiraCredential: CustomStringConvertible {
