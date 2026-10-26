@@ -57,7 +57,7 @@ Each build has a new signature, so the first time a new build reads its Keychain
 
 ## Sign-in apps
 
-Gmail, Google Tasks and Slack sign in with an OAuth app of your own, whose client ID the core reads from `SILENTDESK_GOOGLE_CLIENT_ID`, `SILENTDESK_GOOGLE_CLIENT_SECRET` and `SILENTDESK_SLACK_CLIENT_ID` ([spec/cli.md](../../spec/cli.md)). An app opened from the Finder gets no shell variables, so it also reads them from its defaults:
+Gmail, Google Tasks and Slack sign in with an OAuth app of your own, whose client ID the core reads from `SILENTDESK_GOOGLE_CLIENT_ID`, `SILENTDESK_GOOGLE_CLIENT_SECRET` and `SILENTDESK_SLACK_CLIENT_ID` ([docs/specs/cli.md](../../docs/specs/cli.md)). An app opened from the Finder gets no shell variables, so it also reads them from its defaults:
 
 ```sh
 defaults write com.silentdesk.app SILENTDESK_GOOGLE_CLIENT_ID "…apps.googleusercontent.com"

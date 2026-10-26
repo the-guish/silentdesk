@@ -1,4 +1,4 @@
-"""The core's public API: one function per command in spec/cli.md.
+"""The core's public API: one function per command in docs/specs/cli.md.
 
 The CLI and the GTK app use only this module. It is also where the apps are
 wired together: each app's adapters, then the desk on top of every connector."""
@@ -24,7 +24,7 @@ from .apps.slack import wiring as slack_wiring
 from .contract import Desk
 
 CONTRACT = 1
-"""The version of spec/cli.md this core implements."""
+"""The version of docs/specs/cli.md this core implements."""
 
 
 class Version(TypedDict):

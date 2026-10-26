@@ -1,5 +1,5 @@
 """Rules about Slack: which messages, their text, and their topics. See
-spec/integrations/slack.md."""
+docs/specs/integrations/slack.md."""
 
 from __future__ import annotations
 

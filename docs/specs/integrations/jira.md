@@ -34,7 +34,7 @@ The token crosses from the UI to the backend once, when the user submits it. Aft
 
 ## Syncing
 
-- **Automatic,** at startup, every 2 minutes and on window focus. See `spec/sync.md`.
+- **Automatic,** at startup, every 2 minutes and on window focus. See `docs/specs/sync.md`.
 - **Query:** `(assignee = currentUser() OR reporter = currentUser()) AND statusCategory != Done ORDER BY updated DESC`, at most 10 results.
   - **Cloud** uses `GET /rest/api/3/search/jql`; the older `/search` endpoint has been removed from Jira Cloud.
   - **Data Center** uses `GET /rest/api/2/search`.
@@ -44,7 +44,7 @@ The token crosses from the UI to the backend once, when the user submits it. Aft
 ## What is stored
 
 In the encrypted vault, per issue:
-- issue ID and key, direction, status, project;
+- issue ID and key, direction, status with its category, project;
 - assignee and reporter display names;
 - browse URL and the last-updated date.
 

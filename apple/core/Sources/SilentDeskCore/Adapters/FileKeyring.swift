@@ -1,5 +1,5 @@
 /// A keyring in a plain JSON file, for tests only: it stores secrets
-/// unencrypted. Used when SILENTDESK_TEST_KEYRING is set; see spec/cli.md.
+/// unencrypted. Used when SILENTDESK_TEST_KEYRING is set; see docs/specs/cli.md.
 
 import Foundation
 

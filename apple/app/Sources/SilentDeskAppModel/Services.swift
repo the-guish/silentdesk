@@ -1,5 +1,5 @@
 /// What each service asks for to connect, and what can be done with its
-/// topics. The fields are those of `silentdesk connect` in spec/cli.md, as in
+/// topics. The fields are those of `silentdesk connect` in docs/specs/cli.md, as in
 /// the GTK app's services.py.
 
 import Foundation

@@ -1,5 +1,5 @@
 """Rules about Gmail: threads as topics, and replies. See
-spec/integrations/gmail.md."""
+docs/specs/integrations/gmail.md."""
 
 from __future__ import annotations
 

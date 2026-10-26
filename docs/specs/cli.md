@@ -25,7 +25,7 @@ silentdesk <command> [arguments]
 
 ## Errors
 
-On failure, stdout holds an error document ([schema](schema/error.json)):
+On failure, stdout holds an error document ([schema](../../spec/schema/error.json)):
 
 ```json
 {"error": {"kind": "usage", "message": "Unknown command 'foo'. Commands: version."}}
@@ -89,7 +89,7 @@ Tests and CI cannot reach GNOME Keyring or the macOS Keychain, so when `SILENTDE
 
 ### `version`
 
-Takes no arguments. Reports which contract the core implements ([schema](schema/version.json)).
+Takes no arguments. Reports which contract the core implements ([schema](../../spec/schema/version.json)).
 
 ```json
 {"contract": 1, "implementation": "python", "version": "0.1.0"}
@@ -103,7 +103,7 @@ Takes no arguments. Reports which contract the core implements ([schema](schema/
 
 ### `services`
 
-Takes no arguments. Lists every service SilentDesk can connect, sorted by `service` ([schema](schema/services.json)).
+Takes no arguments. Lists every service SilentDesk can connect, sorted by `service` ([schema](../../spec/schema/services.json)).
 
 ```json
 [
@@ -124,13 +124,13 @@ Takes no arguments. Lists every service SilentDesk can connect, sorted by `servi
 
 ### `topics`
 
-Takes no arguments. Lists the topics that match a query, newest first: by `updatedAt`, then by `id`, both descending ([schema](schema/topics.json)). Creates the database on first use.
+Takes no arguments. Lists the topics that match a query, newest first: by `updatedAt`, then by `id`, both descending ([schema](../../spec/schema/topics.json)). Creates the database on first use.
 
 The query is one JSON object on stdin, such as `{"text": "invoice", "services": ["gmail"]}`. Empty input lists every topic. Both apps search and filter through it ([filters.md](filters.md)).
 
 | Field | Type | A topic matches when |
 |-------|------|----------------------|
-| `text` | string | Each of its words is in the title, the service's name, an item's author or an item's key, ignoring case. The service names are `Gmail`, `GitHub`, `Jira`, `Slack` and `Google Tasks`. |
+| `text` | string | Each of its words is in the title, the service's name, the status's name, an item's author or an item's key, ignoring case. The service names are `Gmail`, `GitHub`, `Jira`, `Slack` and `Google Tasks`. |
 | `projects` | array of strings | Its project is one of these project IDs. `default` stands for Default. |
 | `services` | array of strings | Its service is one of these, such as `gmail`. |
 | `people` | array of strings | One of these people wrote one of its items, by `author`. |
@@ -151,6 +151,7 @@ A topic is listed when it matches every field in the query. An array matches a t
       {"key": "18c2…", "direction": "inbound", "author": "Ana Ruiz", "url": null, "date": "2026-10-24T09:12:00Z", "deletable": true}
     ],
     "projectId": null,
+    "status": null,
     "updatedAt": "2026-10-24T09:12:00Z",
     "deletable": true
   }
@@ -170,6 +171,9 @@ A topic is listed when it matches every field in the query. An array matches a t
 | `items[].date` | string | RFC 3339. |
 | `items[].deletable` | boolean | `delete <topic-id> <item-key>` can delete it. |
 | `projectId` | string \| null | The topic's project, or `null` for Default. |
+| `status` | object \| null | The status given by the topic's service, or `null` when the service reports none. See [topic-status.md](topic-status.md). |
+| `status.name` | string | As the service writes it, such as `In Progress`. |
+| `status.category` | `new` \| `inProgress` \| `done` \| null | Where the status stands. |
 | `updatedAt` | string | The newest item's date. |
 | `deletable` | boolean | `delete <topic-id>` can delete the whole topic. |
 
@@ -179,7 +183,7 @@ A new topic starts in Default, with `projectId` null. A topic keeps its project 
 
 ### `connect <service>`
 
-Connects one service. Reads the service's fields as one JSON object of strings on stdin, such as `{"token": "…"}`; empty input means no fields. Each service lists its fields in its own section. Prints the service's status, as one item of `services` ([schema](schema/status.json)).
+Connects one service. Reads the service's fields as one JSON object of strings on stdin, such as `{"token": "…"}`; empty input means no fields. Each service lists its fields in its own section. Prints the service's status, as one item of `services` ([schema](../../spec/schema/status.json)).
 
 | Service | Fields |
 |---------|--------|
@@ -190,11 +194,11 @@ Connects one service. Reads the service's fields as one JSON object of strings o
 
 ### `disconnect <service>`
 
-Disconnects one service: forgets its credentials, its stored state and its topics. Prints the service's status ([schema](schema/status.json)).
+Disconnects one service: forgets its credentials, its stored state and its topics. Prints the service's status ([schema](../../spec/schema/status.json)).
 
 ### `sync [service]`
 
-Syncs one service, or, without an argument, every connected service in turn: Google Tasks, GitHub, Jira, Slack, then Gmail. Prints when topics last changed ([schema](schema/sync.json)).
+Syncs one service, or, without an argument, every connected service in turn: Google Tasks, GitHub, Jira, Slack, then Gmail. Prints when topics last changed ([schema](../../spec/schema/sync.json)).
 
 ```json
 {"lastSynced": "2026-10-24T12:00:00Z"}
@@ -202,7 +206,7 @@ Syncs one service, or, without an argument, every connected service in turn: Goo
 
 ### `history <topic-id>`
 
-A topic's recent messages with their text, oldest first, read live from its service and never stored ([schema](schema/history.json)). Slack shows the conversation's 50 most recent messages, without join and leave events. Services that keep no conversation fail with `unsupported`: Gmail, for one, never reads a message's body.
+A topic's recent messages with their text, oldest first, read live from its service and never stored ([schema](../../spec/schema/history.json)). Slack shows the conversation's 50 most recent messages, without join and leave events. Services that keep no conversation fail with `unsupported`: Gmail, for one, never reads a message's body.
 
 ```json
 [{"key": "1761300000.000100", "direction": "inbound", "author": "Bo Lind", "text": "Can you check the deploy?", "date": "2025-10-24T10:00:00Z"}]
@@ -210,15 +214,15 @@ A topic's recent messages with their text, oldest first, read live from its serv
 
 ### `reply <topic-id>`
 
-Replies in a topic, through its service: for Gmail, to the thread's newest message. The reply is plain text on stdin, written by the user, so it carries no AI notice (core principle 9). Prints `{}` ([schema](schema/empty.json)). An empty reply, or an unknown topic ID, is a usage error; a service that cannot reply fails with `unsupported`.
+Replies in a topic, through its service: for Gmail, to the thread's newest message. The reply is plain text on stdin, written by the user, so it carries no AI notice (core principle 9). Prints `{}` ([schema](../../spec/schema/empty.json)). An empty reply, or an unknown topic ID, is a usage error; a service that cannot reply fails with `unsupported`.
 
 ### `delete <topic-id> [item-key]`
 
-Deletes a topic, or with an item key one of its items, in its service, then drops it. For Gmail, the thread or the message moves to the trash, which Gmail empties after 30 days. A topic its connector cannot delete at once is deleted item by item, oldest first; if one fails, the command fails and the items deleted before it stay deleted. After an item is deleted, the topic shows as its service reports it, so its title can change; deleting its last item drops it. Prints `{}` ([schema](schema/empty.json)). An unknown topic ID or item key is a usage error; a topic or item that is not `deletable` fails with `unsupported`.
+Deletes a topic, or with an item key one of its items, in its service, then drops it. For Gmail, the thread or the message moves to the trash, which Gmail empties after 30 days. A topic its connector cannot delete at once is deleted item by item, oldest first; if one fails, the command fails and the items deleted before it stay deleted. After an item is deleted, the topic shows as its service reports it, so its title can change; deleting its last item drops it. Prints `{}` ([schema](../../spec/schema/empty.json)). An unknown topic ID or item key is a usage error; a topic or item that is not `deletable` fails with `unsupported`.
 
 ### `projects`
 
-Takes no arguments. Lists the user's projects, sorted by name, ignoring case ([schema](schema/projects.json)). Default is not in the list. It holds every topic without a project.
+Takes no arguments. Lists the user's projects, sorted by name, ignoring case ([schema](../../spec/schema/projects.json)). Default is not in the list. It holds every topic without a project.
 
 ```json
 [{"id": "9b1e…", "name": "Project-45"}, {"id": "3c7a…", "name": "Project-X"}]
@@ -226,19 +230,19 @@ Takes no arguments. Lists the user's projects, sorted by name, ignoring case ([s
 
 ### `project add <name>`
 
-Creates a project and prints it ([schema](schema/project.json)). The name is free text, without its leading and trailing spaces. A name is a usage error when it is empty or another project has it. `All` and `Default` are usage errors too, as the filter bar uses them ([filters.md](filters.md)). These checks ignore case.
+Creates a project and prints it ([schema](../../spec/schema/project.json)). The name is free text, without its leading and trailing spaces. A name is a usage error when it is empty or another project has it. `All` and `Default` are usage errors too, as the filter bar uses them ([filters.md](filters.md)). These checks ignore case.
 
 ### `project rename <project-id> <name>`
 
-Renames a project and prints it ([schema](schema/project.json)). The name follows the rules of `project add`. An unknown project ID is a usage error.
+Renames a project and prints it ([schema](../../spec/schema/project.json)). The name follows the rules of `project add`. An unknown project ID is a usage error.
 
 ### `project delete <project-id>`
 
-Deletes a project. Its topics move back to Default. Prints `{}` ([schema](schema/empty.json)). An unknown project ID is a usage error.
+Deletes a project. Its topics move back to Default. Prints `{}` ([schema](../../spec/schema/empty.json)). An unknown project ID is a usage error.
 
 ### `move <topic-id> <project-id>`
 
-Moves a topic to a project. The project ID `default` moves it back to Default. Prints `{}` ([schema](schema/empty.json)). An unknown topic or project ID is a usage error.
+Moves a topic to a project. The project ID `default` moves it back to Default. Prints `{}` ([schema](../../spec/schema/empty.json)). An unknown topic or project ID is a usage error.
 
 ## Planned
 

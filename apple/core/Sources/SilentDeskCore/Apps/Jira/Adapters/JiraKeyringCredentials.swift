@@ -1,5 +1,5 @@
 final class JiraKeyringCredentials: JiraCredentials {
-    /// The keyring entry, as in legacy: {"email": ..., "token": ...}. See spec/storage.md.
+    /// The keyring entry, as in legacy: {"email": ..., "token": ...}. See docs/specs/storage.md.
     static let name = "jira-credential"
 
     private let keyring: any Keyring

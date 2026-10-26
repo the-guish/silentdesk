@@ -8,7 +8,7 @@ from ..ports.credentials import Credentials
 
 
 class KeyringCredentials(Credentials):
-    # The keyring entry per service, as in legacy. See spec/storage.md.
+    # The keyring entry per service, as in legacy. See docs/specs/storage.md.
     NAMES: ClassVar[Mapping[str, str]] = {"tasks": "google-tasks-refresh-token"}
 
     def __init__(self, keyring: Keyring) -> None:

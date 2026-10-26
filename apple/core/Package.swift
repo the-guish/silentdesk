@@ -12,7 +12,7 @@ let package = Package(
     ],
     dependencies: [
         // SQLCipher, as Zetetic ships it for Apple platforms: the database is
-        // encrypted at rest (spec/storage.md).
+        // encrypted at rest (docs/specs/storage.md).
         .package(url: "https://github.com/sqlcipher/SQLCipher.swift.git", from: "4.19.0"),
     ],
     targets: [
@@ -31,7 +31,7 @@ let package = Package(
                 .target(name: "COpenSSL", condition: .when(platforms: [.linux])),
             ]
         ),
-        // The JSON command line from spec/cli.md, as a library so it can be tested.
+        // The JSON command line from docs/specs/cli.md, as a library so it can be tested.
         .target(name: "SilentDeskCLI", dependencies: ["SilentDeskCore"]),
         .executableTarget(name: "silentdesk", dependencies: ["SilentDeskCLI"]),
         .testTarget(name: "SilentDeskCoreTests", dependencies: ["SilentDeskCore"]),

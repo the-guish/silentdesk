@@ -38,7 +38,7 @@ The trade-off: a fine-grained token covers a single organization. Users across s
 
 ## Syncing
 
-- **Automatic,** at startup, every 2 minutes and on window focus. See `spec/sync.md`.
+- **Automatic,** at startup, every 2 minutes and on window focus. See `docs/specs/sync.md`.
 - **Fetching:** three `GET /search/issues` queries, each `is:pr is:open archived:false <qualifier>`, sorted by last update, 50 per query.
   - GitHub's search now rejects queries that do not name a type, so each one starts with `is:pr`.
   - Results are merged by pull request ID and sorted by last update.
