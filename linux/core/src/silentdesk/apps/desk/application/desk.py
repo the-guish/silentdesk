@@ -85,13 +85,14 @@ class DeskService(Desk):
         await self.store.delete_project(project_id)
 
     async def move(self, topic_id: str, project_id: str | None) -> None:
-        if project_id is not None:
-            await self._project(project_id)
         # Inside the service's lock, so a sync of the topic's service cannot
-        # write back its old project.
+        # write back its old project. The project is checked there too: it
+        # may be deleted while the move waits.
         service = (await self._record(topic_id)).service
-        async with self.locks[service]:
+        async with self._lock(service):
             await self._record(topic_id)
+            if project_id is not None:
+                await self._project(project_id)
             await self.store.move(topic_id, project_id)
 
     async def _project(self, project_id: str) -> Project:
