@@ -27,7 +27,7 @@ def apply(
 
 def record(topic: Topic, service: str, old: TopicRecord | None, now: str, new_id: Callable[[], str]) -> TopicRecord:
     """The record for a topic as its connector reports it, keeping the old
-    record's ID and creation time."""
+    record's ID, creation time and project."""
     return TopicRecord(
         id=old.id if old else new_id(),
         service=service,
@@ -38,6 +38,7 @@ def record(topic: Topic, service: str, old: TopicRecord | None, now: str, new_id
         # RFC 3339 times in UTC sort as text.
         updated_at=max((item.date for item in topic.items), default=now),
         deletable=topic.deletable,
+        project_id=old.project_id if old else None,
     )
 
 

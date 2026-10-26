@@ -7,14 +7,17 @@ abstract classes for behaviour, frozen dataclasses for the data they pass."""
 from .browser import Browser
 from .connector import Connector, Direction, Item, Message, ServiceStatus, SyncResult, Topic
 from .database import Database, StorageError
-from .desk import Desk, TopicView
+from .desk import DEFAULT_PROJECT, Desk, Project, TopicQuery, TopicView
 from .errors import (
     AuthError,
     ConnectorError,
+    InvalidProjectName,
+    InvalidQuery,
     NetworkError,
     RemoteError,
     SyncFailed,
     UnknownItem,
+    UnknownProject,
     UnknownService,
     UnknownTopic,
     Unsupported,
@@ -25,6 +28,7 @@ from .oauth import OAuth, OAuthClient, Tokens
 from .settings import Settings
 
 __all__ = [
+    "DEFAULT_PROJECT",
     "AuthError",
     "Browser",
     "Connector",
@@ -33,12 +37,15 @@ __all__ = [
     "Desk",
     "Direction",
     "Http",
+    "InvalidProjectName",
+    "InvalidQuery",
     "Item",
     "Keyring",
     "Message",
     "NetworkError",
     "OAuth",
     "OAuthClient",
+    "Project",
     "RemoteError",
     "Response",
     "ServiceStatus",
@@ -48,8 +55,10 @@ __all__ = [
     "SyncResult",
     "Tokens",
     "Topic",
+    "TopicQuery",
     "TopicView",
     "UnknownItem",
+    "UnknownProject",
     "UnknownService",
     "UnknownTopic",
     "Unsupported",

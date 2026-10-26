@@ -1,0 +1,105 @@
+{
+  "description": "projects are added with trimmed names, listed by name ignoring case, renamed and deleted",
+  "env": {
+    "SILENTDESK_TEST_KEYRING": "{home}/keyring.json"
+  },
+  "steps": [
+    {
+      "args": [
+        "project",
+        "add",
+        "Project-X"
+      ],
+      "exit": 0,
+      "schema": "project.json",
+      "stdout": {
+        "id": {
+          "$any": "string"
+        },
+        "name": "Project-X"
+      },
+      "capture": {
+        "x": [
+          "id"
+        ]
+      }
+    },
+    {
+      "args": [
+        "project",
+        "add",
+        "  acme  "
+      ],
+      "exit": 0,
+      "schema": "project.json",
+      "stdout": {
+        "id": {
+          "$any": "string"
+        },
+        "name": "acme"
+      }
+    },
+    {
+      "args": [
+        "projects"
+      ],
+      "exit": 0,
+      "schema": "projects.json",
+      "stdout": [
+        {
+          "id": {
+            "$any": "string"
+          },
+          "name": "acme"
+        },
+        {
+          "id": {
+            "$any": "string"
+          },
+          "name": "Project-X"
+        }
+      ]
+    },
+    {
+      "args": [
+        "project",
+        "rename",
+        "{capture.x}",
+        "Project-45"
+      ],
+      "exit": 0,
+      "schema": "project.json",
+      "stdout": {
+        "id": {
+          "$any": "string"
+        },
+        "name": "Project-45"
+      }
+    },
+    {
+      "args": [
+        "project",
+        "delete",
+        "{capture.x}"
+      ],
+      "exit": 0,
+      "schema": "empty.json",
+      "stdout": {}
+    },
+    {
+      "args": [
+        "projects"
+      ],
+      "exit": 0,
+      "schema": "projects.json",
+      "stdout": [
+        {
+          "id": {
+            "$any": "string"
+          },
+          "name": "acme"
+        }
+      ]
+    }
+  ]
+}

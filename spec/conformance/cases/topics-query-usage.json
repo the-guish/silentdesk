@@ -1,0 +1,194 @@
+{
+  "description": "a topics query that is not a JSON object of known fields with values of the right type is a usage error",
+  "env": {
+    "SILENTDESK_TEST_KEYRING": "{home}/keyring.json"
+  },
+  "steps": [
+    {
+      "args": [
+        "topics"
+      ],
+      "stdin": "not json",
+      "exit": 2,
+      "schema": "error.json",
+      "stdout": {
+        "error": {
+          "kind": "usage",
+          "message": {
+            "$any": "string"
+          }
+        }
+      }
+    },
+    {
+      "args": [
+        "topics"
+      ],
+      "stdin": [
+        "gmail"
+      ],
+      "exit": 2,
+      "schema": "error.json",
+      "stdout": {
+        "error": {
+          "kind": "usage",
+          "message": {
+            "$any": "string"
+          }
+        }
+      }
+    },
+    {
+      "args": [
+        "topics"
+      ],
+      "stdin": {
+        "service": [
+          "gmail"
+        ]
+      },
+      "exit": 2,
+      "schema": "error.json",
+      "stdout": {
+        "error": {
+          "kind": "usage",
+          "message": {
+            "$any": "string"
+          }
+        }
+      }
+    },
+    {
+      "args": [
+        "topics"
+      ],
+      "stdin": {
+        "services": "gmail"
+      },
+      "exit": 2,
+      "schema": "error.json",
+      "stdout": {
+        "error": {
+          "kind": "usage",
+          "message": {
+            "$any": "string"
+          }
+        }
+      }
+    },
+    {
+      "args": [
+        "topics"
+      ],
+      "stdin": {
+        "services": [
+          1
+        ]
+      },
+      "exit": 2,
+      "schema": "error.json",
+      "stdout": {
+        "error": {
+          "kind": "usage",
+          "message": {
+            "$any": "string"
+          }
+        }
+      }
+    },
+    {
+      "args": [
+        "topics"
+      ],
+      "stdin": {
+        "text": [
+          "invoice"
+        ]
+      },
+      "exit": 2,
+      "schema": "error.json",
+      "stdout": {
+        "error": {
+          "kind": "usage",
+          "message": {
+            "$any": "string"
+          }
+        }
+      }
+    },
+    {
+      "args": [
+        "topics"
+      ],
+      "stdin": {
+        "waitingOn": [
+          "them"
+        ]
+      },
+      "exit": 2,
+      "schema": "error.json",
+      "stdout": {
+        "error": {
+          "kind": "usage",
+          "message": {
+            "$any": "string"
+          }
+        }
+      }
+    },
+    {
+      "args": [
+        "topics"
+      ],
+      "stdin": {
+        "deletable": "yes"
+      },
+      "exit": 2,
+      "schema": "error.json",
+      "stdout": {
+        "error": {
+          "kind": "usage",
+          "message": {
+            "$any": "string"
+          }
+        }
+      }
+    },
+    {
+      "args": [
+        "topics"
+      ],
+      "stdin": {
+        "updatedFrom": "yesterday"
+      },
+      "exit": 2,
+      "schema": "error.json",
+      "stdout": {
+        "error": {
+          "kind": "usage",
+          "message": {
+            "$any": "string"
+          }
+        }
+      }
+    },
+    {
+      "args": [
+        "topics"
+      ],
+      "stdin": {
+        "updatedTo": "2026-10-23"
+      },
+      "exit": 2,
+      "schema": "error.json",
+      "stdout": {
+        "error": {
+          "kind": "usage",
+          "message": {
+            "$any": "string"
+          }
+        }
+      }
+    }
+  ]
+}

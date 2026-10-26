@@ -21,12 +21,14 @@ from silentdesk.contract import (
     Connector,
     Direction,
     Item,
+    Project,
     RemoteError,
     ServiceStatus,
     SyncFailed,
     SyncResult,
     Topic,
     UnknownItem,
+    UnknownProject,
     UnknownService,
     Unsupported,
 )
@@ -101,6 +103,19 @@ class MemoryTopicStore(TopicStore):
 
     async def replace(self, service: str, records: Sequence[TopicRecord]) -> None:
         self.records = [r for r in self.records if r.service != service] + list(records)
+
+    # Projects are tested through the CLI, on the real database.
+    async def projects(self) -> list[Project]:
+        return []
+
+    async def save_project(self, project: Project) -> None:
+        raise NotImplementedError
+
+    async def delete_project(self, project_id: str) -> None:
+        raise NotImplementedError
+
+    async def move(self, topic_id: str, project_id: str | None) -> None:
+        raise NotImplementedError
 
     async def last_synced(self) -> str | None:
         return self.synced
@@ -233,8 +248,9 @@ def test_syncing_an_unknown_service_is_an_error():
         lambda desk: desk.reply("T", "hi"),
         lambda desk: desk.delete("T"),
         lambda desk: desk.delete_item("T", "i"),
+        lambda desk: desk.move("T", None),
     ],
-    ids=["history", "reply", "delete", "delete_item"],
+    ids=["history", "reply", "delete", "delete_item", "move"],
 )
 def test_a_topic_of_a_service_no_longer_wired_is_an_unknown_service(tmp_path, operation):
     store = SqlcipherTopicStore(SqlcipherDatabase(tmp_path / "silentdesk.db", FileKeyring(tmp_path / "keyring.json")))
@@ -242,6 +258,24 @@ def test_a_topic_of_a_service_no_longer_wired_is_an_unknown_service(tmp_path, op
     asyncio.run(store.replace("gone", [left]))
     with pytest.raises(UnknownService, match="Unknown service 'gone'"):
         asyncio.run(operation(DeskService([], store, FixedClock(NOW))))
+
+
+def test_a_project_deleted_while_a_move_waits_is_an_unknown_project(tmp_path):
+    store = SqlcipherTopicStore(SqlcipherDatabase(tmp_path / "silentdesk.db", FileKeyring(tmp_path / "keyring.json")))
+    asyncio.run(store.replace("s", [TopicRecord("T", "s", "k", "t", [email("i", NOW)], NOW, NOW, deletable=False)]))
+    desk = DeskService([FakeConnector("s", [], [])], store, FixedClock(NOW))
+
+    async def scenario() -> None:
+        project = await desk.add_project("Work")
+        # As a sync of the service would, hold its lock while the move waits.
+        async with desk.locks["s"]:
+            moving = asyncio.create_task(desk.move("T", project.id))
+            await asyncio.sleep(0)
+            await desk.delete_project(project.id)
+        await moving
+
+    with pytest.raises(UnknownProject):
+        asyncio.run(scenario())
 
 
 def synced(*found: Topic) -> tuple[DeskService, MemoryTopicStore, list[str]]:

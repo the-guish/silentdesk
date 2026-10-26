@@ -13,14 +13,20 @@ public struct TopicView: Sendable, Equatable {
     /// The whole topic can be deleted: its connector can delete it at once,
     /// or every item can be deleted.
     public let deletable: Bool
+    /// The topic's project, or nil for Default.
+    public let projectId: String?
 
-    public init(id: String, service: String, title: String, items: [Item], updatedAt: String, deletable: Bool) {
+    public init(
+        id: String, service: String, title: String, items: [Item], updatedAt: String, deletable: Bool,
+        projectId: String? = nil
+    ) {
         self.id = id
         self.service = service
         self.title = title
         self.items = items
         self.updatedAt = updatedAt
         self.deletable = deletable
+        self.projectId = projectId
     }
 }
 

@@ -1,4 +1,4 @@
-"""How topics read on screen: service names, dates and search text. Pure,
+"""How topics read on screen: service names and dates. Pure,
 so it is tested without a display."""
 
 from __future__ import annotations
@@ -90,19 +90,6 @@ def item_line(direction: Direction | None, date: str, now: datetime) -> str:
     if direction == Direction.INBOUND:
         return f"Received · {when}"
     return when
-
-
-def search_text(topic: TopicView) -> str:
-    """Everything a search matches against, lowercased."""
-    parts = [topic.title, service_name(topic.service)]
-    parts += [part for item in topic.items for part in (item.author, item.key) if part]
-    return "\n".join(parts).lower()
-
-
-def matches(topic: TopicView, query: str) -> bool:
-    """Whether every word of the query is in the topic."""
-    text = search_text(topic)
-    return all(word in text for word in query.lower().split())
 
 
 def describe(error: BaseException) -> str:
