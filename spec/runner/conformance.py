@@ -184,26 +184,46 @@ class FakeServer:
 def request_mismatches(expected: list[dict[str, Any]] | None, actual: list[dict[str, Any]]) -> list[str]:
     """Checks the requests the core sent, in order. Each expected request
     names its method and path; its query and headers must be present in the
-    actual one, and its body, if given, must match."""
+    actual one, and its body, if given, must match. An `any_order` group
+    stands for requests sent concurrently: they come next, in any order,
+    each paired by method and path."""
     if expected is None:
         return []
+    groups = [want.get("any_order", [want]) for want in expected]
+    count = sum(len(group) for group in groups)
     sent = [f"{r['method']} {r['path']}" for r in actual]
-    if len(expected) != len(actual):
-        return [f"sent {len(actual)} requests, expected {len(expected)}: {sent}"]
+    if count != len(actual):
+        return [f"sent {len(actual)} requests, expected {count}: {sent}"]
+    problems, remaining = [], iter(enumerate(actual, 1))
+    for group in groups:
+        unpaired = list(group)
+        for number, got in [next(remaining) for _ in group]:
+            where = f"request {number} ({got['method']} {got['path']})"
+            want = next((w for w in unpaired if label(w) == f"{got['method']} {got['path']}"), None)
+            if want is None:
+                problems.append(f"{where}: expected {' or '.join(label(w) for w in unpaired)}")
+                continue
+            unpaired.remove(want)
+            problems += request_problems(where, want, got)
+    return problems
+
+
+def label(want: dict[str, Any]) -> str:
+    return f"{want.get('method', 'GET')} {want['path']}"
+
+
+def request_problems(where: str, want: dict[str, Any], got: dict[str, Any]) -> list[str]:
+    """What differs between an expected request and the one sent, apart from
+    its method and path."""
     problems = []
-    for number, (want, got) in enumerate(zip(expected, actual), 1):
-        where = f"request {number} ({got['method']} {got['path']})"
-        if (want.get("method", "GET"), want["path"]) != (got["method"], got["path"]):
-            problems.append(f"{where}: expected {want.get('method', 'GET')} {want['path']}")
-            continue
-        for name, value in want.get("query", {}).items():
-            if got["query"].get(name) != value:
-                problems.append(f"{where}: query {name} is {got['query'].get(name)!r}, expected {value!r}")
-        for name, value in want.get("headers", {}).items():
-            if got["headers"].get(name.lower()) != value:
-                problems.append(f"{where}: header {name} is {got['headers'].get(name.lower())!r}, expected {value!r}")
-        if "body" in want:
-            problems += [f"{where}: body {problem}" for problem in mismatches(want["body"], got["body"])]
+    for name, value in want.get("query", {}).items():
+        if got["query"].get(name) != value:
+            problems.append(f"{where}: query {name} is {got['query'].get(name)!r}, expected {value!r}")
+    for name, value in want.get("headers", {}).items():
+        if got["headers"].get(name.lower()) != value:
+            problems.append(f"{where}: header {name} is {got['headers'].get(name.lower())!r}, expected {value!r}")
+    if "body" in want:
+        problems += [f"{where}: body {problem}" for problem in mismatches(want["body"], got["body"])]
     return problems
 
 
