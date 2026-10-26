@@ -2,39 +2,34 @@
 
 A quiet desktop task tracker for work. It pulls your email, chat messages, issues, pull requests and tasks into one queue of topics.
 
+## Why I created it
 
-We live in an era of massive information flows. 
+We live in an era of massive information flows, and that just went off the charts with the advent of a more powerful AI in 2026.
 
-
-The recent progress in AI and adoption of agents in organizations is putting unprecedented stress on our senior members, line managers, IT support and people coordinating work and information in general, with multiple tactical decisions per day.
-
-
-That layer used to handle communication with a finite set of people, and now faces the same set of people plus the output, as documents, questions, pull requests, from dozens of agents in the organization.
-
-
-SilentDesk would have been a useful nice-to-have in any of the previous years. Now, having something like it is a must.
+By the numbers:
+- Across 718 companies using AI coding agents, code review time rose 49% while finished work didn't increase ([Harvard study](https://www.techradar.com/pro/ai-agents-are-great-at-writing-new-code-but-then-the-human-bottleneck-slows-everything-down)).
+- Workers who closely oversee AI tools are 19% more likely to report information overload ([Harvard Business Review](https://hbr.org/2026/03/when-using-ai-leads-to-brain-fry)).
+- Managers now average 12.1 direct reports, up from 10.9 a year earlier ([Gallup](https://www.gallup.com/workplace/700718/span-control-optimal-team-size-managers.aspx)).
 
 
-The only mission of SilentDesk in this world is to protect people's focus time at work, allow them to control the rate and direction of context-switching, get a more productive day and still have a useful brain by the time they log off.
+But more importantly, take five minutes to think about how many more messages and quick decisions land on you each day compared to last year. You probably won’t need any other number.
 
 
 ## How it works
-
-While most of the work can be classified and prioritized in issue trackers like Jira, companies tend to have more than one product for communications, typically Slack or Microsoft Teams and email.
-
-
-A good portion of the daily energy goes into manually scanning the chat platforms and correlating all of them, detecting actions needed and communicating with the right person.
-
-
-The definitive answer is to put standardized processes and automated workflows in place, and I cannot stress enough the importance of that effort; that is the real answer to handle a bigger volume per head. If you are facing a lot of unstructured, untagged information, it is highly likely a sign that your organization needs to automate that information flow.
-
-
-But no matter the level of automation, there will always be a portion that needs manual triage and decisions, mostly for new, non-repetitive issues or discovery efforts.
 
 
 SilentDesk puts everything you need to know and potentially take action on into a single, minimalist, clean UI, prioritized and sorted ahead of time by your criteria.
 
 
+It has been built for you and its top mission is to protect your focus time, allowing you to control the rate and direction of context-switching.
+
+
+## How it's built
+
+- **Security comes right after focus.** All local data is encrypted at rest with SQLCipher, and the key stays in your OS keychain.
+- **Open source under Apache 2.0.** You can always fork it and build it yourself. The Mac App Store version may cost a small fee, but this repo is free to clone and change however you like.
+- **Your data stays with you.** SilentDesk talks directly to Gmail, Slack, GitHub, Jira and Google Tasks from your computer. No middleman server, no telemetry.
+- **Built for work.** Your data and credentials never go anywhere but your company's own services. The code is fully auditable, and every release ships as a signed binary.
 
 
 ## License
