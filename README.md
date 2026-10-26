@@ -29,7 +29,7 @@ It was built for you, and its top mission is to protect your focus time by letti
 ## How it's built
 
 - **Security comes right after focus.** All local data is encrypted at rest with SQLCipher, and the key stays in your OS keychain.
-- **Open source under Apache 2.0.** You can always fork it and build it yourself. The Mac App Store version may cost a small fee, but this repo is free to clone and change however you like.
+- **Open source under Apache 2.0.** You can always fork it and build it yourself. The Mac App Store version may need a small fee, but this repo is free to clone and change however you like.
 - **Your data stays with you.** SilentDesk talks directly to Gmail, Slack, GitHub, Jira and Google Tasks from your computer. No middleman server, no telemetry.
 - **Built for work.** Your data and credentials never go anywhere but your company's own services. The code is fully auditable, and every release ships as a signed binary.
 
