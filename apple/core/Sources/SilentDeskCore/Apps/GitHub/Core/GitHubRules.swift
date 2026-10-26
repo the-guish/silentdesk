@@ -1,5 +1,5 @@
 /// Rules about GitHub: which server, which pull requests, and their topics.
-/// See docs/specs/integrations/github.md.
+/// See docs/specs/integrations/github/github.md.
 
 import Foundation
 

@@ -1,6 +1,6 @@
 # SilentDesk — GitHub status
 
-A pull request has a status given by GitHub. SilentDesk shows it in the topic's chip, as [topic-status.md](../topic-status.md) describes.
+A pull request has a status given by GitHub. SilentDesk shows it in the topic's chip, as [topic-status.md](../../topic-status.md) describes.
 
 ## The chip
 
@@ -39,4 +39,4 @@ The query goes to `https://api.github.com/graphql`, or to `https://<host>/api/gr
 - **Merged and Closed:** the queue lists open pull requests only. These two chips show once a pull request stays in the queue for a while after it ends. That needs its own rule.
 - **Token:** a fine-grained token may need more read permissions to see checks. To check on a real account.
 - **More signals:** a running or passed check could show as a small icon next to the date.
-- **Open questions:** whether the comments hold an open question. SilentDesk would have to read the comments' text, which it does not do today. This needs a check against the [core principles](../core.md) first.
+- **Open questions:** whether the comments hold an open question. SilentDesk would have to read the comments' text, which it does not do today. This needs a check against the [core principles](../../core.md) first.
