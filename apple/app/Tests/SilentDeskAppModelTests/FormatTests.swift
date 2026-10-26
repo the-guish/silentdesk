@@ -102,3 +102,28 @@ private struct Localized: LocalizedError {
     #expect(Format.describe(Plain()) == "Plain()")
     #expect(Format.describe(Localized()) == "Readable.")
 }
+
+@Test func aChipNamesTheStatusOrShowsADash() {
+    #expect(Format.chipLabel(TopicStatus(name: "Code Review", category: .inProgress)) == "Code Review")
+    #expect(Format.chipLabel(nil) == "—")
+}
+
+@Test(arguments: [
+    ([Double](), 800.0, 0.0),
+    ([61, 88, 70], 800, 88),
+    ([61, 88, 70], 200, 50),
+    ([61, 88], 0, 88),
+    ([300], 1000, 250),
+] as [([Double], Double, Double)])
+func everyChipTakesTheWidestOnesWidthUpToAQuarterOfTheQueue(_ widths: [Double], _ queueWidth: Double, _ expected: Double) {
+    #expect(Format.chipWidth(widths, queueWidth: queueWidth) == expected)
+}
+
+@Test func searchMatchesAStatusName() {
+    let topic = TopicView(
+        id: "1", service: "jira", title: "Fix login", items: [], updatedAt: "2026-10-25T15:00:00Z", deletable: false,
+        status: TopicStatus(name: "Code Review", category: .inProgress))
+    #expect(Format.matches(topic, "review"))
+    #expect(!Format.matches(TopicView(
+        id: "2", service: "jira", title: "Fix login", items: [], updatedAt: "2026-10-25T15:00:00Z", deletable: false), "review"))
+}
