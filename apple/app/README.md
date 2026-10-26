@@ -6,7 +6,7 @@ It needs macOS 14 or newer. It is a Swift package, not an Xcode project, so it b
 
 ## How it works
 
-- **The window:** the queue on the left, newest first, with an avatar of who wrote last, its service, and when; a topic whose newest item the user wrote reads "Waiting on others". The search field above it filters by title, service and people. Under it, when topics last changed, and a spinner while a round runs. The open topic is on the right.
+- **The window:** the queue on the left, newest first, with an avatar of who wrote last, its service, when, and a button that opens the topic in its service; a topic whose newest item the user wrote reads "Waiting on others". The search field above it filters by title, service and people. Under it, when topics last changed, and a spinner while a round runs. The open topic is on the right.
 - **The topic:** its items, each with who wrote it, whether it was received or sent, and when, and a button to open it in its service; a note says why there is no text. Where the service keeps a conversation (Slack), its recent messages are read live and shown instead, never stored. Gmail topics have a reply box; ⌘↩ sends. A Delete button shows on topics their connector marks deletable, and on each deletable item of a topic with several; each asks first.
 - **Services:** in Settings (⌘,). GitHub and Jira connect with a form; Gmail, Google Tasks and Slack sign in through the browser. A service that connects syncs at once; one that disconnects drops its topics, after asking.
 - **Syncing:** at startup, every 2 minutes, and when the app comes to the front if the last round started more than 30 seconds ago. **Refresh** (⌘R) starts a round at once. Failures show as a notice at the bottom of the window, and the old topics stay.

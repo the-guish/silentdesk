@@ -55,7 +55,7 @@ final class GitHubConnector: Connector {
         guard let account = try await state.load(), let token = try credentials.token() else {
             throw ConnectorError.auth(service, "GitHub is not connected.")
         }
-        let found: [PullRequest]
+        let found: GitHubFound
         do {
             found = try await api.openPullRequests(
                 graphqlURL: GitHubRules.graphqlURL(apiBase(account.endpoint)), token: token, queries: GitHubRules.queries)
@@ -64,7 +64,9 @@ final class GitHubConnector: Connector {
             try credentials.deleteToken()
             throw ConnectorError.auth(service, "GitHub rejected the token. Connect again.")
         }
-        return SyncResult(topics: GitHubRules.merge(found).map(GitHubRules.topic), removed: [], complete: true)
+        // A partial answer updates what it found and keeps the other topics.
+        return SyncResult(
+            topics: GitHubRules.merge(found.pulls).map(GitHubRules.topic), removed: [], complete: found.complete)
     }
 
     func reply(topicKey: String, body: String) async throws {

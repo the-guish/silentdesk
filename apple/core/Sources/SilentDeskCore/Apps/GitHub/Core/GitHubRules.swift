@@ -23,7 +23,7 @@ enum GitHubRules {
         "CI Failed": .inProgress,
         "Approved": .inProgress,
         "Changes Requested": .inProgress,
-        "Ready": .inProgress,
+        "In Review": .inProgress,
         "Draft": .new,
     ]
 
@@ -41,7 +41,7 @@ enum GitHubRules {
             else if pull.checks == "FAILURE" || pull.checks == "ERROR" { "CI Failed" }
             else if pull.review == "APPROVED" { "Approved" }
             else if pull.review == "CHANGES_REQUESTED" { "Changes Requested" }
-            else if !pull.draft { "Ready" }
+            else if !pull.draft { "In Review" }
             else { "Draft" }
         return TopicStatus(name: name, category: statusCategories[name])
     }

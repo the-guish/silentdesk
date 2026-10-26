@@ -185,7 +185,7 @@
           },
           "projectId": null,
           "status": {
-            "name": "Ready",
+            "name": "In Review",
             "category": "inProgress"
           },
           "updatedAt": {
@@ -204,7 +204,7 @@
           },
           "projectId": null,
           "status": {
-            "name": "Ready",
+            "name": "In Review",
             "category": "inProgress"
           },
           "updatedAt": {
@@ -223,7 +223,7 @@
           },
           "projectId": null,
           "status": {
-            "name": "Ready",
+            "name": "In Review",
             "category": "inProgress"
           },
           "updatedAt": {
@@ -324,7 +324,7 @@
             "$any": "string"
           },
           "status": {
-            "name": "Ready",
+            "name": "In Review",
             "category": "inProgress"
           },
           "updatedAt": {
@@ -343,7 +343,7 @@
           },
           "projectId": null,
           "status": {
-            "name": "Ready",
+            "name": "In Review",
             "category": "inProgress"
           },
           "updatedAt": {
@@ -362,7 +362,7 @@
           },
           "projectId": null,
           "status": {
-            "name": "Ready",
+            "name": "In Review",
             "category": "inProgress"
           },
           "updatedAt": {
@@ -397,7 +397,7 @@
             "$any": "string"
           },
           "status": {
-            "name": "Ready",
+            "name": "In Review",
             "category": "inProgress"
           },
           "updatedAt": {
@@ -430,7 +430,7 @@
           },
           "projectId": null,
           "status": {
-            "name": "Ready",
+            "name": "In Review",
             "category": "inProgress"
           },
           "updatedAt": {
@@ -449,7 +449,7 @@
           },
           "projectId": null,
           "status": {
-            "name": "Ready",
+            "name": "In Review",
             "category": "inProgress"
           },
           "updatedAt": {
@@ -521,7 +521,7 @@
           },
           "projectId": null,
           "status": {
-            "name": "Ready",
+            "name": "In Review",
             "category": "inProgress"
           },
           "updatedAt": {
@@ -540,7 +540,7 @@
           },
           "projectId": null,
           "status": {
-            "name": "Ready",
+            "name": "In Review",
             "category": "inProgress"
           },
           "updatedAt": {
@@ -559,7 +559,7 @@
           },
           "projectId": null,
           "status": {
-            "name": "Ready",
+            "name": "In Review",
             "category": "inProgress"
           },
           "updatedAt": {

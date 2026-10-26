@@ -28,7 +28,7 @@ STATUS_CATEGORIES = {
     "CI Failed": StatusCategory.IN_PROGRESS,
     "Approved": StatusCategory.IN_PROGRESS,
     "Changes Requested": StatusCategory.IN_PROGRESS,
-    "Ready": StatusCategory.IN_PROGRESS,
+    "In Review": StatusCategory.IN_PROGRESS,
     "Draft": StatusCategory.NEW,
 }
 
@@ -75,7 +75,7 @@ def status(pull: PullRequest) -> TopicStatus:
     elif pull.review == "CHANGES_REQUESTED":
         name = "Changes Requested"
     elif not pull.draft:
-        name = "Ready"
+        name = "In Review"
     else:
         name = "Draft"
     return TopicStatus(name, STATUS_CATEGORIES[name])
