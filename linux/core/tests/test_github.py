@@ -250,12 +250,39 @@ def test_the_http_adapter_sends_one_graphql_query_and_reads_every_search():
     assert variables == {"first": 50} | {reason.value: query for query, reason in github.QUERIES}
 
 
-def test_graphql_errors_are_reported():
-    def handler(request: httpx.Request) -> httpx.Response:
-        return httpx.Response(200, json={"data": None, "errors": [{"message": "Resource protected by SAML."}]})
+NODE = {
+    "databaseId": 9,
+    "number": 4,
+    "title": "Add retries",
+    "url": "https://github.com/acme/web/pull/4",
+    "isDraft": True,
+    "state": "OPEN",
+    "commits": {"nodes": [{"commit": {"statusCheckRollup": None}}]},
+}
+SAML = [{"type": "FORBIDDEN", "message": "Resource protected by SAML."}]
 
-    with pytest.raises(RemoteError, match="Resource protected by SAML"):
-        asyncio.run(http_api(handler).open_pull_requests("https://api.github.com/graphql", "t", github.QUERIES))
+
+@pytest.mark.parametrize(
+    ("answer", "found"),
+    [
+        ({"data": {"reviewRequested": {"nodes": []}, "assigned": {"nodes": [None, NODE]}, "authored": {"nodes": []}},
+          "errors": SAML}, 1),
+        ({"data": None, "errors": SAML}, RemoteError),
+        ({"data": {"reviewRequested": None, "assigned": {"nodes": [NODE]}, "authored": {"nodes": []}},
+          "errors": SAML}, RemoteError),
+        ({"data": {"reviewRequested": {"nodes": []}, "assigned": {"nodes": []}}}, NetworkError),
+    ],
+)  # fmt: skip
+def test_graphql_errors_fail_only_a_search_that_is_missing(answer, found):
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, json=answer)
+
+    pulls = http_api(handler).open_pull_requests("https://api.github.com/graphql", "t", github.QUERIES)
+    if isinstance(found, int):
+        assert len(asyncio.run(pulls)) == found
+    else:
+        with pytest.raises(found, match="SAML" if found is RemoteError else "could not be read"):
+            asyncio.run(pulls)
 
 
 @pytest.mark.parametrize(
