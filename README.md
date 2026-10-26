@@ -33,10 +33,6 @@ It was built for you, and its top mission is to protect your focus time by letti
 - **Your data stays with you.** SilentDesk talks directly to Gmail, Slack, GitHub, Jira and Google Tasks from your computer. No middleman server, no telemetry.
 - **Built for work.** Your data and credentials never go anywhere but your company's own services. The code is fully auditable, and every release ships as a signed binary.
 
-## License
-
-Apache License 2.0. See [LICENSE](LICENSE), [NOTICE](NOTICE) and [AUTHORS](AUTHORS).
-
 ## Run the apps
 
 The Mac app lives on a branch for now:
@@ -58,3 +54,7 @@ git clone https://github.com/the-guish/silentdesk.git
 cd silentdesk/linux/gtk
 ./run.sh                           # the real app
 ```
+
+## License
+
+Apache License 2.0. See [LICENSE](LICENSE), [NOTICE](NOTICE) and [AUTHORS](AUTHORS).
