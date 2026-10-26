@@ -1,5 +1,5 @@
 /// Rules about Slack: which messages, their text, and their topics. See
-/// legacy/docs/specs/integrations/slack.md.
+/// spec/integrations/slack.md.
 
 import Foundation
 

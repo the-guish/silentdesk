@@ -1,5 +1,5 @@
 /// Rules about Gmail: threads as topics, and replies. See
-/// legacy/docs/specs/integrations/gmail.md.
+/// spec/integrations/gmail.md.
 
 import Foundation
 

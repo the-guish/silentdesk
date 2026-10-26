@@ -2,7 +2,7 @@
 
 SilentDesk was started by Luis Castro and is maintained by The SilentDesk Authors (see [AUTHORS](AUTHORS)). Contributions are welcome.
 
-Before you build a feature, read the [core principles](legacy/docs/specs/core.md). A change that conflicts with them will not be merged.
+Before you build a feature, read the [core principles](spec/core.md). A change that conflicts with them will not be merged.
 
 ## How the repository fits together
 
@@ -13,8 +13,6 @@ To change behaviour:
 1. Change the contract in `spec/` first: [`cli.md`](spec/cli.md), a schema, and a conformance case.
 2. Implement it in `linux/core`.
 3. Implement it in `apple/core`, or list the case in [`apple/core/conformance-pending.txt`](apple/core/conformance-pending.txt) until it does.
-
-The legacy Tauri app in [`legacy/`](legacy) keeps its own setup and checks; see [legacy/README.md](legacy/README.md).
 
 ## Set up your workspace
 

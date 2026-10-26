@@ -1,4 +1,4 @@
-"""Rules about Google Tasks. See legacy/docs/specs/integrations/google-tasks.md."""
+"""Rules about Google Tasks. See spec/integrations/google-tasks.md."""
 
 from __future__ import annotations
 
