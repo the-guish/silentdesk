@@ -64,7 +64,7 @@ final class GitHubHTTPAPI: GitHubAPI {
 
     func openPullRequests(
         graphqlURL: String, token: String, queries: [(query: String, reason: GitHubReason)]
-    ) async throws -> [PullRequest] {
+    ) async throws -> GitHubFound {
         var variables: [String: JSON] = ["first": .int(Int64(Self.perQuery))]
         for (query, reason) in queries {
             variables[reason.rawValue] = .string(query)
@@ -73,8 +73,8 @@ final class GitHubHTTPAPI: GitHubAPI {
             "POST", graphqlURL, token: token, json: ["query": .string(Self.pullRequests), "variables": .object(variables)])
         // GitHub can answer with data and errors at once, such as for a
         // repository the token cannot read. Its pull requests come back
-        // empty, and the others still count. Only a missing search fails the
-        // sync, as dropping it would drop its pull requests' topics.
+        // empty, and the answer is partial: the others still count, and the
+        // unread ones keep their topics. A missing search fails the sync.
         var pulls: [PullRequest] = []
         for (_, reason) in queries {
             guard let nodes = found["data"]?[reason.rawValue]?["nodes"]?.array else {
@@ -90,7 +90,7 @@ final class GitHubHTTPAPI: GitHubAPI {
                 pulls.append(try pullRequest(node, reason: reason))
             }
         }
-        return pulls
+        return GitHubFound(pulls: pulls, complete: found["errors"]?.array?.isEmpty ?? true)
     }
 
     private func string(_ value: JSON, _ key: String) throws -> String {

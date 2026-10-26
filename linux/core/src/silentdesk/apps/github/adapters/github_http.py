@@ -9,7 +9,7 @@ from typing import Any
 
 from ....contract import AuthError, Http, NetworkError, RemoteError
 from ..domain.github import PullRequest, Reason
-from ..ports.github_api import GitHubApi, Me
+from ..ports.github_api import Found, GitHubApi, Me
 
 SERVICE = "github"
 API_VERSION = "2022-11-28"
@@ -74,16 +74,14 @@ class GitHubHttpApi(GitHubApi):
                 raise AuthError(SERVICE, "No GitHub API was found there. Check the server address.") from error
             raise
 
-    async def open_pull_requests(
-        self, graphql_url: str, token: str, queries: Sequence[tuple[str, Reason]]
-    ) -> list[PullRequest]:
+    async def open_pull_requests(self, graphql_url: str, token: str, queries: Sequence[tuple[str, Reason]]) -> Found:
         variables: dict[str, Any] = {reason.value: query for query, reason in queries}
         variables["first"] = PER_QUERY
         found = await self._send("POST", graphql_url, token, {"query": PULL_REQUESTS, "variables": variables})
         # GitHub can answer with data and errors at once, such as for a
         # repository the token cannot read. Its pull requests come back
-        # empty, and the others still count. Only a missing search fails the
-        # sync, as dropping it would drop its pull requests' topics.
+        # empty, and the answer is partial: the others still count, and the
+        # unread ones keep their topics. A missing search fails the sync.
         errors = found.get("errors") if isinstance(found, dict) else None
         data = found.get("data") if isinstance(found, dict) else None
         pulls = []
@@ -98,7 +96,7 @@ class GitHubHttpApi(GitHubApi):
             # A search for pull requests can still hold an empty node, as for
             # a repository the token cannot read.
             pulls += [_pull_request(node, reason) for node in nodes if node]
-        return pulls
+        return Found(pulls, complete=not errors)
 
 
 def _string(value: Any, key: str) -> str:
