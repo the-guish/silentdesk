@@ -12,7 +12,8 @@ private func record(_ key: String, id: String = "id-\(Int.random(in: 1...1_000_0
 }
 
 @Test func aCompleteSyncReplacesEverythingButKeepsIDs() {
-    let old = record("a", id: "A", date: "2026-10-01T00:00:00Z")
+    var old = record("a", id: "A", date: "2026-10-01T00:00:00Z")
+    old.projectId = "P"
     let gone = record("b", id: "B")
     let result = SyncResult(
         topics: [
@@ -29,6 +30,8 @@ private func record(_ key: String, id: String = "id-\(Int.random(in: 1...1_000_0
     #expect(applied[0].createdAt == "2026-09-01T00:00:00Z")
     #expect(applied[0].updatedAt == "2026-10-02T00:00:00Z")
     #expect(applied[0].title == "A again")
+    #expect(applied[0].projectId == "P", "a changed topic keeps its project")
+    #expect(applied[1].projectId == nil, "a new topic starts in Default")
     #expect(applied[1].id == "new-1")
     #expect(applied[1].createdAt == "2026-10-05T00:00:00Z")
 }
@@ -86,4 +89,21 @@ private func record(_ key: String, id: String = "id-\(Int.random(in: 1...1_000_0
     await #expect(throws: UnknownService.self) { try await desk.reply(topicID: "T", body: "hi") }
     await #expect(throws: UnknownService.self) { try await desk.delete(topicID: "T") }
     await #expect(throws: UnknownService.self) { try await desk.deleteItem(topicID: "T", itemKey: "i") }
+}
+
+@Test func theStoreKeepsATopicsProjectWhileTheProjectExists() async throws {
+    let folder = try temporaryFolder()
+    let database = SqlcipherDatabase(path: "\(folder)/silentdesk.db", keyring: FileKeyring(path: "\(folder)/keyring.json"))
+    try database.transaction { db in
+        try db.execute("INSERT INTO desk_projects (id, name) VALUES (?, ?)", [.text("P"), .text("Work")])
+    }
+    let store = SqlcipherTopicStore(database: database)
+    var kept = record("a", id: "A")
+    kept.projectId = "P"
+    var orphan = record("b", id: "B")
+    orphan.projectId = "gone"
+    try await store.replace("s", with: [kept, orphan])
+    let projects = Dictionary(uniqueKeysWithValues: try await store.topics().map { ($0.id, $0.projectId) })
+    #expect(projects["A"] == .some("P"))
+    #expect(projects["B"] == .some(nil), "a project deleted while the service synced leaves its topic in Default")
 }

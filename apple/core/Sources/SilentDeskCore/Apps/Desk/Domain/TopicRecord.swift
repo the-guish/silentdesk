@@ -14,4 +14,6 @@ struct TopicRecord: Sendable, Equatable {
     /// What the connector said: it can delete the whole topic at once. See
     /// `Topics.deletable` for whether the topic can be deleted at all.
     let deletable: Bool
+    /// The user's project for the topic, or nil for Default.
+    var projectId: String? = nil
 }
