@@ -49,15 +49,23 @@ final class DeskService: Desk {
         return statuses
     }
 
+    private func unknown(_ service: String) -> UnknownService {
+        UnknownService(message: "Unknown service '\(service)'. Services: \(serviceNames.joined(separator: ", ")).")
+    }
+
     private func connector(_ service: String) throws -> any Connector {
         guard let connector = connectors[service] else {
-            throw UnknownService(message: "Unknown service '\(service)'. Services: \(serviceNames.joined(separator: ", ")).")
+            throw unknown(service)
         }
         return connector
     }
 
+    /// A stored topic can name a service this build does not wire.
     private func locked<T: Sendable>(_ service: String, _ body: @Sendable () async throws -> T) async throws -> T {
-        try await locks[service]!.withLock(body)
+        guard let lock = locks[service] else {
+            throw unknown(service)
+        }
+        return try await lock.withLock(body)
     }
 
     func connect(_ service: String, params: [String: String]) async throws -> ServiceStatus {

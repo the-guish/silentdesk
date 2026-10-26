@@ -53,14 +53,23 @@ class DeskService(Desk):
     async def services(self) -> list[ServiceStatus]:
         return [await self.connectors[service].status() for service in sorted(self.connectors)]
 
+    def _unknown(self, service: str) -> UnknownService:
+        return UnknownService(f"Unknown service {service!r}. Services: {', '.join(sorted(self.connectors))}.")
+
     def _connector(self, service: str) -> Connector:
         if service not in self.connectors:
-            raise UnknownService(f"Unknown service {service!r}. Services: {', '.join(sorted(self.connectors))}.")
+            raise self._unknown(service)
         return self.connectors[service]
+
+    def _lock(self, service: str) -> asyncio.Lock:
+        """A stored topic can name a service this build does not wire."""
+        if service not in self.locks:
+            raise self._unknown(service)
+        return self.locks[service]
 
     async def connect(self, service: str, params: Mapping[str, str]) -> ServiceStatus:
         connector = self._connector(service)
-        async with self.locks[service]:
+        async with self._lock(service):
             before = await connector.status()
             status = await connector.connect(params)
             if status.account != before.account:
@@ -70,7 +79,7 @@ class DeskService(Desk):
 
     async def disconnect(self, service: str) -> ServiceStatus:
         connector = self._connector(service)
-        async with self.locks[service]:
+        async with self._lock(service):
             status = await connector.disconnect()
             await self.store.replace(service, [])
         return status
@@ -94,7 +103,7 @@ class DeskService(Desk):
             raise SyncFailed(failures)
 
     async def _sync_one(self, service: str) -> None:
-        async with self.locks[service]:
+        async with self._lock(service):
             result = await self.connectors[service].sync()
             now = self.clock.now()
             current = [record for record in await self.store.topics() if record.service == service]
@@ -112,14 +121,14 @@ class DeskService(Desk):
 
     async def history(self, topic_id: str) -> list[Message]:
         record = await self._record(topic_id)
-        async with self.locks[record.service]:
+        async with self._lock(record.service):
             return await self._connector(record.service).history(record.key)
 
     async def reply(self, topic_id: str, body: str) -> None:
         if not body.strip():
             raise ValueError("The reply is empty.")
         record = await self._record(topic_id)
-        async with self.locks[record.service]:
+        async with self._lock(record.service):
             await self._connector(record.service).reply(record.key, body)
 
     # Deleting checks the topic inside its service's lock, so a sync that
@@ -127,7 +136,7 @@ class DeskService(Desk):
 
     async def delete(self, topic_id: str) -> None:
         service = (await self._record(topic_id)).service
-        async with self.locks[service]:
+        async with self._lock(service):
             record = await self._record(topic_id)
             if record.deletable:
                 await self._connector(service).delete_topic(record.key)
@@ -146,7 +155,7 @@ class DeskService(Desk):
 
     async def delete_item(self, topic_id: str, item_key: str) -> None:
         service = (await self._record(topic_id)).service
-        async with self.locks[service]:
+        async with self._lock(service):
             record = await self._record(topic_id)
             item = next((item for item in record.items if item.key == item_key), None)
             if item is None:
