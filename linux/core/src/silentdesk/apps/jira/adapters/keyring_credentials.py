@@ -8,7 +8,7 @@ from ..ports.credentials import Credentials
 
 
 class KeyringCredentials(Credentials):
-    # The keyring entry, as in legacy: {"email": ..., "token": ...}. See spec/storage.md.
+    # The keyring entry, as in legacy: {"email": ..., "token": ...}. See docs/specs/storage.md.
     NAME = "jira-credential"
 
     def __init__(self, keyring: Keyring) -> None:

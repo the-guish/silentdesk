@@ -1,6 +1,6 @@
 """What each service asks for to connect, and what can be done with its
 topics. Pure, so it is tested without a display. The fields are those of
-`silentdesk connect` in spec/cli.md."""
+`silentdesk connect` in docs/specs/cli.md."""
 
 from __future__ import annotations
 

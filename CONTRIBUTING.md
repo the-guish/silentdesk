@@ -2,15 +2,15 @@
 
 SilentDesk was started by Luis Castro and is maintained by The SilentDesk Authors (see [AUTHORS](AUTHORS)). Contributions are welcome.
 
-Before you build a feature, read the [core principles](spec/core.md). A change that conflicts with them will not be merged.
+Before you build a feature, read the [core principles](docs/specs/core.md). A change that conflicts with them will not be merged.
 
 ## How the repository fits together
 
-SilentDesk has two cores, one per platform, that must behave the same: [`linux/core`](linux/core) in Python and [`apple/core`](apple/core) in Swift. Their shared behaviour is defined in [`spec/`](spec) and tested by its conformance suite. Each app uses only its core's public API (`silentdesk.api` in Python, `SilentDeskCore` in Swift).
+SilentDesk has two cores, one per platform, that must behave the same: [`linux/core`](linux/core) in Python and [`apple/core`](apple/core) in Swift. Their shared behaviour is specified in [`docs/specs/`](docs/specs) and [`spec/`](spec), and tested by the conformance suite in `spec/`. Each app uses only its core's public API (`silentdesk.api` in Python, `SilentDeskCore` in Swift).
 
 To change behaviour:
 
-1. Change the contract in `spec/` first: [`cli.md`](spec/cli.md), a schema, and a conformance case.
+1. Change the contract first: [`docs/specs/cli.md`](docs/specs/cli.md), a schema in `spec/`, and a conformance case.
 2. Implement it in `linux/core`.
 3. Implement it in `apple/core`, or list the case in [`apple/core/conformance-pending.txt`](apple/core/conformance-pending.txt) until it does.
 

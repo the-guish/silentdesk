@@ -1,4 +1,4 @@
-"""The one database file every app keeps its own tables in. See spec/storage.md."""
+"""The one database file every app keeps its own tables in. See docs/specs/storage.md."""
 
 from __future__ import annotations
 

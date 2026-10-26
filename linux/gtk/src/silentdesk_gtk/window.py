@@ -1,6 +1,6 @@
 """The main window: the topic queue, search, Refresh and automatic syncing,
 with the topic screen and the Services dialog over it. See
-spec/sync.md."""
+docs/specs/sync.md."""
 
 from __future__ import annotations
 

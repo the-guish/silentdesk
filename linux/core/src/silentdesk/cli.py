@@ -1,4 +1,4 @@
-"""`silentdesk`: the JSON command line specified in spec/cli.md. Each
+"""`silentdesk`: the JSON command line specified in docs/specs/cli.md. Each
 command is a thin wrapper around the matching function in `api`."""
 
 from __future__ import annotations
@@ -48,7 +48,7 @@ def _camel(name: str) -> str:
 
 def plain(value: Any) -> Any:
     """`value` as JSON-ready data: dataclasses become objects with camelCase
-    keys, as spec/cli.md requires, and enums their values."""
+    keys, as docs/specs/cli.md requires, and enums their values."""
     if dataclasses.is_dataclass(value) and not isinstance(value, type):
         return {_camel(field.name): plain(getattr(value, field.name)) for field in dataclasses.fields(value)}
     if isinstance(value, enum.Enum):

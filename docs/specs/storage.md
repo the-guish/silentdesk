@@ -3,13 +3,13 @@
 Both cores keep local data in one SQLite database file, with the same schema, so either core can open a database the other wrote.
 
 - **Location:** `silentdesk.db` in the data folder: `$XDG_DATA_HOME/silentdesk/` on Linux, by default `~/.local/share/silentdesk/`; `~/Library/Application Support/SilentDesk/` on macOS, unless `XDG_DATA_HOME` is set, as the conformance suite sets it. The folder is mode 0700 and the file 0600.
-- **Schema:** [`sql/`](sql) holds numbered migrations, `0001_init.sql` and up. A core runs, in order, every migration above the database's `PRAGMA user_version`, then sets `user_version` to the last one's number, all in one transaction. Migrations are never edited once released; a change is a new file.
+- **Schema:** [`sql/`](../../spec/sql) holds numbered migrations, `0001_init.sql` and up. A core runs, in order, every migration above the database's `PRAGMA user_version`, then sets `user_version` to the last one's number, all in one transaction. Migrations are never edited once released; a change is a new file.
 - **Ownership:** each app owns the tables whose names start with its name, such as `gmail_state`. No app reads another's tables.
 - **Foreign keys** are on (`PRAGMA foreign_keys = ON`) for every connection.
 
 ## Encryption at rest: SQLCipher
 
-Core principle 1 ([spec/core.md](core.md)) requires all local data to be encrypted at rest. The database is a [SQLCipher](https://www.zetetic.net/sqlcipher/) file: the whole file is encrypted, indexes included, and queries work as in plain SQLite.
+Core principle 1 ([docs/specs/core.md](core.md)) requires all local data to be encrypted at rest. The database is a [SQLCipher](https://www.zetetic.net/sqlcipher/) file: the whole file is encrypted, indexes included, and queries work as in plain SQLite.
 
 | Core | Library |
 |------|---------|
